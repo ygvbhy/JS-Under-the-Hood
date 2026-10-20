@@ -1,1 +1,89 @@
 @import 'tailwindcss';
+
+/* 디자인 토큰: 라이트 기본, 시스템 다크 모드에서 덮어쓴다. */
+:root {
+  color-scheme: light dark;
+  --bg: #fafaf9;
+  --surface: #ffffff;
+  --fg: #1c1917;
+  --muted: #57534e;
+  --border: #d6d3d1;
+  --accent: #b45309; /* amber-700: bg 위 텍스트 대비 AA */
+  --accent-fg: #ffffff;
+  --highlight: #fef3c7;
+  --danger: #b91c1c;
+  --success: #15803d;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1c1917;
+    --surface: #292524;
+    --fg: #fafaf9;
+    --muted: #a8a29e;
+    --border: #44403c;
+    --accent: #fcd34d; /* amber-300 */
+    --accent-fg: #1c1917;
+    --highlight: #422f0b;
+    --danger: #fca5a5;
+    --success: #86efac;
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --color-highlight: var(--highlight);
+  --color-danger: var(--danger);
+  --color-success: var(--success);
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR',
+    sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, Menlo, Consolas, 'Apple SD Gothic Neo', 'Malgun Gothic', monospace;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-fg);
+  font-family: var(--font-sans);
+  line-height: 1.7;
+  overflow-wrap: break-word;
+  /* 한국어 어절 중간에서 줄바꿈하지 않는다 */
+  word-break: keep-all;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Shiki 듀얼 테마: 빌드 결과는 라이트 색을 인라인 color/background-color로, 다크 색을
+   --shiki-dark/--shiki-dark-bg 변수로 내보낸다(defaultColor 기본값). 인라인 스타일을 이기려면 !important가 필요하다. */
+@media (prefers-color-scheme: dark) {
+  .shiki,
+  .shiki span {
+    color: var(--shiki-dark) !important;
+    background-color: var(--shiki-dark-bg) !important;
+  }
+}
+
+pre.shiki {
+  margin-block: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+pre.shiki code {
+  font-family: inherit;
+}

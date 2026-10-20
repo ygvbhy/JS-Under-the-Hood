@@ -500,3 +500,5 @@ export default [
   - 발견: `react-router build`가 기본 entry.server용 `isbot` 의존성을 요구(추가됨). `tsconfig types`에 `mdx` 필요. dev에서 예제 파일 수정이 MDX에 반영되지 않음(remark-code-import가 watch 의존성 미등록 → dev hydration 오류) → 2단계에서 예제 변경 시 같은 폴더 `content.mdx` 모듈을 무효화하는 소형 Vite 플러그인으로 해결. `serve@14.2.6`의 `compression` 취약점 경고(dev 전용, 보고)
 - [x] 2. 품질 도구 + 콘텐츠 모델·정확성 테스트 기반 — lint·format:check·typecheck 0, `npm test` 22 통과, build 성공. 음성 확인(expectedOutput 변조·없는 선행 slug·필수 h2 삭제) 각 테스트 실패 확인. dev 예제 HMR 플러그인(`vite.config.ts` `concept-example-hmr`)으로 예제 수정 즉시 반영 확인
   - 참고: Prettier가 MDX 코드 import 블록 안에 빈 줄을 넣음(동작 영향 없음 → content-guide에 명시)
+- [x] 3. 공통 레이아웃·홈·소개·404·SEO — lint·format·typecheck 0, `npm test` 31 통과, `npm run test:build` 8 통과(canonical·og·sitemap·robots·404 noindex·fallback 없음). 브라우저(메인 확인): `/?q=객체` 하이드레이션 후 입력값·결과 1개, 375px·다크모드에서 `/`·`/about`·개념 페이지 가로 스크롤 없음, Shiki 다크 배경 적용, 콘솔 에러 0. 한국어 어절 줄바꿈(`word-break: keep-all`) 메인이 추가
+  - 변경: Shiki는 라이트 색을 인라인으로 내보내므로 다크 미디어쿼리에서만 `--shiki-dark` 변수로 덮어씀. `.gitignore`/`.prettierignore`의 `build` → `/build`(tests/build 보호). 홈 그룹핑 헬퍼 `app/lib/concept-groups.ts` 추가. og:image는 8단계에서 추가

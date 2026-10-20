@@ -1,15 +1,20 @@
+import { buildMeta } from '~/lib/seo'
 import Content from './content.mdx'
 import { concept } from './meta'
 
 export function meta() {
-  return [{ title: `${concept.title} | JS Under the Hood` }]
+  return buildMeta({
+    title: concept.title,
+    description: concept.summary,
+    path: `/concepts/${concept.slug}`,
+  })
 }
 
 export default function ConceptRoute() {
   return (
-    <main>
+    <article>
       <h1>{concept.title}</h1>
       <Content />
-    </main>
+    </article>
   )
 }

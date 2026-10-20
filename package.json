@@ -14,7 +14,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:build": "npm run build && vitest run --config vitest.build.config.ts"
   },
   "dependencies": {
     "isbot": "5.2.2",
