@@ -509,3 +509,6 @@ export default [
   - 변경: 결과 표는 GFM 미도입(`remark-gfm` 의존성 미추가)으로 JSX `<table>`로 작성(문구 동일)
 - [x] 8. E2E·접근성 — 메인 재실행: `npx playwright test` 55 통과·3 건너뜀(no-JS 2·모바일 전용 1, 의도), axe(wcag2a/aa/21a/21aa) critical/serious 0(라이트·다크, 시뮬레이터 전 단계 진행 후 포함), `npm test` 125·`test:build` 16 통과, lint·format·typecheck 0
   - 제품 수정: Shiki 테마 `github-light`/`github-dark` → `-default` 변형(라이트 `#e36209` 대비 3.48:1 axe 위반, 다크 주석색 3.05:1). og:image(1200×630, `scripts/generate-og.mjs`로 생성) + `twitter:card: summary_large_image` 추가
+- [x] 9. 문서 + `vercel.json`(4단계 설정 파일만) — AGENTS.md 완성, `docs/content-guide.md`·`README.md` 추가. 더미 개념(`zz-dummy`)을 가이드만으로 추가 → 공통 코드 수정 없이 `npm test`·`test:build` 통과, 홈·sitemap 반영 확인 후 삭제
+  - 발견·수정: Vitest 5 `fsModuleCache`가 `import.meta.glob` 레지스트리를 캐시해 새 개념 폴더를 놓침 → `vitest.config.ts`에 `fsModuleCache: false`. 빌드 테스트의 `<details` 검사가 모든 개념에 퀴즈를 강제하던 것을 메인이 `<PredictQuiz` 사용 개념에만 적용하도록 수정(계획에 없던 제약 제거), 가이드 문구를 "권장"으로 조정
+- [ ] 4. Vercel Preview 검증 — 보류(D3: 사용자 GitHub·Vercel 연결 후 진행)

@@ -59,8 +59,9 @@ describe('개념 상세 HTML', () => {
     for (const heading of sections) {
       expect(html).toMatch(new RegExp(`<h2[^>]*>${heading}</h2>`))
     }
-    // PredictQuiz 하이드레이션 전 마크업(JS 없이 정답 열람 가능)
-    expect(html).toContain('<details')
+    // PredictQuiz를 쓰는 개념은 하이드레이션 전 마크업(JS 없이 정답 열람 가능)이 있어야 한다
+    const mdx = readFileSync(join(process.cwd(), 'app', 'concepts', slug, 'content.mdx'), 'utf8')
+    if (mdx.includes('<PredictQuiz')) expect(html).toContain('<details')
   })
 })
 
