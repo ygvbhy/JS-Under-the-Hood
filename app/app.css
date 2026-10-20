@@ -87,3 +87,33 @@ pre.shiki {
 pre.shiki code {
   font-family: inherit;
 }
+
+/* 개념 상세 페이지 폭 규칙
+   - 텍스트 블록(헤더·섹션·MDX 직계 자식)은 최대 70ch.
+   - `data-wide` 블록(시뮬레이터, MDX <Wide>)은 prose 열의 가운데를 기준으로 최대 1100px까지 확장한다.
+     main이 max-w-3xl 가운데 정렬이므로 `margin-left: 50% - 너비/2`로 좌우 대칭 돌출. */
+.concept-article {
+  --concept-wide: min(1100px, calc(100vw - 2rem));
+}
+
+/* .concept-body 자체는 main 전체 폭을 써야 data-wide 블록이 화면 가운데에 맞춰진다 */
+.concept-article > :not(.concept-body),
+.concept-body > * {
+  max-width: 70ch;
+}
+
+.concept-body > [data-wide] {
+  width: var(--concept-wide);
+  max-width: none;
+  margin-left: calc(50% - var(--concept-wide) / 2);
+}
+
+.concept-article :not(pre) > code {
+  padding: 0.1em 0.35em;
+  border: 1px solid var(--color-border);
+  border-radius: 0.25rem;
+  background-color: var(--color-surface);
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  overflow-wrap: anywhere;
+}

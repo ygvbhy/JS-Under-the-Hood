@@ -52,6 +52,14 @@ describe('개념 상세 HTML', () => {
     for (const heading of ['동작 원리', '예제', '결과와 이유']) {
       expect(text).toContain(heading)
     }
+    // ConceptLayout이 메타데이터로 그리는 섹션 (선행 개념은 prerequisites가 있는 개념만)
+    const sections = ['학습 목표', '이 시각화에서 단순화한 부분', '참고 자료']
+    if (concept.prerequisites.length > 0) sections.push('선행 개념')
+    for (const heading of sections) {
+      expect(html).toMatch(new RegExp(`<h2[^>]*>${heading}</h2>`))
+    }
+    // PredictQuiz 하이드레이션 전 마크업(JS 없이 정답 열람 가능)
+    expect(html).toContain('<details')
   })
 })
 

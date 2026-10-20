@@ -1,3 +1,5 @@
+import { ConceptLayout } from '~/components/concept/ConceptLayout'
+import { mdxComponents } from '~/components/concept/mdx-components'
 import { buildMeta } from '~/lib/seo'
 import Content from './content.mdx'
 import { concept } from './meta'
@@ -12,9 +14,8 @@ export function meta() {
 
 export default function ConceptRoute() {
   return (
-    <article>
-      <h1>{concept.title}</h1>
-      <Content />
-    </article>
+    <ConceptLayout concept={concept}>
+      <Content components={mdxComponents} />
+    </ConceptLayout>
   )
 }

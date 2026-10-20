@@ -12,8 +12,19 @@ import { Counter } from './Counter'
 
 ```
 
+<PredictQuiz
+  question="위 코드를 실행하면 console.log(a, b)는 무엇을 출력할까요?"
+  choices={['10 20', '20 20', '10 10']}
+  answer={0}
+  explanation="b에 다시 값을 대입(재할당)해도 a가 가진 값은 바뀌지 않으므로 a는 10, b는 20이다."
+/>
+
 <Counter />
 
 ## 결과와 이유
 
 `b`를 재할당해도 `a`는 그대로다.
+
+<Callout type="misconception" title="재할당과 변경">
+  임시 내용: 다른 변수에 값을 대입하는 것과 객체를 변경하는 것은 다르다.
+</Callout>
