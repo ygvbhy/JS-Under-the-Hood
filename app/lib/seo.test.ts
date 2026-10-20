@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildMeta } from './seo'
+import { buildMeta, OG_IMAGE_ALT, OG_IMAGE_HEIGHT, OG_IMAGE_URL, OG_IMAGE_WIDTH } from './seo'
 import { SITE_NAME, SITE_URL } from './site'
 
 describe('buildMeta', () => {
@@ -27,7 +27,17 @@ describe('buildMeta', () => {
     expect(meta).toContainEqual({ property: 'og:description', content: '설명' })
     expect(meta).toContainEqual({ property: 'og:url', content: `${SITE_URL}/about` })
     expect(meta).toContainEqual({ property: 'og:locale', content: 'ko_KR' })
-    expect(meta).toContainEqual({ name: 'twitter:card', content: 'summary' })
+    expect(meta).toContainEqual({ name: 'twitter:card', content: 'summary_large_image' })
+  })
+
+  it('og:image는 절대 URL이고 크기·대체 텍스트를 함께 둔다', () => {
+    const meta = buildMeta({ description: '설명', path: '/' })
+    expect(OG_IMAGE_URL).toBe(`${SITE_URL}/og-default.png`)
+    expect(OG_IMAGE_URL).toMatch(/^https?:\/\//)
+    expect(meta).toContainEqual({ property: 'og:image', content: OG_IMAGE_URL })
+    expect(meta).toContainEqual({ property: 'og:image:width', content: String(OG_IMAGE_WIDTH) })
+    expect(meta).toContainEqual({ property: 'og:image:height', content: String(OG_IMAGE_HEIGHT) })
+    expect(meta).toContainEqual({ property: 'og:image:alt', content: OG_IMAGE_ALT })
   })
 
   it('SITE_URL 끝에 슬래시가 없다', () => {

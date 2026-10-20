@@ -30,7 +30,10 @@ export default defineConfig({
       enforce: 'pre',
       ...mdx({
         remarkPlugins: [[remarkCodeImport, {}]],
-        rehypePlugins: [[rehypeShiki, { themes: { light: 'github-light', dark: 'github-dark' } }]],
+        // 두 테마 모두 모든 토큰 색이 배경 대비 WCAG AA(4.5:1) 이상이다(github-light의 주황, github-dark의 주석 색은 미달)
+        rehypePlugins: [
+          [rehypeShiki, { themes: { light: 'github-light-default', dark: 'github-dark-default' } }],
+        ],
       }),
     },
     tailwindcss(),

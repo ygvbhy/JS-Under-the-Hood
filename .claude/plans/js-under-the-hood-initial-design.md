@@ -507,3 +507,5 @@ export default [
 - [x] 6. 시뮬레이터 공통 최소 단위 — `useStepper`·`StepControls`·`CodeView` + 테스트 29개 통과(경계·자동재생 정지·속도·수동 이동 정지·reset·goTo·끝에서 재생 시 처음부터·언마운트 타이머 0·total 변경 리셋). CodeView는 페이지 스크롤 방지를 위해 `scrollIntoView` 대신 블록 내부 `scrollTop` 사용
 - [~] 7. 첫 개념: 원시 값과 객체 — 구현·자동 검증 완료, **사용자 콘텐츠 검토 대기**(`reviewedAt: null`). lint·format·typecheck 0, `npm test` 124 통과(예제 실제 출력 `10 20 1 2`·`2 true`·`99 1`, 시나리오 불변식 ①~⑥), `npm run test:build` 11 통과(시뮬레이터 단계 0 프리렌더, `data-wide`가 `.concept-body` 직계). 메인이 `scenarios.ts` 22단계를 콘텐츠 명세와 대조(문장·line·상태·출력 일치), 1280px에서 함수 시나리오 7단계 화면 확인
   - 변경: 결과 표는 GFM 미도입(`remark-gfm` 의존성 미추가)으로 JSX `<table>`로 작성(문구 동일)
+- [x] 8. E2E·접근성 — 메인 재실행: `npx playwright test` 55 통과·3 건너뜀(no-JS 2·모바일 전용 1, 의도), axe(wcag2a/aa/21a/21aa) critical/serious 0(라이트·다크, 시뮬레이터 전 단계 진행 후 포함), `npm test` 125·`test:build` 16 통과, lint·format·typecheck 0
+  - 제품 수정: Shiki 테마 `github-light`/`github-dark` → `-default` 변형(라이트 `#e36209` 대비 3.48:1 axe 위반, 다크 주석색 3.05:1). og:image(1200×630, `scripts/generate-og.mjs`로 생성) + `twitter:card: summary_large_image` 추가

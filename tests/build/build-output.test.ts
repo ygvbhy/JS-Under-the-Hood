@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { listConcepts } from '~/lib/concepts'
+import { OG_IMAGE_HEIGHT, OG_IMAGE_URL, OG_IMAGE_WIDTH } from '~/lib/seo'
 import { SITE_NAME, SITE_URL } from '~/lib/site'
 
 // L5: 프리렌더·SEO 빌드 결과. `npm run build` 이후의 build/client를 검사한다.
@@ -125,6 +126,34 @@ describe('404', () => {
 
   it('__spa-fallback.html은 없다', () => {
     expect(existsSync(join(clientDir, '__spa-fallback.html'))).toBe(false)
+  })
+})
+
+describe('OG 이미지', () => {
+  const pages = [
+    'index.html',
+    'about/index.html',
+    '404.html',
+    ...concepts.map((c) => `concepts/${c.slug}/index.html`),
+  ]
+
+  it.each(pages)('%s에 og:image·twitter:card 메타가 있다', (page) => {
+    const html = read(page)
+    expect(html).toContain(`<meta property="og:image" content="${OG_IMAGE_URL}"`)
+    expect(html).toContain(`<meta property="og:image:width" content="${OG_IMAGE_WIDTH}"`)
+    expect(html).toContain(`<meta property="og:image:height" content="${OG_IMAGE_HEIGHT}"`)
+    expect(html).toContain('property="og:image:alt"')
+    expect(html).toContain('<meta name="twitter:card" content="summary_large_image"')
+  })
+
+  it('og-default.png가 1200×630 PNG이고 200KB 미만이다', () => {
+    expect(existsSync(join(clientDir, 'og-default.png'))).toBe(true)
+    const png = readFileSync(join(clientDir, 'og-default.png'))
+    expect(png.subarray(1, 4).toString('ascii')).toBe('PNG')
+    // IHDR: 바이트 16~23에 너비·높이(big-endian)
+    expect(png.readUInt32BE(16)).toBe(OG_IMAGE_WIDTH)
+    expect(png.readUInt32BE(20)).toBe(OG_IMAGE_HEIGHT)
+    expect(png.length).toBeLessThan(200 * 1024)
   })
 })
 
