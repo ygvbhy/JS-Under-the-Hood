@@ -502,3 +502,6 @@ export default [
   - 참고: Prettier가 MDX 코드 import 블록 안에 빈 줄을 넣음(동작 영향 없음 → content-guide에 명시)
 - [x] 3. 공통 레이아웃·홈·소개·404·SEO — lint·format·typecheck 0, `npm test` 31 통과, `npm run test:build` 8 통과(canonical·og·sitemap·robots·404 noindex·fallback 없음). 브라우저(메인 확인): `/?q=객체` 하이드레이션 후 입력값·결과 1개, 375px·다크모드에서 `/`·`/about`·개념 페이지 가로 스크롤 없음, Shiki 다크 배경 적용, 콘솔 에러 0. 한국어 어절 줄바꿈(`word-break: keep-all`) 메인이 추가
   - 변경: Shiki는 라이트 색을 인라인으로 내보내므로 다크 미디어쿼리에서만 `--shiki-dark` 변수로 덮어씀. `.gitignore`/`.prettierignore`의 `build` → `/build`(tests/build 보호). 홈 그룹핑 헬퍼 `app/lib/concept-groups.ts` 추가. og:image는 8단계에서 추가
+- [x] 5. 개념 상세 템플릿 + MDX 공통 컴포넌트 — lint·format·typecheck 0, `npm test` 통과(PredictQuiz·ReviewBadge·PrerequisiteList·slugify 단위), `npm run test:build` 8 통과(학습 목표·단순화·참고 자료·선행 개념 섹션, `<details`). 브라우저: 퀴즈 하이드레이션·정답/오답·다시 풀기 동작, 375px 가로 스크롤 없음. 메인 수정: `data-wide` 블록이 본문 열 기준으로 비대칭 정렬되던 문제 → `.concept-body`를 70ch 제한에서 제외해 화면 가운데 정렬(1150px에서 좌우 25/25px, 375px에서 16/16px)
+  - 구현 메모: inline code 스타일은 MDX 컴포넌트 대신 CSS(`.concept-article :not(pre) > code`), 제목 앵커 `#` 상시 표시(axe 대비), `<Wide>` MDX 컴포넌트 제공
+- [x] 6. 시뮬레이터 공통 최소 단위 — `useStepper`·`StepControls`·`CodeView` + 테스트 29개 통과(경계·자동재생 정지·속도·수동 이동 정지·reset·goTo·끝에서 재생 시 처음부터·언마운트 타이머 0·total 변경 리셋). CodeView는 페이지 스크롤 방지를 위해 `scrollIntoView` 대신 블록 내부 `scrollTop` 사용
