@@ -8,7 +8,7 @@ type Props = {
 }
 
 const buttonClass =
-  'inline-flex min-h-10 min-w-10 items-center justify-center rounded-md border border-border bg-surface px-2 text-fg hover:bg-highlight disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-surface'
+  'inline-flex min-h-10 min-w-10 items-center justify-center rounded-md border border-border bg-surface px-2 text-fg hover:bg-highlight aria-disabled:cursor-not-allowed aria-disabled:opacity-40 aria-disabled:hover:bg-surface'
 
 function Icon({ children }: { children: ReactNode }) {
   return (
@@ -59,14 +59,20 @@ export function StepControls({ stepper, autoplay = true, label = '단계 이동'
   const { index, total, isFirst, isLast, playing, speed } = stepper
   const speedId = useId()
 
+  // 네이티브 disabled는 버튼이 자신의 동작으로 비활성화될 때 포커스를 <body>로 잃게 한다.
+  // 그래서 aria-disabled를 쓰고, 비활성 상태의 클릭은 무시한다. 포커스는 버튼에 그대로 남는다.
+  const guarded = (disabled: boolean, action: () => void) => () => {
+    if (!disabled) action()
+  }
+
   return (
     <div role="group" aria-label={label} className="flex flex-wrap items-center gap-2">
       <button
         type="button"
         className={buttonClass}
         aria-label="처음으로"
-        disabled={isFirst}
-        onClick={stepper.reset}
+        aria-disabled={isFirst ? true : undefined}
+        onClick={guarded(isFirst, stepper.reset)}
       >
         <FirstIcon />
       </button>
@@ -74,8 +80,8 @@ export function StepControls({ stepper, autoplay = true, label = '단계 이동'
         type="button"
         className={buttonClass}
         aria-label="이전"
-        disabled={isFirst}
-        onClick={stepper.prev}
+        aria-disabled={isFirst ? true : undefined}
+        onClick={guarded(isFirst, stepper.prev)}
       >
         <PrevIcon />
       </button>
@@ -93,8 +99,8 @@ export function StepControls({ stepper, autoplay = true, label = '단계 이동'
         type="button"
         className={buttonClass}
         aria-label="다음"
-        disabled={isLast}
-        onClick={stepper.next}
+        aria-disabled={isLast ? true : undefined}
+        onClick={guarded(isLast, stepper.next)}
       >
         <NextIcon />
       </button>

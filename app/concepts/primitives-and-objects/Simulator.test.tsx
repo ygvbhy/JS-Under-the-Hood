@@ -1,6 +1,6 @@
-import { render, screen, within } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Simulator } from './Simulator'
 import { scenarios } from './scenarios'
 
@@ -92,7 +92,7 @@ describe('Simulator', () => {
     const consolePanel = screen.getByRole('region', { name: '콘솔 출력' })
     expect(within(consolePanel).getByText('2 true')).toBeInTheDocument()
     expect(highlightedLine()).toContain('console.log(p.n, p === q);')
-    expect(next).toBeDisabled()
+    expect(next).toHaveAttribute('aria-disabled', 'true')
   })
 
   it('함수에 전달 시나리오: 호출 종료 단계에서 호출 영역이 사라지고 객체 B가 흐려진다', async () => {
@@ -105,15 +105,81 @@ describe('Simulator', () => {
     for (let i = 0; i < 4; i++) await user.click(next)
     expect(screen.getByText('단계 8: 호출 종료')).toBeInTheDocument()
     expect(screen.queryByText('change(o, x) 호출')).not.toBeInTheDocument()
-    expect(screen.getByText('더 이상 참조되지 않음')).toBeInTheDocument()
+    expect(screen.getByText('더 이상 접근할 수 없음')).toBeInTheDocument()
   })
 
-  it('자동 재생 중에는 설명 영역의 aria-live가 꺼진다', async () => {
+  it('화살표 키는 비활성(aria-disabled) 상태의 컨트롤 버튼에 포커스가 있어도 동작한다', async () => {
     const user = userEvent.setup()
     render(<Simulator scenarios={scenarios} />)
-    const explanation = screen.getByText('단계 1: 실행 전').parentElement!
-    expect(explanation).toHaveAttribute('aria-live', 'polite')
-    await user.click(screen.getByRole('button', { name: '자동 재생' }))
-    expect(explanation).toHaveAttribute('aria-live', 'off')
+    const prev = screen.getByRole('button', { name: '이전' })
+    prev.focus()
+    expect(prev).toHaveAttribute('aria-disabled', 'true')
+    await user.keyboard('{ArrowRight}')
+    expect(screen.getByText('단계 2: a에 10을 넣음')).toBeInTheDocument()
+    expect(document.activeElement).toBe(prev)
+    await user.keyboard('{ArrowLeft}')
+    expect(screen.getByText('단계 1: 실행 전')).toBeInTheDocument()
+  })
+
+  describe('스크린 리더 안내', () => {
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('설명 패널 자체에는 aria-live가 없고, 별도 sr-only status 영역이 polite로 있다', () => {
+      render(<Simulator scenarios={scenarios} />)
+      const panel = screen.getByText('단계 1: 실행 전').parentElement!
+      expect(panel).not.toHaveAttribute('aria-live')
+      const live = screen.getByRole('status')
+      expect(live).toHaveAttribute('aria-live', 'polite')
+      expect(live).toHaveClass('sr-only')
+    })
+
+    it('처음에는 비어 있고, 다음을 누르면 해당 단계가 안내된다', async () => {
+      const user = userEvent.setup()
+      render(<Simulator scenarios={scenarios} />)
+      const live = screen.getByRole('status')
+      expect(live).toHaveTextContent('')
+      await user.click(screen.getByRole('button', { name: '다음' }))
+      expect(live).toHaveTextContent(/^단계 2: a에 10을 넣음\. /)
+      expect(live.textContent).toContain(scenarios[0].steps[1].explanation)
+    })
+
+    it('자동 재생 중에는 안내가 바뀌지 않고, 일시정지하면 현재 단계가 안내된다', () => {
+      vi.useFakeTimers()
+      render(<Simulator scenarios={scenarios} />)
+      const live = screen.getByRole('status')
+      const click = (name: string) =>
+        act(() => {
+          screen.getByRole('button', { name }).click()
+        })
+
+      click('다음') // 단계 2 안내
+      const before = live.textContent
+      expect(before).toMatch(/^단계 2:/)
+
+      click('자동 재생')
+      for (let i = 0; i < 2; i++) act(() => void vi.advanceTimersByTime(1500)) // 단계 4까지 진행
+      expect(screen.getByText('단계 4 / 8')).toBeInTheDocument()
+      expect(live.textContent).toBe(before)
+
+      click('일시정지')
+      expect(live.textContent).toMatch(/^단계 4:/)
+      expect(live.textContent).toContain(scenarios[0].steps[3].explanation)
+    })
+
+    it('마지막 단계에서 자동 정지하면 마지막 단계가 한 번 안내된다', () => {
+      vi.useFakeTimers()
+      render(<Simulator scenarios={scenarios} />)
+      const live = screen.getByRole('status')
+      act(() => {
+        screen.getByRole('button', { name: '자동 재생' }).click()
+      })
+      expect(live).toHaveTextContent('')
+      const lastIndex = scenarios[0].steps.length
+      for (let i = 1; i < lastIndex; i++) act(() => void vi.advanceTimersByTime(1500))
+      expect(screen.getByRole('button', { name: '자동 재생' })).toBeInTheDocument()
+      expect(live.textContent).toMatch(new RegExp(`^단계 ${lastIndex}:`))
+    })
   })
 })

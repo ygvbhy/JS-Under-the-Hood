@@ -23,6 +23,21 @@ export function Simulator({ scenarios }: Props) {
   const prevState = stepper.index > 0 ? scenario.steps[stepper.index - 1].state : undefined
   const output = step.output ?? []
 
+  // 스크린 리더용 안내(항상 aria-live="polite"인 sr-only 영역). 재생이 아닐 때 단계가 바뀌면 그 단계를,
+  // 재생이 멈추면(일시정지·마지막 단계 자동 정지) 현재 단계를 한 번 읽는다. 재생 중에는 값을 고정한다.
+  // 프리렌더·첫 렌더는 빈 문자열이라 페이지를 열 때 읽지 않고, 사용자 조작으로 단계·시나리오·재생 상태가
+  // 처음 바뀐 뒤부터 채워진다. effect 대신 렌더 중 상태 조정(useStepper와 같은 방식)을 써서
+  // 단계 변경과 같은 커밋에 반영한다.
+  const announceKey = `${scenario.id}:${stepper.index}:${stepper.playing}`
+  const [prevAnnounceKey, setPrevAnnounceKey] = useState(announceKey)
+  const [announcement, setAnnouncement] = useState('')
+  if (prevAnnounceKey !== announceKey) {
+    setPrevAnnounceKey(announceKey)
+    if (!stepper.playing) {
+      setAnnouncement(`단계 ${stepper.index + 1}: ${step.title}. ${step.explanation}`)
+    }
+  }
+
   const selectScenario = (id: string) => {
     setScenarioId(id)
     stepper.reset() // 단계 수가 같은 시나리오로 바꿔도 처음으로 돌아가도록 명시적으로 초기화
@@ -89,15 +104,14 @@ export function Simulator({ scenarios }: Props) {
 
         <div className="min-w-0 space-y-4 lg:col-start-2 lg:row-span-2 lg:row-start-2 lg:self-start">
           <MemoryView state={step.state} prevState={prevState} />
-          <div
-            aria-live={stepper.playing ? 'off' : 'polite'}
-            aria-atomic="true"
-            className="border-border bg-surface rounded-lg border px-3 py-2"
-          >
+          <div className="border-border bg-surface rounded-lg border px-3 py-2">
             <p className="font-semibold">
               단계 {stepper.index + 1}: {step.title}
             </p>
             <p className="mt-1">{step.explanation}</p>
+          </div>
+          <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+            {announcement}
           </div>
         </div>
 

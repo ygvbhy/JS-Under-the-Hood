@@ -512,3 +512,9 @@ export default [
 - [x] 9. 문서 + `vercel.json`(4단계 설정 파일만) — AGENTS.md 완성, `docs/content-guide.md`·`README.md` 추가. 더미 개념(`zz-dummy`)을 가이드만으로 추가 → 공통 코드 수정 없이 `npm test`·`test:build` 통과, 홈·sitemap 반영 확인 후 삭제
   - 발견·수정: Vitest 5 `fsModuleCache`가 `import.meta.glob` 레지스트리를 캐시해 새 개념 폴더를 놓침 → `vitest.config.ts`에 `fsModuleCache: false`. 빌드 테스트의 `<details` 검사가 모든 개념에 퀴즈를 강제하던 것을 메인이 `<PredictQuiz` 사용 개념에만 적용하도록 수정(계획에 없던 제약 제거), 가이드 문구를 "권장"으로 조정
 - [ ] 4. Vercel Preview 검증 — 보류(D3: 사용자 GitHub·Vercel 연결 후 진행)
+- 리뷰 1차 (critical-code-review, 영역별 서브에이전트 3개 + 메인 재확인): High 7건 수정 → 재검증 통과
+  - 콘텐츠 정확성(프로젝트 요구사항상 High로 상향): 명세 정의처럼 보이는 인용 제거·대입/선언 시 초기화 구분, `arguments` 객체 생략 공개, "아직 이 코드가 만든 객체가 없습니다", "더 이상 접근할 수 없음"(참조되지 않음 단정 제거), 내장 객체 미표시 단순화 추가
+  - 접근성: StepControls `disabled` → `aria-disabled`(자기 동작으로 비활성화될 때 포커스 유실), 정지 시 현재 단계 1회 안내하는 sr-only status 영역
+  - 테스트: `vitest.build.config.ts`에도 `fsModuleCache: false`(새 개념이 test:build에서 조용히 누락되던 문제 — 9단계 더미 검증이 첫 실행에서만 통과했던 것으로 판단), 개념 수 = 폴더 수 가드(양쪽), 계획 L4 `filterConcepts` 단위 테스트 추가(3단계 누락분), content-guide의 e2e 적용 범위 문구 정정
+  - 재검증: lint·format·typecheck 0, `npm test` 141, `test:build` 17, e2e 55 통과·3 건너뜀. zz-check 개념 임시 추가 시 test:build가 새 개념을 수집함을 확인 후 삭제
+  - Medium/Low는 보고만(수정 안 함)

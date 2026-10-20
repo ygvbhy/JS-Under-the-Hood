@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { listConcepts } from '~/lib/concepts'
@@ -39,6 +39,16 @@ function firstProseLine(slug: string): string {
 }
 
 const concepts = listConcepts()
+
+// 레지스트리(import.meta.glob)가 옛 파일 목록에 얼어붙으면 새 개념이 조용히 검사에서 빠진다
+describe('개념 레지스트리', () => {
+  it('개념 수가 app/concepts의 폴더 수와 같다', () => {
+    const folders = readdirSync(join(process.cwd(), 'app', 'concepts'), { withFileTypes: true })
+      .filter((d) => d.isDirectory())
+      .map((d) => d.name)
+    expect(concepts).toHaveLength(folders.length)
+  })
+})
 
 describe('개념 상세 HTML', () => {
   it.each(concepts.map((c) => [c.slug, c] as const))('%s', (slug, concept) => {

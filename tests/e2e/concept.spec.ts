@@ -2,7 +2,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test'
 import { CONCEPT_PATH, SIMULATOR_NAME, collectConsoleErrors, waitForHydration } from './helpers'
 
 const simulator = (page: Page) => page.getByRole('region', { name: SIMULATOR_NAME })
-const liveRegion = (region: Locator) => region.locator('[aria-live][aria-atomic="true"]')
+const liveRegion = (region: Locator) => region.getByRole('status')
 const currentLine = (region: Locator) => region.locator('[aria-current="step"]')
 const bindingRow = (region: Locator, name: string) =>
   region
@@ -94,7 +94,8 @@ test.describe('개념 상세', () => {
     }
 
     await expect(region.getByText('단계 5 / 5')).toBeVisible()
-    await expect(next).toBeDisabled()
+    await expect(next).toHaveAttribute('aria-disabled', 'true')
+    await expect(next).toBeFocused()
     await expect(region.getByRole('list').filter({ hasText: '2 true' })).toBeVisible()
 
     await region.getByRole('button', { name: '처음으로' }).click()
@@ -137,7 +138,9 @@ test.describe('개념 상세', () => {
     await page.keyboard.press('Tab')
     await expect(region).toBeFocused()
 
-    await expect(live).toContainText('단계 1:')
+    // 안내(sr-only status)는 처음에는 비어 있고, 사용자 조작 뒤부터 현재 단계를 담는다
+    await expect(live).toHaveText('')
+    await expect(live).toHaveAttribute('aria-live', 'polite')
     await page.keyboard.press('ArrowRight')
     await expect(live).toContainText('단계 2:')
     await expect(region.getByText('단계 2 / 8')).toBeVisible()
@@ -147,18 +150,20 @@ test.describe('개념 상세', () => {
     await expect(live).toContainText('단계 2:')
     await page.keyboard.press('Home')
     await expect(live).toContainText('단계 1:')
-    await expect(live).toHaveAttribute('aria-live', 'polite')
 
     // 단계 컨트롤 버튼에 포커스가 있어도 같은 키가 동작한다
     await region.getByRole('button', { name: '다음' }).focus()
     await page.keyboard.press('ArrowRight')
     await expect(live).toContainText('단계 2:')
 
-    // 자동 재생 중에는 live region이 안내를 끈다
+    // 자동 재생 중에는 안내가 고정되고, 멈추면 현재 단계가 안내된다
     await region.getByRole('button', { name: '자동 재생' }).click()
-    await expect(live).toHaveAttribute('aria-live', 'off')
+    await expect(region.getByText(/단계 [4-8] \/ 8/)).toBeVisible() // 재생이 진행된다
+    await expect(live).toContainText('단계 2:')
     await region.getByRole('button', { name: '일시정지' }).click()
-    await expect(live).toHaveAttribute('aria-live', 'polite')
+    const current = await region.getByText(/^단계 \d \/ 8$/).textContent()
+    const n = current!.match(/단계 (\d)/)![1]
+    await expect(live).toContainText(`단계 ${n}:`)
     expect(errors.messages).toEqual([])
   })
 

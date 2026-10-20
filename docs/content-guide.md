@@ -150,7 +150,7 @@ export default function ConceptRoute() {
 npm run lint && npm run format:check && npm run typecheck && npm test && npm run test:build && npm run e2e
 ```
 
-`format:check`가 실패하면 `npm run format`으로 고칩니다. 개념 페이지가 늘면 `e2e`도 새 페이지를 거치므로 실패하면 내용(접근성, 모바일 넘침 등)을 확인합니다.
+`format:check`가 실패하면 `npm run format`으로 고칩니다. `e2e`·axe·가로 스크롤 검사는 현재 첫 개념 페이지만 대상이므로, 새 개념을 추가하면 브라우저에서 375px·다크 모드·키보드 조작을 직접 확인하고 필요하면 `e2e`에 경로를 추가합니다.
 
 ### 10. 사용자 검토 후 `reviewedAt` 기록
 

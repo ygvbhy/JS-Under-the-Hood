@@ -106,7 +106,7 @@ describe('MemoryView', () => {
     expect(screen.queryByText('새로 생김')).not.toBeInTheDocument()
   })
 
-  it('어떤 변수도 가리키지 않는 객체에 "더 이상 참조되지 않음"을 표시한다', () => {
+  it('어떤 변수도 가리키지 않는 객체에 "더 이상 접근할 수 없음"을 표시한다', () => {
     const state: MemoryState = {
       scopes: [
         {
@@ -122,8 +122,8 @@ describe('MemoryView', () => {
     }
     render(<MemoryView state={state} />)
     const cardB = screen.getByText('객체 B').closest('li')!
-    expect(within(cardB).getByText('더 이상 참조되지 않음')).toBeInTheDocument()
-    expect(screen.getAllByText('더 이상 참조되지 않음')).toHaveLength(1)
+    expect(within(cardB).getByText('더 이상 접근할 수 없음')).toBeInTheDocument()
+    expect(screen.getAllByText('더 이상 접근할 수 없음')).toHaveLength(1)
   })
 
   it('표시할 것이 없으면 빈 상태 문구를 보여 준다', () => {

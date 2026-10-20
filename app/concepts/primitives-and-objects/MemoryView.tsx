@@ -140,7 +140,7 @@ function ObjectCard({
         object.changed ? `${changedClass} border-accent` : 'border-border bg-surface'
       } ${referenced ? '' : 'border-dashed'}`}
     >
-      {/* 참조되지 않는 객체는 내용만 흐리게 하고, 안내 문구는 대비를 지키도록 흐리지 않는다 */}
+      {/* 접근할 수 없는 객체(어떤 바인딩·객체 프로퍼티도 쓰지 않음)는 내용만 흐리게 하고, 안내 문구는 대비를 지키도록 흐리지 않는다 */}
       <div className={`${fade} ${referenced ? '' : 'opacity-70'}`}>
         <p className="flex items-center gap-2 font-semibold">
           {object.label}
@@ -158,7 +158,7 @@ function ObjectCard({
           ))}
         </ul>
       </div>
-      {!referenced && <p className="text-muted mt-1 text-xs">더 이상 참조되지 않음</p>}
+      {!referenced && <p className="text-muted mt-1 text-xs">더 이상 접근할 수 없음</p>}
     </li>
   )
 }
@@ -279,7 +279,7 @@ export function MemoryView({ state, prevState }: Props) {
             객체
           </p>
           {state.objects.length === 0 ? (
-            <p className="text-muted text-sm">아직 만들어진 객체가 없습니다.</p>
+            <p className="text-muted text-sm">아직 이 코드가 만든 객체가 없습니다.</p>
           ) : (
             <ul className="space-y-2">
               {state.objects.map((o) => (

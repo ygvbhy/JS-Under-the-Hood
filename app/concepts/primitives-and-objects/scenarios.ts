@@ -330,7 +330,7 @@ const passSteps: MemStep[] = [
   {
     title: '호출 종료',
     explanation:
-      '함수 본문이 끝나 호출이 종료됩니다. 매개변수 obj와 num은 이제 쓰이지 않고, 객체 B를 값으로 가진 변수도 더 이상 없습니다.',
+      '함수 본문이 끝나 호출이 종료됩니다. 이제 어떤 코드로도 매개변수 obj와 num, 그리고 객체 B에 접근할 수 없습니다.',
     line: { from: 5, to: 5 },
     state: {
       scopes: [top([bind('o', 'const', ref('A')), bind('x', 'let', num(1))])],

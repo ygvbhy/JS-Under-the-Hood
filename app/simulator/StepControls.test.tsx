@@ -12,9 +12,12 @@ function Harness({ total = 3, autoplay }: { total?: number; autoplay?: boolean }
 describe('StepControls', () => {
   it('첫 단계에서는 처음으로·이전이 비활성화된다', () => {
     render(<Harness />)
-    expect(screen.getByRole('button', { name: '처음으로' })).toBeDisabled()
-    expect(screen.getByRole('button', { name: '이전' })).toBeDisabled()
-    expect(screen.getByRole('button', { name: '다음' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: '처음으로' })).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    )
+    expect(screen.getByRole('button', { name: '이전' })).toHaveAttribute('aria-disabled', 'true')
+    expect(screen.getByRole('button', { name: '다음' })).not.toHaveAttribute('aria-disabled')
     expect(screen.getByText('단계 1 / 3')).toBeInTheDocument()
   })
 
@@ -23,10 +26,46 @@ describe('StepControls', () => {
     render(<Harness />)
     await user.click(screen.getByRole('button', { name: '다음' }))
     await user.click(screen.getByRole('button', { name: '다음' }))
-    expect(screen.getByRole('button', { name: '다음' })).toBeDisabled()
-    expect(screen.getByRole('button', { name: '이전' })).toBeEnabled()
-    expect(screen.getByRole('button', { name: '처음으로' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: '다음' })).toHaveAttribute('aria-disabled', 'true')
+    expect(screen.getByRole('button', { name: '이전' })).not.toHaveAttribute('aria-disabled')
+    expect(screen.getByRole('button', { name: '처음으로' })).not.toHaveAttribute('aria-disabled')
     expect(screen.getByText('단계 3 / 3')).toBeInTheDocument()
+  })
+
+  it('비활성(aria-disabled) 버튼을 눌러도 단계가 바뀌지 않는다', async () => {
+    const user = userEvent.setup()
+    render(<Harness />)
+    await user.click(screen.getByRole('button', { name: '이전' }))
+    await user.click(screen.getByRole('button', { name: '처음으로' }))
+    expect(screen.getByText('단계 1 / 3')).toBeInTheDocument()
+  })
+
+  it('다음을 눌러 마지막 단계가 되어도 포커스가 버튼에 남는다', async () => {
+    const user = userEvent.setup()
+    render(<Harness />)
+    const next = screen.getByRole('button', { name: '다음' })
+    next.focus()
+    await user.click(next)
+    await user.click(next)
+    expect(screen.getByText('단계 3 / 3')).toBeInTheDocument()
+    expect(next).toHaveAttribute('aria-disabled', 'true')
+    expect(document.activeElement).toBe(next)
+  })
+
+  it('처음으로·이전으로 첫 단계에 도달해도 포커스가 버튼에 남는다', async () => {
+    const user = userEvent.setup()
+    render(<Harness />)
+    await user.click(screen.getByRole('button', { name: '다음' }))
+    const first = screen.getByRole('button', { name: '처음으로' })
+    await user.click(first)
+    expect(first).toHaveAttribute('aria-disabled', 'true')
+    expect(document.activeElement).toBe(first)
+
+    await user.click(screen.getByRole('button', { name: '다음' }))
+    const prev = screen.getByRole('button', { name: '이전' })
+    await user.click(prev)
+    expect(prev).toHaveAttribute('aria-disabled', 'true')
+    expect(document.activeElement).toBe(prev)
   })
 
   it('다음을 누르면 단계가 진행되고 처음으로를 누르면 되돌아간다', async () => {

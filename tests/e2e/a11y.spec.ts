@@ -53,7 +53,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
       for (const scenario of ['재할당', '변경', '함수에 전달']) {
         await region.getByRole('radio', { name: scenario }).check()
         const next = region.getByRole('button', { name: '다음' })
-        // 변경됨 배지, 참조되지 않는 객체 등 단계마다 달라지는 표시를 모두 검사한다
+        // 변경됨 배지, 접근할 수 없는 객체 등 단계마다 달라지는 표시를 모두 검사한다
         for (let i = 0; i < 8 && (await next.isEnabled()); i++) {
           await next.click()
           await expectNoSeriousViolations(page)

@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import type { ConceptMeta } from '~/lib/concepts'
+import { listConcepts, type ConceptMeta } from '~/lib/concepts'
 
 // L3: 메타데이터·콘텐츠 무결성. 레지스트리와 같은 glob을 쓰되 폴더명을 키에서 직접 뽑는다.
 const modules = import.meta.glob<{ concept: ConceptMeta }>('../app/concepts/*/meta.ts', {
@@ -24,6 +24,12 @@ const REQUIRED_H2 = ['동작 원리', '예제', '결과와 이유']
 describe('개념 폴더', () => {
   it('개념이 하나 이상 있다', () => {
     expect(entries.length).toBeGreaterThan(0)
+  })
+
+  // 레지스트리(import.meta.glob)가 옛 파일 목록에 얼어붙으면 새 개념이 조용히 검사에서 빠진다
+  it('레지스트리의 개념 수가 app/concepts의 폴더 수와 같다', () => {
+    expect(listConcepts()).toHaveLength(folders.length)
+    expect(entries).toHaveLength(folders.length)
   })
 
   it('슬러그에 중복이 없다', () => {
