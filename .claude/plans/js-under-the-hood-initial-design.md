@@ -511,7 +511,7 @@ export default [
   - 제품 수정: Shiki 테마 `github-light`/`github-dark` → `-default` 변형(라이트 `#e36209` 대비 3.48:1 axe 위반, 다크 주석색 3.05:1). og:image(1200×630, `scripts/generate-og.mjs`로 생성) + `twitter:card: summary_large_image` 추가
 - [x] 9. 문서 + `vercel.json`(4단계 설정 파일만) — AGENTS.md 완성, `docs/content-guide.md`·`README.md` 추가. 더미 개념(`zz-dummy`)을 가이드만으로 추가 → 공통 코드 수정 없이 `npm test`·`test:build` 통과, 홈·sitemap 반영 확인 후 삭제
   - 발견·수정: Vitest 5 `fsModuleCache`가 `import.meta.glob` 레지스트리를 캐시해 새 개념 폴더를 놓침 → `vitest.config.ts`에 `fsModuleCache: false`. 빌드 테스트의 `<details` 검사가 모든 개념에 퀴즈를 강제하던 것을 메인이 `<PredictQuiz` 사용 개념에만 적용하도록 수정(계획에 없던 제약 제거), 가이드 문구를 "권장"으로 조정
-- [ ] 4. Vercel Preview 검증 — 보류(D3: 사용자 GitHub·Vercel 연결 후 진행)
+- [x] 4. Vercel 배포 검증 — 사용자가 GitHub·Vercel 연결, 배포 URL `https://js-under-the-hood-kappa.vercel.app`. `curl`: `/`·`/about`·개념 200, `/does-not-exist`·`/concepts/foo` 404 + 커스텀 404 본문, `/__spa-fallback.html` 404, `/sitemap.xml`·`/robots.txt`·`/og-default.png` 200, `/about/` → 308 `/about`, `/assets/*` `immutable`. canonical·og·sitemap이 임시 기본 도메인을 가리켜 `.env`·`site.ts`·`postbuild.mjs` 기본값을 실제 도메인으로 교체(push 후 재배포 확인)
 - 리뷰 1차 (critical-code-review, 영역별 서브에이전트 3개 + 메인 재확인): High 7건 수정 → 재검증 통과
   - 콘텐츠 정확성(프로젝트 요구사항상 High로 상향): 명세 정의처럼 보이는 인용 제거·대입/선언 시 초기화 구분, `arguments` 객체 생략 공개, "아직 이 코드가 만든 객체가 없습니다", "더 이상 접근할 수 없음"(참조되지 않음 단정 제거), 내장 객체 미표시 단순화 추가
   - 접근성: StepControls `disabled` → `aria-disabled`(자기 동작으로 비활성화될 때 포커스 유실), 정지 시 현재 단계 1회 안내하는 sr-only status 영역

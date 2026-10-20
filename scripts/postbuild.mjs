@@ -4,7 +4,7 @@ import { join, posix, sep } from 'node:path'
 const clientDir = join(process.cwd(), 'build', 'client')
 
 // SITE_URL은 앱 코드(app/lib/site.ts)와 같은 규칙: VITE_SITE_URL, 없으면 기본값, 끝의 슬래시 제거
-const rawSiteUrl = process.env.VITE_SITE_URL ?? 'https://js-under-the-hood.vercel.app'
+const rawSiteUrl = process.env.VITE_SITE_URL ?? 'https://js-under-the-hood-kappa.vercel.app'
 if (!/^https?:\/\/[^\s/?#]+/.test(rawSiteUrl) || !URL.canParse(rawSiteUrl)) {
   throw new Error(`VITE_SITE_URL이 올바른 http(s) URL이 아닙니다: ${JSON.stringify(rawSiteUrl)}`)
 }

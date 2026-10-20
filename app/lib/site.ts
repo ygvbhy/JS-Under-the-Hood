@@ -5,5 +5,5 @@ export const SITE_DESCRIPTION =
 
 // 클라이언트 번들에는 process가 없으므로 import.meta.env를 쓴다. 기본값은 .env 한 곳에서 관리한다.
 export const SITE_URL = (
-  import.meta.env.VITE_SITE_URL ?? 'https://js-under-the-hood.vercel.app'
+  import.meta.env.VITE_SITE_URL ?? 'https://js-under-the-hood-kappa.vercel.app'
 ).replace(/\/$/, '')
