@@ -1,7 +1,10 @@
 import { Link } from 'react-router'
 
 export function meta() {
-  return [{ title: '페이지를 찾을 수 없습니다 | JS Under the Hood' }, { name: 'robots', content: 'noindex' }]
+  return [
+    { title: '페이지를 찾을 수 없습니다 | JS Under the Hood' },
+    { name: 'robots', content: 'noindex' },
+  ]
 }
 
 export default function NotFound() {

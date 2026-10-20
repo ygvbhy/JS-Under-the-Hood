@@ -496,3 +496,7 @@ export default [
 
 - baseline (2026-10-20, git 없음): 빈 디렉터리 — 검증 명령 없음, 기존 실패 없음
 - 진행 순서 (D3 반영): 1 → 2 → 3 → 5 → 6 → 7 → 8 → 9 → (4: 사용자 저장소·Vercel 연결 후). `vercel.json`·engines 작성은 9단계에서 함께 수행
+- [x] 1. 골격 + 프리렌더/MDX 스파이크 (`6ff9823`) — build 성공, 개념 HTML에 본문·`class="shiki` 블록 존재, `index/about/404.html` 존재·`__spa-fallback.html` 제거, typecheck·`npm ls` 0, 홈 HTML에 개념 청크 미포함, serve: `/`·`/about`·개념 200 / `/does-not-exist` 404, 카운터 하이드레이션 확인
+  - 발견: `react-router build`가 기본 entry.server용 `isbot` 의존성을 요구(추가됨). `tsconfig types`에 `mdx` 필요. dev에서 예제 파일 수정이 MDX에 반영되지 않음(remark-code-import가 watch 의존성 미등록 → dev hydration 오류) → 2단계에서 예제 변경 시 같은 폴더 `content.mdx` 모듈을 무효화하는 소형 Vite 플러그인으로 해결. `serve@14.2.6`의 `compression` 취약점 경고(dev 전용, 보고)
+- [x] 2. 품질 도구 + 콘텐츠 모델·정확성 테스트 기반 — lint·format:check·typecheck 0, `npm test` 22 통과, build 성공. 음성 확인(expectedOutput 변조·없는 선행 slug·필수 h2 삭제) 각 테스트 실패 확인. dev 예제 HMR 플러그인(`vite.config.ts` `concept-example-hmr`)으로 예제 수정 즉시 반영 확인
+  - 참고: Prettier가 MDX 코드 import 블록 안에 빈 줄을 넣음(동작 영향 없음 → content-guide에 명시)
