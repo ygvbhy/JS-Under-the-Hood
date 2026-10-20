@@ -63,6 +63,43 @@ describe('개념 상세 HTML', () => {
   })
 })
 
+// 첫 개념의 시뮬레이터는 프리렌더 HTML에 단계 0 상태가 정적으로 들어 있어야 하고,
+// 본문보다 넓은 블록으로 배치되도록 .concept-body의 직계 자식이어야 한다(app.css의 [data-wide] 규칙).
+describe('시뮬레이터 프리렌더 (primitives-and-objects)', () => {
+  const html = read('concepts/primitives-and-objects/index.html')
+  const text = htmlToText(html)
+
+  it('단계 0 설명과 빈 상태 문구가 HTML에 있다', () => {
+    expect(text).toContain('코드를 실행하기 전입니다')
+    expect(text).toContain('아직 표시할 변수가 없습니다.')
+    expect(text).toContain('(아직 출력 없음)')
+  })
+
+  it('시뮬레이터 루트가 data-wide 영역이고 .concept-body의 직계 자식이다', () => {
+    const region = html.match(
+      /<div[^>]*role="region"[^>]*aria-label="원시 값과 객체 시뮬레이터"[^>]*>/,
+    )
+    expect(region, '시뮬레이터 region이 없습니다').not.toBeNull()
+    expect(region![0]).toContain('data-wide')
+    // .concept-body 안에서 div 깊이가 0인 위치(직계 자식)여야 하고, <p>로 감싸이면 안 된다
+    const bodyOpen = '<div class="concept-body">'
+    const bodyStart = html.indexOf(bodyOpen)
+    expect(bodyStart).toBeGreaterThan(-1)
+    const between = html.slice(bodyStart + bodyOpen.length, region!.index)
+    const opens = between.match(/<div[\s>]/g)?.length ?? 0
+    const closes = between.match(/<\/div>/g)?.length ?? 0
+    expect(opens - closes, '시뮬레이터가 .concept-body의 직계 자식이 아닙니다').toBe(0)
+    expect(between.trimEnd().endsWith('<p>')).toBe(false)
+  })
+
+  it('세 시나리오 선택 라디오가 있다', () => {
+    for (const label of ['재할당', '변경', '함수에 전달']) {
+      expect(text).toContain(label)
+    }
+    expect(html.match(/type="radio"/g)?.length).toBeGreaterThanOrEqual(3)
+  })
+})
+
 describe('홈·소개 HTML', () => {
   it('홈에 모든 개념 제목과 링크가 있다', () => {
     const html = read('index.html')

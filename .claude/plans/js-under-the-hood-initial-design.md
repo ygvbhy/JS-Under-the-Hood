@@ -505,3 +505,5 @@ export default [
 - [x] 5. 개념 상세 템플릿 + MDX 공통 컴포넌트 — lint·format·typecheck 0, `npm test` 통과(PredictQuiz·ReviewBadge·PrerequisiteList·slugify 단위), `npm run test:build` 8 통과(학습 목표·단순화·참고 자료·선행 개념 섹션, `<details`). 브라우저: 퀴즈 하이드레이션·정답/오답·다시 풀기 동작, 375px 가로 스크롤 없음. 메인 수정: `data-wide` 블록이 본문 열 기준으로 비대칭 정렬되던 문제 → `.concept-body`를 70ch 제한에서 제외해 화면 가운데 정렬(1150px에서 좌우 25/25px, 375px에서 16/16px)
   - 구현 메모: inline code 스타일은 MDX 컴포넌트 대신 CSS(`.concept-article :not(pre) > code`), 제목 앵커 `#` 상시 표시(axe 대비), `<Wide>` MDX 컴포넌트 제공
 - [x] 6. 시뮬레이터 공통 최소 단위 — `useStepper`·`StepControls`·`CodeView` + 테스트 29개 통과(경계·자동재생 정지·속도·수동 이동 정지·reset·goTo·끝에서 재생 시 처음부터·언마운트 타이머 0·total 변경 리셋). CodeView는 페이지 스크롤 방지를 위해 `scrollIntoView` 대신 블록 내부 `scrollTop` 사용
+- [~] 7. 첫 개념: 원시 값과 객체 — 구현·자동 검증 완료, **사용자 콘텐츠 검토 대기**(`reviewedAt: null`). lint·format·typecheck 0, `npm test` 124 통과(예제 실제 출력 `10 20 1 2`·`2 true`·`99 1`, 시나리오 불변식 ①~⑥), `npm run test:build` 11 통과(시뮬레이터 단계 0 프리렌더, `data-wide`가 `.concept-body` 직계). 메인이 `scenarios.ts` 22단계를 콘텐츠 명세와 대조(문장·line·상태·출력 일치), 1280px에서 함수 시나리오 7단계 화면 확인
+  - 변경: 결과 표는 GFM 미도입(`remark-gfm` 의존성 미추가)으로 JSX `<table>`로 작성(문구 동일)

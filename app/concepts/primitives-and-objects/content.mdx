@@ -1,30 +1,115 @@
-import { Counter } from './Counter'
-
-임시 본문: 재할당은 다른 변수에 영향을 주지 않는다.
+import { Simulator } from './Simulator'
+import { scenarios } from './scenarios'
 
 ## 동작 원리
 
-대입은 오른쪽 값을 평가해 바인딩에 넣는다.
+자바스크립트의 값은 **원시 값**과 **객체** 두 종류로 나뉩니다. 원시 값은 숫자(number), 문자열(string), 불리언(boolean), undefined, null, bigint, symbol의 일곱 가지 타입이고, 그 밖의 값은 모두 객체입니다.
+
+원시 값은 바꿀 수 없습니다(불변). 숫자 10을 11로 고치는 방법은 없고, 변수에 다른 값을 넣을 수 있을 뿐입니다. 반면 객체는 바꿀 수 있습니다(가변). 프로퍼티를 추가하거나, 값을 바꾸거나, 지울 수 있습니다.
+
+그래서 변수를 다룰 때는 두 가지 동작을 구분해야 합니다.
+
+- **재할당**: `x = 새 값`처럼 변수가 가진 값을 다른 값으로 바꿉니다. 영향을 받는 것은 그 변수 하나뿐입니다.
+- **변경**: `x.n = 새 값`처럼 변수가 가진 객체의 내용을 바꿉니다. 같은 객체를 값으로 가진 모든 변수에서 그 변화가 보입니다.
+
+`b = a` 같은 대입은 오른쪽의 `a`를 평가한 값을 `b`에 넣습니다. `a`의 값이 객체라면 `b`도 **같은 객체**를 값으로 갖게 되고, 새 객체는 만들어지지 않습니다.
+
+흔히 "원시 값은 복사되고 객체는 참조가 복사된다"고 설명합니다. 하지만 원시 값은 바꿀 수 없으므로, 복사된 것인지 같은 값을 함께 쓰는 것인지 코드로는 구분할 수 없습니다. 결과의 차이를 실제로 만드는 것은 **재할당이냐 변경이냐**입니다.
 
 ## 예제
 
-```js file=./examples/scenario-1.js
+세 예제의 출력을 먼저 예측한 뒤, 아래 시뮬레이터로 한 단계씩 확인해 보세요.
+
+### 예제 1: 재할당
+
+```js file=./examples/reassign.js
 
 ```
 
 <PredictQuiz
-  question="위 코드를 실행하면 console.log(a, b)는 무엇을 출력할까요?"
-  choices={['10 20', '20 20', '10 10']}
+  question="예제 1의 출력은 무엇일까요?"
+  choices={['10 20 1 2', '20 20 2 2', '10 20 2 2']}
   answer={0}
-  explanation="b에 다시 값을 대입(재할당)해도 a가 가진 값은 바뀌지 않으므로 a는 10, b는 20이다."
+  explanation="b와 q는 재할당되었을 뿐이므로 a와 p에는 영향이 없습니다. p는 여전히 { n: 1 }인 객체를 가집니다."
 />
 
-<Counter />
+### 예제 2: 변경
+
+```js file=./examples/mutate.js
+
+```
+
+<PredictQuiz
+  question="예제 2의 출력은 무엇일까요?"
+  choices={['1 true', '2 true', '2 false']}
+  answer={1}
+  explanation="p와 q는 같은 객체를 값으로 가집니다. q.n = 2는 그 객체를 변경하므로 p.n도 2이고, p === q는 true입니다."
+/>
+
+### 예제 3: 함수에 객체 전달
+
+```js file=./examples/pass-to-function.js
+
+```
+
+<PredictQuiz
+  question="예제 3의 출력은 무엇일까요?"
+  choices={['1 1', '99 1', '99 99', '0 1']}
+  answer={1}
+  explanation="obj.n = 99는 o와 같은 객체를 변경하므로 o.n은 99입니다. num과 obj의 재할당은 매개변수만 바꾸므로 x는 1이고 o도 처음 객체 그대로입니다."
+/>
+
+### 시뮬레이터로 확인하기
+
+<Simulator scenarios={scenarios} />
 
 ## 결과와 이유
 
-`b`를 재할당해도 `a`는 그대로다.
+<div className="my-6 overflow-x-auto">
+  <table className="w-full border-collapse text-left">
+    <thead>
+      <tr>
+        <th className="border-border border px-3 py-2">동작</th>
+        <th className="border-border border px-3 py-2">예</th>
+        <th className="border-border border px-3 py-2">영향을 받는 것</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td className="border-border border px-3 py-2">재할당</td>
+        <td className="border-border border px-3 py-2">
+          <code>b = 20</code>, <code>q = {'{ n: 2 }'}</code>, <code>num = 99</code>
+        </td>
+        <td className="border-border border px-3 py-2">그 변수 하나</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">변경</td>
+        <td className="border-border border px-3 py-2">
+          <code>q.n = 2</code>, <code>obj.n = 99</code>
+        </td>
+        <td className="border-border border px-3 py-2">같은 객체를 값으로 가진 모든 변수</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
 
-<Callout type="misconception" title="재할당과 변경">
-  임시 내용: 다른 변수에 값을 대입하는 것과 객체를 변경하는 것은 다르다.
+예제 1에서 `b`와 `q`는 재할당만 되었기 때문에 `a`와 `p`는 그대로입니다. 예제 2에서는 `p`와 `q`가 같은 객체를 가진 상태에서 그 객체가 변경되었기 때문에 `p.n`도 2가 됩니다. 예제 3의 함수 안에서 일어난 일도 같은 규칙으로 설명됩니다. `obj.n = 99`는 변경이라 `o`에서도 보이고, `num = 99`와 `obj = { n: 0 }`은 매개변수의 재할당이라 호출한 쪽에 영향이 없습니다.
+
+<Callout type="misconception" title="객체를 다른 변수에 대입하면 객체가 복사된다">
+  대입은 새 객체를 만들지 않습니다. `const q = p` 뒤에 `p`와 `q`는 같은 객체를 값으로 가지며, 이는
+  `p === q`가 `true`인 것으로 확인할 수 있습니다. 별도의 객체가 필요하다면 객체를 새로 만들어야
+  합니다.
 </Callout>
+
+<Callout type="misconception" title="const로 선언한 객체는 바꿀 수 없다">
+  `const`는 변수의 **재할당**만 막습니다. `const q`라도 `q.n = 2`처럼 q가 가진 객체를 변경하는 것은
+  허용됩니다.
+</Callout>
+
+<Callout type="misconception" title="객체를 함수에 넘기면 참조에 의한 전달(call by reference)이다">
+  자바스크립트는 인수를 평가한 값을 매개변수에 넣습니다. 객체를 넘기면 그 값이 같은 객체이므로 변경은 호출한 쪽에서도 보입니다. 하지만 매개변수를 재할당해도 호출한 쪽 변수는 바뀌지 않습니다. 만약 참조에 의한 전달이었다면 예제 3의 `obj = { n: 0 }` 뒤에 `o`도 새 객체를 가리켰을 것입니다.
+</Callout>
+
+### 메모리 그림으로 배운 내용과의 관계
+
+많은 자료가 이 내용을 메모리 주소와 스택·힙 그림, "값에 의한 전달"과 "참조에 의한 전달"이라는 용어로 설명합니다. 이 페이지는 명세가 보장하는 관찰 가능한 동작만으로 설명합니다. 그림의 "같은 메모리 주소를 가리킨다"는 이 페이지의 "같은 객체를 값으로 가진다"(같은 `객체 A`)에 해당합니다. 다만 명세는 메모리 주소나 스택·힙을 정의하지 않으므로, 엔진이 실제로 그렇게 값을 저장한다고 단정할 수는 없습니다.
