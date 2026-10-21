@@ -67,5 +67,5 @@ export const concept = {
       url: 'https://developer.mozilla.org/ko/docs/Web/JavaScript/Reference/Statements/const',
     },
   ],
-  reviewedAt: null,
+  reviewedAt: '2026-10-21',
 } satisfies ConceptMeta

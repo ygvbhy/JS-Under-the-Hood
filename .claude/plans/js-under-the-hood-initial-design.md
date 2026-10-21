@@ -1,6 +1,6 @@
 # JS Under the Hood 초기 기획 및 기술 설계 구현 계획
 
-- 상태: 승인
+- 상태: 완료
 - 작성일: 2026-10-20
 - 기준: git 저장소 아님 (빈 디렉터리 `/Users/sk/Documents/programming/js-basic`)
 
@@ -505,7 +505,7 @@ export default [
 - [x] 5. 개념 상세 템플릿 + MDX 공통 컴포넌트 — lint·format·typecheck 0, `npm test` 통과(PredictQuiz·ReviewBadge·PrerequisiteList·slugify 단위), `npm run test:build` 8 통과(학습 목표·단순화·참고 자료·선행 개념 섹션, `<details`). 브라우저: 퀴즈 하이드레이션·정답/오답·다시 풀기 동작, 375px 가로 스크롤 없음. 메인 수정: `data-wide` 블록이 본문 열 기준으로 비대칭 정렬되던 문제 → `.concept-body`를 70ch 제한에서 제외해 화면 가운데 정렬(1150px에서 좌우 25/25px, 375px에서 16/16px)
   - 구현 메모: inline code 스타일은 MDX 컴포넌트 대신 CSS(`.concept-article :not(pre) > code`), 제목 앵커 `#` 상시 표시(axe 대비), `<Wide>` MDX 컴포넌트 제공
 - [x] 6. 시뮬레이터 공통 최소 단위 — `useStepper`·`StepControls`·`CodeView` + 테스트 29개 통과(경계·자동재생 정지·속도·수동 이동 정지·reset·goTo·끝에서 재생 시 처음부터·언마운트 타이머 0·total 변경 리셋). CodeView는 페이지 스크롤 방지를 위해 `scrollIntoView` 대신 블록 내부 `scrollTop` 사용
-- [~] 7. 첫 개념: 원시 값과 객체 — 구현·자동 검증 완료, **사용자 콘텐츠 검토 대기**(`reviewedAt: null`). lint·format·typecheck 0, `npm test` 124 통과(예제 실제 출력 `10 20 1 2`·`2 true`·`99 1`, 시나리오 불변식 ①~⑥), `npm run test:build` 11 통과(시뮬레이터 단계 0 프리렌더, `data-wide`가 `.concept-body` 직계). 메인이 `scenarios.ts` 22단계를 콘텐츠 명세와 대조(문장·line·상태·출력 일치), 1280px에서 함수 시나리오 7단계 화면 확인
+- [x] 7. 첫 개념: 원시 값과 객체 — 구현·자동 검증 완료, 사용자 콘텐츠 검토 승인(2026-10-21, `reviewedAt: '2026-10-21'`). lint·format·typecheck 0, `npm test` 124 통과(예제 실제 출력 `10 20 1 2`·`2 true`·`99 1`, 시나리오 불변식 ①~⑥), `npm run test:build` 11 통과(시뮬레이터 단계 0 프리렌더, `data-wide`가 `.concept-body` 직계). 메인이 `scenarios.ts` 22단계를 콘텐츠 명세와 대조(문장·line·상태·출력 일치), 1280px에서 함수 시나리오 7단계 화면 확인
   - 변경: 결과 표는 GFM 미도입(`remark-gfm` 의존성 미추가)으로 JSX `<table>`로 작성(문구 동일)
 - [x] 8. E2E·접근성 — 메인 재실행: `npx playwright test` 55 통과·3 건너뜀(no-JS 2·모바일 전용 1, 의도), axe(wcag2a/aa/21a/21aa) critical/serious 0(라이트·다크, 시뮬레이터 전 단계 진행 후 포함), `npm test` 125·`test:build` 16 통과, lint·format·typecheck 0
   - 제품 수정: Shiki 테마 `github-light`/`github-dark` → `-default` 변형(라이트 `#e36209` 대비 3.48:1 axe 위반, 다크 주석색 3.05:1). og:image(1200×630, `scripts/generate-og.mjs`로 생성) + `twitter:card: summary_large_image` 추가
@@ -518,3 +518,43 @@ export default [
   - 테스트: `vitest.build.config.ts`에도 `fsModuleCache: false`(새 개념이 test:build에서 조용히 누락되던 문제 — 9단계 더미 검증이 첫 실행에서만 통과했던 것으로 판단), 개념 수 = 폴더 수 가드(양쪽), 계획 L4 `filterConcepts` 단위 테스트 추가(3단계 누락분), content-guide의 e2e 적용 범위 문구 정정
   - 재검증: lint·format·typecheck 0, `npm test` 141, `test:build` 17, e2e 55 통과·3 건너뜀. zz-check 개념 임시 추가 시 test:build가 새 개념을 수집함을 확인 후 삭제
   - Medium/Low는 보고만(수정 안 함)
+- 콘텐츠 검토 승인 (2026-10-21, 사용자): 수정 요청 없이 승인 → `meta.ts` `reviewedAt: '2026-10-21'`. 배지가 "검토 중" → "검토일"로 바뀌어 E2E `concept.spec.ts`의 배지 단언을 `/^검토일/`로 갱신. 재검증: lint·format·typecheck 0, `npm test` 141, `test:build` 17, e2e 55 통과·3 건너뜀
+
+## 구현 결과
+
+### 계획 대비 실제 구현
+- 1~9단계를 계획대로 구현. 4단계(Vercel 배포 검증)는 D3 결정에 따라 9단계 뒤에 수행(`변경 이력` 참고).
+- 계획과 달라진 점: 결과 표를 GFM 대신 JSX `<table>`로 작성(의존성 미추가), Shiki 테마를 `github-*-default` 변형으로 교체(대비 기준), Vitest `fsModuleCache: false`(새 개념 폴더 누락 방지), 빌드 테스트의 퀴즈 강제 조건을 `<PredictQuiz>` 사용 개념으로 한정.
+
+### 코드 리뷰
+- 리뷰 1차 High 7건(콘텐츠 정확성·접근성·테스트) 모두 수정 후 재검증 통과. Medium/Low는 보고만 하고 수정하지 않음.
+
+### 후속 작업
+- [ ] 리뷰 1차 Medium/Low 지적 검토 여부 결정
+- [ ] 다음 개념 추가(학습 진도 1~12장 범위 확인 후)
+- [ ] `11. 추가 개선 후보`(CI, 다크모드 토글, 시나리오 딥링크 등)
+
+### 이해 확인
+
+#### 설명할 수 있어야 하는 기술적 판단
+- [무검토 승인] 첫 개념의 설명 축 — 결과 차이의 원인을 "복사/참조 복사"가 아니라 "재할당 vs 변경"으로 설명. 원시 값은 불변이라 복사인지 공유인지 코드로 구분할 수 없으므로, 관찰 가능한 차이를 만드는 동작으로 설명했다(`content.mdx` 동작 원리, `meta.simplifications` 2번째).
+- [Claude 판단] Vitest `fsModuleCache: false`(`vitest.config.ts`, `vitest.build.config.ts`) — `import.meta.glob` 레지스트리가 캐시되어 새 개념 폴더가 테스트에서 조용히 빠지는 문제. 캐시 성능보다 "폴더만 추가하면 검증된다"는 보장을 택했다. 개념 수 = 폴더 수 가드도 함께 추가.
+- [Claude 판단] StepControls 버튼을 `disabled` 대신 `aria-disabled` — "다음"을 눌러 마지막 단계에 도달하면 버튼이 스스로 비활성화되면서 포커스가 사라지는 문제. `disabled`는 포커스를 잃게 하므로 포커스를 유지하는 쪽을 택했다.
+- [Claude 판단] Shiki 테마 `github-light/dark` → `-default` 변형 — axe 대비 위반(라이트 3.48:1, 다크 주석 3.05:1). 테마를 직접 만드는 대안 대신 대비를 만족하는 기존 변형을 골랐다.
+- [Claude 판단] 결과 표를 JSX `<table>`로 작성 — `remark-gfm` 의존성 추가 대신. 의존성은 근거·승인 후에만 추가한다는 규칙 때문에 표 하나를 위해 추가하지 않았다(AGENTS.md 규칙에 예시로 반영).
+- D2: 메모리 주소·스택·힙 모델 대신 명세 기반 모델 + 도서 그림 대응 문단(사용자 결정).
+
+#### 배경지식
+- 프리렌더 + 하이드레이션: 첫 클라이언트 렌더가 프리렌더 HTML과 같아야 하므로, 퀴즈처럼 JS 유무에 따라 달라지는 UI는 `useHydrated()`가 true가 된 뒤에 바꾼다.
+- `import.meta.glob`은 빌드(또는 테스트 변환) 시점에 파일 목록을 정적으로 펼친다. 그래서 캐시된 변환 결과를 쓰면 이후 추가된 파일이 목록에 없다.
+- ECMAScript에서 대입·초기화는 오른쪽 식을 평가한 값을 바인딩에 넣을 뿐이고, 함수 호출도 인수를 평가한 값으로 매개변수를 초기화한다. 매개변수 재할당이 호출한 쪽 변수에 영향을 주지 않는 이유다.
+
+#### 확인 질문
+1. "원시 값은 복사되고 객체는 참조가 복사된다"는 설명 대신 "재할당 vs 변경"으로 설명한 이유는?
+   <details><summary>답</summary>원시 값은 불변이라 복사인지 같은 값을 함께 쓰는지 코드로 구분할 수 없고, 명세에도 별도의 복사 단계가 없다. 실제로 결과를 가르는 것은 변수를 재할당했는지, 객체를 변경했는지다(`content.mdx` 동작 원리, `meta.simplifications`).</details>
+2. 예제 3에서 JS가 "참조에 의한 전달"이었다면 출력은 어떻게 달라지나?
+   <details><summary>답</summary>`obj = { n: 0 }`이 호출한 쪽 `o`도 새 객체로 바꾸므로 `o.n`은 0이 된다. 실제 출력은 `99 1`이다(`content.mdx` 세 번째 Callout, `examples/pass-to-function.js`).</details>
+3. `vitest.config.ts`의 `fsModuleCache: false`를 지우면 무엇이 깨질 수 있나?
+   <details><summary>답</summary>새 개념 폴더를 추가해도 캐시된 `import.meta.glob` 결과 때문에 레지스트리에 나타나지 않아, 그 개념의 예제·메타 검증이 조용히 건너뛰어질 수 있다. 개념 수 = 폴더 수 가드가 이를 잡는다(`구현 진행` 9단계·리뷰 1차).</details>
+4. StepControls에서 `disabled`를 쓰면 키보드 사용자에게 어떤 문제가 생기나?
+   <details><summary>답</summary>"다음"으로 마지막 단계에 도달하는 순간 그 버튼이 비활성화되며 포커스가 사라져 위치를 잃는다. `aria-disabled`는 포커스를 유지하면서 비활성 상태를 알린다(`구현 진행` 리뷰 1차).</details>

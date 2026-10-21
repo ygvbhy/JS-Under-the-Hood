@@ -28,7 +28,7 @@ test.describe('개념 상세', () => {
     await expect(
       page.getByRole('heading', { level: 1, name: '원시 값과 객체: 재할당과 변경' }),
     ).toBeVisible()
-    await expect(page.locator('article > header').getByText('검토 중')).toBeVisible()
+    await expect(page.locator('article > header').getByText(/^검토일/)).toBeVisible()
     await expect(page.getByRole('heading', { level: 2, name: '학습 목표' })).toBeVisible()
 
     const prerequisites = page.getByRole('region', { name: '선행 개념' })
