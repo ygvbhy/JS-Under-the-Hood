@@ -30,14 +30,14 @@ app/
   routes/                        # home, about, not-found
   components/site/               # SiteHeader, SiteFooter, SkipLink
   components/concept/            # ConceptLayout, Callout, PredictQuiz, mdx-components.tsx 등 개념 페이지 공통 부품
-  simulator/                     # 시뮬레이터 공통: types, useStepper, StepControls, CodeView (+ 테스트)
+  simulator/                     # 시뮬레이터 공통: types, useStepper, StepControls, CodeView, SimulatorShell (+ 테스트)
   lib/                           # concepts.ts(ConceptMeta·레지스트리), seo.ts, site.ts, useHydrated.ts
   concepts/<slug>/               # 개념 1개 = 폴더 1개 (slug = 폴더명, kebab-case)
     meta.ts                      # 메타데이터(순수 데이터)
     content.mdx                  # 설명 본문
     route.tsx                    # 얇은 라우트 모듈
     examples/*.js                # 실행 검증되는 예제
-    scenarios.ts 등              # (선택) 시뮬레이터: 시나리오, 시각화, 셸
+    scenarios.ts 등              # (선택) 시뮬레이터: 시나리오, 시각화, Simulator.tsx(공통 셸 래퍼)
     concept.test.ts              # (시뮬레이터가 있으면) 시나리오 불변식 테스트
 tests/
   helpers/                       # run-example.ts, scenario-invariants.ts
@@ -70,8 +70,8 @@ vercel.json, serve.json          # 배포 설정, 로컬 정적 서빙 설정
 ## 시뮬레이터 규칙
 
 - 시나리오의 각 `Step`은 그 시점의 **전체 상태 스냅샷**을 담는다(이전 단계와의 차분이 아님). 그래야 이전/다음/처음으로 이동이 단순하고 단계별 테스트가 쉽다.
-- 개념 간 공유 부품은 `app/simulator/`(`types.ts`, `useStepper`, `StepControls`, `CodeView`)뿐이다. 상태 모양(state shape)과 시각화는 개념마다 다르게 설계한다.
-- 시뮬레이터 셸(시나리오 선택, 배치, 키보드 처리)은 개념 폴더 안에 둔다. 두 번째 시뮬레이터 개념이 생겨 반복이 확인되면 그때 공통 셸을 추출한다. 미리 일반화하지 않는다.
+- 개념 간 공유 부품은 `app/simulator/`(`types.ts`, `useStepper`, `StepControls`, `CodeView`, `SimulatorShell`)뿐이다. 상태 모양(state shape)과 시각화는 개념마다 다르게 설계한다.
+- 시나리오 선택, 배치, 키보드 처리, 스크린 리더 안내, 콘솔 출력은 공통 셸 `SimulatorShell`이 맡는다. 개념 폴더의 `Simulator.tsx`는 영역 `aria-label`(`label`)과 시각화 렌더 함수(`renderState(state, prevState)`)만 넘기는 얇은 래퍼다. 셸을 바꾸면 모든 시뮬레이터 개념의 `Simulator.test.tsx`와 e2e로 회귀를 확인한다.
 - 시뮬레이터의 코드는 `examples/<file>?raw` import로 가져와 예제 파일 원문과 같게 유지하고, 마지막 단계의 출력은 `expectedOutput`과 같아야 한다(`assertScenarioInvariants`가 검사한다).
 - 시뮬레이터는 JS 없이도(프리렌더 상태) 문제 없이 보이는 첫 단계를 그린다.
 

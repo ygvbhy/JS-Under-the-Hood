@@ -1,5 +1,6 @@
 export { CodeView } from './CodeView'
 export { StepControls } from './StepControls'
+export { SimulatorShell } from './SimulatorShell'
 export { SPEEDS, useStepper } from './useStepper'
 export type { Speed, Stepper } from './useStepper'
 export type { LineRange, Scenario, Step } from './types'

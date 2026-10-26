@@ -98,12 +98,25 @@ Prettier가 이 블록 안에 빈 줄을 넣을 수 있는데, 동작에는 영�
 
 ### 5. (선택) 시뮬레이터
 
-단계별 시각화가 필요한 개념에만 만듭니다. 공통 부품은 `app/simulator/`뿐이고 나머지는 개념마다 직접 만듭니다.
+단계별 시각화가 필요한 개념에만 만듭니다. 공통 부품(`app/simulator/`)이 셸과 단계 이동을 맡고, 개념마다 직접 만드는 것은 상태 타입·시나리오·시각화 컴포넌트와 얇은 `Simulator.tsx`입니다.
 
 1. **`scenarios.ts`**: 상태 타입(예: `MemoryState`)을 정의하고 `Scenario<State>[]`를 내보냅니다. 각 `Step`은 `title`, `explanation`, `line`(1부터 시작하는 `{ from, to }`, 시작·종료 단계는 생략 가능), `state`(**그 시점의 전체 스냅샷**, 차분 아님), `output`(그 단계까지 누적된 `console.log` 줄)을 가집니다. 시나리오는 `id`, `label`, `exampleId`(`meta.examples[].id`), `code`, `steps`(2개 이상)를 가집니다.
 2. 코드는 예제 파일 원문을 `import code from './examples/x.js?raw'`로 가져와 `code`에 넣습니다(복붙하면 불변식 테스트가 실패).
 3. **시각화 컴포넌트**: 한 단계의 `state`를 받아 그립니다. 색만으로 구분하지 말고 텍스트도 함께 둡니다. 좁은 화면(375px)에서 가로로 넘치지 않게 합니다.
-4. **셸(`Simulator.tsx`)**: `useStepper({ total })`, `StepControls`, `CodeView`를 `~/simulator`에서 가져와 조합합니다. 시나리오 선택, 배치, 키보드 처리는 개념 폴더 안에서 만듭니다. 루트 요소에 `data-wide=""`를 줘서 본문 열보다 넓게 표시합니다. 처음 만들 때는 `primitives-and-objects/Simulator.tsx`를 참고합니다.
+4. **`Simulator.tsx`**: 공통 셸 `SimulatorShell`(`~/simulator`)에 시나리오, 영역 이름(`label`), 시각화 렌더 함수(`renderState`)를 넘기는 얇은 래퍼입니다. 시나리오 선택, 배치, 키보드 처리, 스크린 리더 안내, 콘솔 출력, 본문 열보다 넓게 표시하는 `data-wide`는 셸이 맡습니다. `renderState`는 현재 단계의 `state`와 이전 단계의 `prevState`(첫 단계는 `undefined`)를 받습니다. 시각화가 이전 상태를 쓰지 않으면 `state`만 받으면 됩니다.
+
+   ```tsx
+   export function Simulator({ scenarios }: { scenarios: Scenario<MemoryState>[] }) {
+     return (
+       <SimulatorShell
+         scenarios={scenarios}
+         label="원시 값과 객체 시뮬레이터"
+         renderState={(state, prevState) => <MemoryView state={state} prevState={prevState} />}
+       />
+     )
+   }
+   ```
+
 5. MDX에서는 **독립된 줄**에 둡니다(`<Simulator scenarios={scenarios} />` 앞뒤로 빈 줄). 같은 줄에 글이 붙으면 `<p>` 안에 감싸져 레이아웃과 `data-wide`가 깨집니다.
 
 ### 6. `route.tsx`
