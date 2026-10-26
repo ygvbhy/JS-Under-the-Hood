@@ -114,9 +114,9 @@ const logicalResultSteps: Step<EvalState>[] = [
     output: [],
   },
   {
-    title: "a에 'hello'를 넣음",
+    title: "a를 'hello'로 초기화",
     explanation:
-      "왼쪽이 falsy이므로 오른쪽 'hello'를 평가하고, 그 값이 식의 결과입니다. 결과는 false가 아니라 오른쪽 피연산자의 값 자체이고, 이 값이 a에 들어갑니다.",
+      "왼쪽이 falsy이므로 오른쪽 'hello'를 평가하고, 그 값이 식의 결과입니다. 결과는 false가 아니라 오른쪽 피연산자의 값 자체이고, a는 이 값으로 초기화됩니다.",
     line: at(1),
     state: state(
       [changed(a)],
@@ -144,9 +144,9 @@ const logicalResultSteps: Step<EvalState>[] = [
     output: [],
   },
   {
-    title: "b에 'hi'를 넣음",
+    title: "b를 'hi'로 초기화",
     explanation:
-      "왼쪽이 truthy이므로 ||는 왼쪽 값 'hi'를 결과로 하고 오른쪽 'hello'를 평가하지 않습니다. 결과는 true가 아니라 왼쪽 피연산자의 값 자체이고, 이 값이 b에 들어갑니다.",
+      "왼쪽이 truthy이므로 ||는 왼쪽 값 'hi'를 결과로 하고 오른쪽 'hello'를 평가하지 않습니다. 결과는 true가 아니라 왼쪽 피연산자의 값 자체이고, b는 이 값으로 초기화됩니다.",
     line: at(2),
     state: state(
       [a, changed(b)],
@@ -171,9 +171,9 @@ const logicalResultSteps: Step<EvalState>[] = [
     output: [],
   },
   {
-    title: 'c에 0을 넣음',
+    title: 'c를 0으로 초기화',
     explanation:
-      "왼쪽이 falsy이므로 &&는 왼쪽 값 0을 결과로 하고 오른쪽 'hello'를 평가하지 않습니다. 결과는 false가 아니라 숫자 0이고, 이 값이 c에 들어갑니다.",
+      "왼쪽이 falsy이므로 &&는 왼쪽 값 0을 결과로 하고 오른쪽 'hello'를 평가하지 않습니다. 결과는 false가 아니라 숫자 0이고, c는 이 값으로 초기화됩니다.",
     line: at(3),
     state: state(
       [a, b, changed(c)],
@@ -201,9 +201,9 @@ const logicalResultSteps: Step<EvalState>[] = [
     output: [],
   },
   {
-    title: "d에 'hello'를 넣음",
+    title: "d를 'hello'로 초기화",
     explanation:
-      "왼쪽이 truthy이므로 오른쪽 'hello'를 평가하고, 그 값이 식의 결과입니다. 이 값이 d에 들어갑니다.",
+      "왼쪽이 truthy이므로 오른쪽 'hello'를 평가하고, 그 값이 식의 결과입니다. d는 이 값으로 초기화됩니다.",
     line: at(4),
     state: state(
       [a, b, c, changed(d)],
@@ -251,7 +251,7 @@ const skipRightSteps: Step<EvalState>[] = [
   {
     title: "check('B', 1)을 평가하지 않음",
     explanation:
-      "왼쪽이 falsy이므로 &&는 왼쪽 값 0을 결과로 하고 오른쪽 check('B', 1)을 평가하지 않습니다. check('B', 1)이 호출되지 않았으므로 '평가: B'는 출력되지 않습니다. 결과 0이 x에 들어갑니다.",
+      "왼쪽이 falsy이므로 &&는 왼쪽 값 0을 결과로 하고 오른쪽 check('B', 1)을 평가하지 않습니다. check('B', 1)이 호출되지 않았으므로 '평가: B'는 출력되지 않습니다. x는 결과 0으로 초기화됩니다.",
     line: at(6),
     state: state(
       [changed(x)],
@@ -288,7 +288,7 @@ const skipRightSteps: Step<EvalState>[] = [
   {
     title: "check('D', 2)를 평가하지 않음",
     explanation:
-      "왼쪽이 truthy이므로 ||는 왼쪽 값 'ok'를 결과로 하고 오른쪽 check('D', 2)를 평가하지 않습니다. '평가: D'는 출력되지 않고, 결과 'ok'가 y에 들어갑니다.",
+      "왼쪽이 truthy이므로 ||는 왼쪽 값 'ok'를 결과로 하고 오른쪽 check('D', 2)를 평가하지 않습니다. '평가: D'는 출력되지 않고, y는 결과 'ok'로 초기화됩니다.",
     line: at(8),
     state: state(
       [x, changed(y)],
@@ -325,7 +325,7 @@ const skipRightSteps: Step<EvalState>[] = [
   {
     title: "check('F', 2) 평가와 z 초기화",
     explanation:
-      "오른쪽 check('F', 2)를 호출하면 '평가: F'가 출력되고 2가 돌아옵니다. 식의 결과는 오른쪽 값 2이고, 이 값이 z에 들어갑니다.",
+      "오른쪽 check('F', 2)를 호출하면 '평가: F'가 출력되고 2가 돌아옵니다. 식의 결과는 오른쪽 값 2이고, z는 이 값으로 초기화됩니다.",
     line: at(10),
     state: state(
       [x, y, changed(z)],
@@ -480,7 +480,7 @@ const optionalChainingSteps: Step<EvalState>[] = [
   {
     title: 'user와 guest를 선언',
     explanation:
-      '1~2번 줄이 실행되어 user는 profile 프로퍼티를 가진 값이 되고, guest는 null이 됩니다. user의 값은 내용을 줄여 { profile: {…} }로 표시합니다.',
+      '1~2번 줄이 실행되어 user는 profile 프로퍼티를 가진 객체가 되고, guest는 null이 됩니다. user의 값은 내용을 줄여 { profile: {…} }로 표시합니다.',
     line: { from: 1, to: 2 },
     state: state([changed(user), changed(guest)]),
     output: [],

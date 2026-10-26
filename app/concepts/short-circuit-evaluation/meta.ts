@@ -125,5 +125,5 @@ export const concept = {
       url: 'https://developer.mozilla.org/ko/docs/Glossary/Truthy',
     },
   ],
-  reviewedAt: null,
+  reviewedAt: '2026-10-26',
 } satisfies ConceptMeta

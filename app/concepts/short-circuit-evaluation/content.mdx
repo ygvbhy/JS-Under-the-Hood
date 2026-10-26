@@ -55,14 +55,14 @@ falsy 값은 다음 여덟 가지뿐이고, 나머지는 모두 truthy입니다.
 ```
 
 <PredictQuiz
-  question="예제 1의 출력은 무엇일까요?"
+  question="예제 1의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다)"
   choices={[
     'false false false false false false false false / true true true true true',
     'false false false false false false false false / false false false false true',
     'false false false false false false false false / true false true true true',
   ]}
   answer={0}
-  explanation="출력의 두 줄을 ' / '로 이어 적었습니다. 첫 줄의 여덟 값이 falsy의 전부입니다. 둘째 줄은 문자열 '0'과 'false', 공백 하나인 문자열, -1, 빈 객체인데, 이들은 모두 truthy입니다. 문자열은 내용이 아니라 비어 있는지만 판정합니다."
+  explanation="첫 줄의 여덟 값이 falsy의 전부입니다. 둘째 줄은 문자열 '0'과 'false', 공백 하나인 문자열, -1, 빈 객체인데, 이들은 모두 truthy입니다. 문자열은 내용이 아니라 비어 있는지만 판정합니다."
 />
 
 ### 예제 2: 결과는 피연산자의 값
@@ -149,7 +149,9 @@ falsy 값은 다음 여덟 가지뿐이고, 나머지는 모두 truthy입니다.
       <tr>
         <th className="border-border border px-3 py-2">연산자</th>
         <th className="border-border border px-3 py-2">왼쪽 값을 보는 기준</th>
-        <th className="border-border border px-3 py-2">오른쪽을 평가하는 경우</th>
+        <th className="border-border border px-3 py-2">
+          오른쪽(또는 체인의 나머지)을 평가하는 경우
+        </th>
         <th className="border-border border px-3 py-2">결과</th>
       </tr>
     </thead>

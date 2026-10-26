@@ -39,7 +39,7 @@ describe('Simulator', () => {
     render(<Simulator scenarios={scenarios} />)
     await user.click(screen.getByRole('button', { name: '다음' }))
     await user.click(screen.getByRole('button', { name: '다음' }))
-    expect(screen.getByText("단계 3: a에 'hello'를 넣음")).toBeInTheDocument()
+    expect(screen.getByText("단계 3: a를 'hello'로 초기화")).toBeInTheDocument()
 
     await user.click(screen.getByRole('radio', { name: '오른쪽 건너뛰기' }))
     expect(screen.getByRole('radio', { name: '오른쪽 건너뛰기' })).toBeChecked()
@@ -57,7 +57,7 @@ describe('Simulator', () => {
     await user.keyboard('{ArrowRight}')
     expect(screen.getByText("단계 2: 0 || 'hello'의 왼쪽 평가")).toBeInTheDocument()
     await user.keyboard('{ArrowRight}')
-    expect(screen.getByText("단계 3: a에 'hello'를 넣음")).toBeInTheDocument()
+    expect(screen.getByText("단계 3: a를 'hello'로 초기화")).toBeInTheDocument()
     await user.keyboard('{ArrowLeft}')
     expect(screen.getByText("단계 2: 0 || 'hello'의 왼쪽 평가")).toBeInTheDocument()
     await user.keyboard('{Home}')

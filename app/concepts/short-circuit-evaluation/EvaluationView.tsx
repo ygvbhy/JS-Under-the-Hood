@@ -61,7 +61,7 @@ function BindingRow({ binding }: { binding: Binding }) {
     >
       <Badge>{binding.declaredWith}</Badge>
       <span className={`font-mono font-semibold ${wrap}`}>{binding.name}</span>
-      <span aria-hidden="true">=</span>
+      <span>=</span>
       <span className={`min-w-0 font-mono ${wrap}`}>{formatVal(binding.value)}</span>
       {binding.changed && <Badge>새로 생김</Badge>}
     </li>
