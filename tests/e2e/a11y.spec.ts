@@ -5,6 +5,8 @@ import {
   SHORT_CIRCUIT_PATH,
   SHORT_CIRCUIT_SIMULATOR_NAME,
   SIMULATOR_NAME,
+  TYPE_COERCION_PATH,
+  TYPE_COERCION_SIMULATOR_NAME,
   waitForHydration,
 } from './helpers'
 
@@ -84,6 +86,30 @@ for (const colorScheme of ['light', 'dark'] as const) {
         const next = region.getByRole('button', { name: '다음' })
         // 평가 안 함·결과·새로 생김 표시는 홀수 단계에 몰려 있지 않으므로(시나리오마다 짝수 단계에도 있다)
         // 마지막 단계까지 모든 단계를 검사한다. 시나리오의 단계 수는 모두 12 이하다.
+        for (let i = 0; i < 12 && (await next.isEnabled()); i++) {
+          await next.click()
+          await expectNoSeriousViolations(page)
+        }
+        await expect(next).toBeDisabled()
+      }
+    })
+
+    test('개념 페이지: 암묵적 타입 변환', async ({ page }) => {
+      await page.goto(TYPE_COERCION_PATH)
+      await waitForHydration(page)
+      await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
+      await expectNoSeriousViolations(page)
+    })
+
+    test('개념 페이지: 암묵적 타입 변환 시뮬레이터를 진행한 뒤', async ({ page }) => {
+      test.slow() // 3개 시나리오의 모든 단계에서 axe를 돌리므로 기본 30초에 가깝다
+      await page.goto(TYPE_COERCION_PATH)
+      await waitForHydration(page)
+      const region = page.getByRole('region', { name: TYPE_COERCION_SIMULATOR_NAME })
+      for (const scenario of ['+ 의 순서', '- 와 + 섞기', '> 비교']) {
+        await region.getByRole('radio', { name: scenario, exact: true }).check()
+        const next = region.getByRole('button', { name: '다음' })
+        // 시나리오의 단계 수는 모두 10 이하이므로 마지막 단계까지 모든 단계를 검사한다.
         for (let i = 0; i < 12 && (await next.isEnabled()); i++) {
           await next.click()
           await expectNoSeriousViolations(page)

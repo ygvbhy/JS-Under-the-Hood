@@ -136,6 +136,30 @@ describe('시뮬레이터 프리렌더 (short-circuit-evaluation)', () => {
   })
 })
 
+// 세 번째 개념(type-coercion)의 시뮬레이터와 퀴즈도 프리렌더 HTML에 정적으로 들어 있어야 한다.
+describe('시뮬레이터 프리렌더 (type-coercion)', () => {
+  const html = read('concepts/type-coercion/index.html')
+  const text = htmlToText(html)
+
+  it('단계 0(실행 전) 텍스트와 빈 상태 문구가 HTML에 있다', () => {
+    expect(text).toContain('단계 1: 실행 전')
+    expect(text).toContain('아직 계산 중인 연산이 없습니다.')
+    expect(text).toContain('아직 표시할 변수가 없습니다.')
+  })
+
+  it('시뮬레이터 region과 시나리오 선택 라디오 3개 이상이 있다', () => {
+    expect(html).toMatch(/role="region"[^>]*aria-label="암묵적 타입 변환 시뮬레이터"/)
+    for (const label of ['+ 의 순서', '- 와 + 섞기', '> 비교']) {
+      expect(text).toContain(label)
+    }
+    expect(html.match(/type="radio"/g)?.length).toBeGreaterThanOrEqual(3)
+  })
+
+  it('퀴즈 정답이 <details>로 5개 이상 프리렌더된다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(5)
+  })
+})
+
 describe('홈·소개 HTML', () => {
   it('홈에 모든 개념 제목과 링크가 있다', () => {
     const html = read('index.html')

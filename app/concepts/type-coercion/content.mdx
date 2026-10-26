@@ -1,0 +1,398 @@
+import { Simulator } from './Simulator'
+import { scenarios } from './scenarios'
+import { conversionTable } from './conversion-table'
+
+## 동작 원리
+
+값을 다른 타입의 값으로 바꾸는 일을 **타입 변환**(type conversion)이라고 합니다. 이 페이지에서는 바뀌는 방식에 따라 두 가지로 나눠 부릅니다.
+
+- **명시적 타입 변환**(explicit type conversion): `String(5)`처럼 개발자가 코드로 직접 요청해서 바꿉니다.
+- **암묵적 타입 변환**(implicit type conversion): `'3' + 4`나 `if` 조건식처럼 연산자와 조건식이 평가 도중에 스스로 바꿉니다. **타입 강제 변환**(type coercion)이라고도 부릅니다.
+
+변환은 연산에 쓸 새 값을 만들 뿐입니다. 예제 1에서 `n + ''`는 문자열 `"7"`을 만들어 내지만, 그 결과를 `n`에 다시 대입(재할당)하지 않았으므로 `n`은 숫자 7 그대로입니다.
+
+### 이 페이지에서 다루는 세 가지 목적지
+
+이 페이지에서 다루는 변환의 목적지는 문자열, 숫자, 불리언 셋입니다(명세에는 다른 변환도 있지만 다루지 않습니다). 명세는 각각을 ToString, ToNumber, ToBoolean이라는 추상 연산으로 정의합니다. 아래 표는 자주 만나는 값이 각 목적지로 바뀐 결과입니다. 문자열 칸의 값은 문자열이라는 것이 보이도록 큰따옴표를 붙였고, `NaN`은 "숫자가 아님"을 뜻하는 특별한 숫자 값입니다. 소스 열에 따옴표로 쓴 값은 문자열입니다.
+
+<div className="my-6 overflow-x-auto">
+  <table className="w-full border-collapse text-left">
+    <thead>
+      <tr>
+        <th scope="col" className="border-border border px-3 py-2">
+          바뀌기 전의 값
+        </th>
+        <th scope="col" className="border-border border px-3 py-2">
+          문자열로
+        </th>
+        <th scope="col" className="border-border border px-3 py-2">
+          숫자로
+        </th>
+        <th scope="col" className="border-border border px-3 py-2">
+          불리언으로
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      {conversionTable.map((row) => (
+        <tr key={row.source}>
+          <th scope="row" className="border-border border px-3 py-2">
+            <code>{row.source}</code>
+          </th>
+          <td className="border-border border px-3 py-2">
+            <code>{row.toString}</code>
+          </td>
+          <td className="border-border border px-3 py-2">
+            <code>{row.toNumber}</code>
+          </td>
+          <td className="border-border border px-3 py-2">
+            <code>{row.toBoolean}</code>
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
+
+표에서 읽어 둘 점은 다음과 같습니다.
+
+- 숫자로 바꿀 때 문자열의 앞뒤 공백은 무시됩니다(`' 12 '`는 12). 빈 문자열과 공백만 있는 문자열은 0입니다.
+- 숫자로 읽을 수 없는 문자열(`'12px'`)은 `NaN`이 됩니다. 앞부분의 `12`만 읽지 않습니다.
+- 문자열 `'0'`은 불리언으로 바꾸면 `true`입니다. 문자열은 내용이 아니라 비어 있는지로 판정합니다.
+
+### 연산자가 기대하는 타입
+
+연산자와 조건식은 각자 기대하는 타입이 있고, 다른 타입의 값을 만나면 그 타입으로 바꿔서 계산합니다.
+
+1. **`+`**: 피연산자 중 문자열이 하나라도 있으면 다른 쪽을 문자열로 바꿔 **문자열 연결**(string concatenation)을 합니다. 문자열이 없으면 두 피연산자를 숫자로 바꿔 **숫자 덧셈**을 합니다. `+`와 `-`는 우선순위가 같아 왼쪽부터 차례로 묶입니다. 그래서 `'3' + 4 + 5`는 `'3' + 4`를 먼저 계산합니다. `*`처럼 우선순위가 더 높은 연산자나 괄호가 있으면 그쪽이 먼저 계산됩니다. 예를 들어 `'1' + 2 * 3`은 `2 * 3`이 먼저 6이 되고, 이어서 `'1' + 6`이므로 `"16"`입니다.
+2. **`-`, `*`, `/`, `%`와 단항 `+`**: 피연산자를 숫자로 바꿉니다. 단항 `+`는 피연산자 하나 앞에 붙은 `+`(`+'42'`)입니다. 숫자로 바꿀 수 없는 문자열은 `NaN`이 됩니다.
+3. **`>`와 `<`**: 두 피연산자가 모두 문자열이면 바꾸지 않고 문자열끼리 앞 글자부터 비교합니다. 하나라도 문자열이 아니면 두 피연산자를 숫자로 바꿔 비교합니다. 이 페이지는 숫자 문자로 된 문자열끼리의 비교만 다룹니다.
+4. **조건식(`if`, 삼항 `? :`)과 `!`**: 값을 불리언으로 바꿉니다. 불리언으로 바꿨을 때 `false`가 되는 값을 falsy, `true`가 되는 값을 truthy라고 부르며, falsy 값의 목록은 [단축 평가 페이지](/concepts/short-circuit-evaluation)에서 다룹니다.
+5. **템플릿 리터럴의 `${}`**: 안에 들어간 값을 문자열로 바꿔 끼워 넣습니다(ToString). `+`와는 별도의 규칙입니다.
+
+### 객체는 먼저 원시 값으로 바뀐다
+
+피연산자가 객체이고 그 연산이 문자열이나 숫자로 바꿔야 하는 연산이면, 객체는 먼저 원시 값으로 바뀐 뒤 위 규칙을 따릅니다. 명세는 이 단계를 ToPrimitive라고 부릅니다. `{ x: 1, y: 2 }`처럼 데이터만 담은 객체 리터럴은 문자열 `"[object Object]"`가 됩니다(객체가 원시 값으로 바뀌는 방법을 직접 정한 경우는 결과가 달라지며, 이 페이지에서는 다루지 않습니다). 이 객체를 숫자로 바꿔야 하는 연산에 쓰면 그 문자열을 숫자로 바꾸는 것이므로 `NaN`입니다.
+
+불리언으로 바꿀 때는 객체를 원시 값으로 바꾸지 않습니다. 객체는 항상 truthy입니다. 객체가 원시 값으로 바뀌는 내부 과정은 이 페이지에서 다루지 않고 결과만 보여 줍니다(아래 단순화 참고).
+
+### 변환이 안 되는 경우
+
+모든 값이 모든 타입으로 바뀌지는 않습니다. 바꿀 수 없는 경우 TypeError가 발생합니다. 오류가 나면 실행이 멈추므로 이 동작은 예제로 보이지 않고 설명으로만 다룹니다. 오류 메시지는 호스트마다 다르므로 여기서는 오류의 종류만 말합니다.
+
+- **Symbol**: `Symbol('id')`처럼 고유한 값을 만드는 원시 값 타입입니다. 문자열이나 숫자로는 암묵적으로 바꿀 수 없습니다. `Symbol('id') + ''`, `${Symbol('id')}`를 쓴 템플릿 리터럴, `+Symbol('id')`는 모두 TypeError입니다. 불리언으로는 바뀝니다. Symbol은 truthy라서 `!Symbol('id')`는 `false`입니다.
+- **BigInt**: `10n`처럼 숫자 뒤에 `n`을 붙인 정수 타입입니다. BigInt와 숫자(number)를 산술 연산자로 섞으면 TypeError입니다(`1n + 1`). `'10' - 1n`도 `-`가 `'10'`을 숫자 10으로 바꾼 뒤 BigInt와 섞게 되므로 TypeError입니다. 단항 `+`도 BigInt에는 쓸 수 없습니다(`+10n`). 반면 BigInt를 문자열과 `+`로 연결하는 것(`10n + ''`은 `"10"`)과 숫자와 `>`로 비교하는 것(`1n > 0`은 `true`)은 오류가 아닙니다.
+
+### 명시적 변환
+
+`String(x)`, `Number(x)`, `Boolean(x)`는 값을 직접 문자열, 숫자, 불리언으로 바꾸는 함수입니다. 위 표에 나온 값에서는 표와 같은 결과를 냅니다. 예제 8에서 확인합니다.
+
+다만 암묵적 변환과 모든 경우에 같지는 않습니다. `String(Symbol('id'))`는 `"Symbol(id)"`이고 `Number(10n)`은 `10`으로, 같은 값을 암묵적으로 문자열(Symbol)이나 숫자(BigInt)로 바꿀 때와 달리 오류가 나지 않습니다. 그렇다고 명시적 변환이 오류를 내지 않는다는 뜻은 아닙니다. `Number(Symbol('id'))`는 여전히 TypeError입니다.
+
+## 예제
+
+여덟 예제의 출력을 먼저 예측해 보세요. 예제 3~5는 뒤에 있는 시뮬레이터로 한 단계씩 확인할 수 있습니다. 예제의 `console.log`는 값을 출력하는 호스트 API이며, ECMAScript 언어의 일부가 아닙니다.
+
+### 예제 1: 문자열로 바뀌는 경우
+
+`JSON.stringify`는 결과가 문자열이라는 것을 따옴표로 보이게 하려는 출력용입니다. `typeof n`은 `n`의 타입 이름을 문자열로 돌려줍니다.
+
+```js file=./examples/to-string.js
+
+```
+
+<PredictQuiz
+  question="예제 1의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다)"
+  choices={[
+    '"7" "true" "null" "undefined" / "합계: 10" "false" / string',
+    '"7" "true" "null" "undefined" / "합계: 10" "false" / number',
+    '"7" "true" "" "" / "합계: 10" "false" / number',
+    '"7" "true" "null" "undefined" / "합계: 73" "false" / number',
+  ]}
+  answer={1}
+  explanation="+의 한쪽이 문자열이면 다른 쪽을 문자열로 바꿉니다. 7, true, null, undefined는 각각 문자열 7, true, null, undefined가 됩니다. `${n + 3}`의 안쪽 n + 3은 숫자 덧셈이라 10이고, 그 값이 문자열로 바뀝니다. n에 연산 결과를 다시 대입하지 않았으므로 typeof n은 여전히 number입니다."
+/>
+
+### 예제 2: 숫자로 바뀌는 경우
+
+```js file=./examples/to-number.js
+
+```
+
+<PredictQuiz
+  question="예제 2의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다)"
+  choices={[
+    '7 8 3 1 / 42 NaN 12 NaN / 1 0 0 NaN',
+    '7 8 3 1 / 42 0 NaN NaN / 1 0 0 NaN',
+    '7 8 3 1 / 42 0 12 NaN / 1 0 0 NaN',
+    '7 8 3 1 / 42 0 12 NaN / 1 0 NaN NaN',
+  ]}
+  answer={2}
+  explanation="-, *, /, %와 단항 +는 피연산자를 숫자로 바꿉니다. 빈 문자열은 0, 앞뒤 공백이 있는 ' 12 '는 12, 숫자로 읽을 수 없는 '12px'는 NaN입니다. true는 1, false와 null은 0, undefined는 NaN입니다."
+/>
+
+### 예제 3: + 의 순서
+
+이 예제의 출력은 따옴표가 없어서 숫자와 문자열을 구분할 수 없습니다. 값의 타입은 시뮬레이터에서 확인할 수 있습니다.
+
+```js file=./examples/plus-order.js
+
+```
+
+<PredictQuiz
+  question="예제 3의 출력은 무엇일까요?"
+  choices={['12 12', '345 75', '12 75', '345 345']}
+  answer={1}
+  explanation="+는 왼쪽부터 묶입니다. '3' + 4는 문자열이 있어 연결이므로 문자열 34이고, 거기에 5를 연결해 문자열 345입니다. 3 + 4는 문자열이 없어 숫자 덧셈이므로 7이고, 그 7과 '5'는 연결이므로 문자열 75입니다. 같은 세 값이어도 어느 +가 먼저 계산되느냐로 결과가 달라집니다."
+/>
+
+### 예제 4: 숫자로 바꾸는 연산과 섞기
+
+이 예제도 출력의 따옴표가 없습니다. 값의 타입은 시뮬레이터에서 확인할 수 있습니다.
+
+```js file=./examples/numeric-mix.js
+
+```
+
+<PredictQuiz
+  question="예제 4의 출력은 무엇일까요?"
+  choices={['62 11', '8 11', '8 101', '62 101']}
+  answer={2}
+  explanation="'10' - '4'는 두 문자열을 숫자로 바꿔 계산하므로 숫자 6이고, 6 + 2는 문자열이 없어 숫자 덧셈이므로 8입니다. '10' + 2는 문자열 연결이라 문자열 102이고, 거기서 1을 빼는 - 는 102를 숫자로 바꿔 계산하므로 101입니다."
+/>
+
+### 예제 5: > 비교
+
+```js file=./examples/compare.js
+
+```
+
+<PredictQuiz
+  question="예제 5의 출력은 무엇일까요?"
+  choices={['true true', 'true false', 'false false']}
+  answer={1}
+  explanation="'10' > 9는 한쪽이 숫자이므로 '10'을 숫자 10으로 바꿔 비교하고 true입니다. '10' > '9'는 둘 다 문자열이라 바꾸지 않고 앞 글자부터 비교합니다. 첫 글자 '1'과 '9'를 비교하면 '1'의 UTF-16 코드 유닛 값이 더 작으므로 '10'은 '9'보다 크지 않아 false입니다."
+/>
+
+### 시뮬레이터로 확인하기
+
+예제 3~5를 한 단계씩 실행하며 연산마다 피연산자가 어떤 타입으로 바뀌고 어떤 결과가 나오는지 확인해 보세요.
+
+<Simulator scenarios={scenarios} />
+
+### 예제 6: 불리언으로 바뀌는 경우
+
+조건식과 `!`는 값을 불리언으로 바꿉니다. 문자열 `'0'`과 숫자 `0`을 비교해 보세요.
+
+```js file=./examples/to-boolean.js
+
+```
+
+### 예제 7: 객체가 연산에 쓰일 때
+
+```js file=./examples/object.js
+
+```
+
+<PredictQuiz
+  question="예제 7의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다)"
+  choices={[
+    '"{x:1,y:2}" "{x:1,y:2}" / NaN NaN',
+    '"[object Object]" "[object Object]" / 0 0',
+    '"[object Object]" "[object Object]" / NaN NaN',
+  ]}
+  answer={2}
+  explanation="객체는 문자열이나 숫자로 바꿔야 하는 연산에서 먼저 원시 값으로 바뀌고, 일반 객체는 문자열 [object Object]가 됩니다. point + ''와 템플릿 리터럴은 이 문자열을 사용합니다. +point와 point - 1은 객체를 숫자로 바꿔야 하는데, 문자열 [object Object]는 숫자로 읽을 수 없어 NaN입니다."
+/>
+
+### 예제 8: 명시적 변환
+
+`String()`, `Number()`, `Boolean()`으로 직접 바꿉니다. 마지막 줄의 `Symbol('id')`와 `10n`은 앞에서 본 변환이 안 되는 경우와 비교하려는 값입니다.
+
+```js file=./examples/explicit.js
+
+```
+
+## 결과와 이유
+
+<div className="my-6 overflow-x-auto">
+  <table className="w-full border-collapse text-left">
+    <thead>
+      <tr>
+        <th scope="col" className="border-border border px-3 py-2">
+          연산
+        </th>
+        <th scope="col" className="border-border border px-3 py-2">
+          피연산자를 바꾸는 타입
+        </th>
+        <th scope="col" className="border-border border px-3 py-2">
+          예
+        </th>
+        <th scope="col" className="border-border border px-3 py-2">
+          결과
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>+</code>: 문자열이 하나라도 있음
+        </td>
+        <td className="border-border border px-3 py-2">문자열(문자열 연결)</td>
+        <td className="border-border border px-3 py-2">
+          <code>{"'3' + 4 + 5"}</code>, <code>{"3 + 4 + '5'"}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>"345"</code>, <code>"75"</code>
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>+</code>: 문자열이 없음
+        </td>
+        <td className="border-border border px-3 py-2">숫자(숫자 덧셈)</td>
+        <td className="border-border border px-3 py-2">
+          <code>{"'10' - '4' + 2"}</code>의 마지막 <code>+</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>8</code>
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>-</code>, <code>*</code>, <code>/</code>, <code>%</code>
+        </td>
+        <td className="border-border border px-3 py-2">숫자</td>
+        <td className="border-border border px-3 py-2">
+          <code>{"'10' - 3"}</code>, <code>{"'4' * '2'"}</code>, <code>{"'9' / '3'"}</code>,{' '}
+          <code>{"'7' % 2"}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>7</code>, <code>8</code>, <code>3</code>, <code>1</code>
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          단항 <code>+</code>
+        </td>
+        <td className="border-border border px-3 py-2">숫자</td>
+        <td className="border-border border px-3 py-2">
+          <code>{"+'42'"}</code>, <code>{"+''"}</code>, <code>{"+' 12 '"}</code>,{' '}
+          <code>{"+'12px'"}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>42</code>, <code>0</code>, <code>12</code>, <code>NaN</code>
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'>'}</code>: 둘 다 문자열은 아님
+        </td>
+        <td className="border-border border px-3 py-2">숫자</td>
+        <td className="border-border border px-3 py-2">
+          <code>{"'10' > 9"}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>true</code>
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'>'}</code>: 둘 다 문자열
+        </td>
+        <td className="border-border border px-3 py-2">바꾸지 않음(문자열로 비교)</td>
+        <td className="border-border border px-3 py-2">
+          <code>{"'10' > '9'"}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>false</code>
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">조건식, 삼항 연산자, !</td>
+        <td className="border-border border px-3 py-2">불리언</td>
+        <td className="border-border border px-3 py-2">
+          <code>{"'0' ? … : …"}</code>, <code>{'!count'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'참으로 판단'}</code>, <code>true</code>
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          템플릿 리터럴의 <code>{'${}'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">문자열</td>
+        <td className="border-border border px-3 py-2">
+          <code>{'`합계: ${n + 3}`'}</code>, <code>{'`${false}`'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>"합계: 10"</code>, <code>"false"</code>
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          객체를 문자열이나 숫자로 바꿔야 하는 연산
+        </td>
+        <td className="border-border border px-3 py-2">먼저 원시 값으로 바꾼 뒤 위 규칙을 적용</td>
+        <td className="border-border border px-3 py-2">
+          <code>{"point + ''"}</code>, <code>{'+point'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>"[object Object]"</code>, <code>NaN</code>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+예제 1에서 `n + ''`, `true + ''`, `null + ''`, `undefined + ''`가 모두 문자열이 된 것은 `+`의 한쪽이 문자열 `''`이라 다른 쪽을 문자열로 바꿨기 때문입니다. 템플릿 리터럴의 `${n + 3}`에서는 안쪽의 `n + 3`이 두 숫자의 덧셈이라 10이 되고, 그 10이 문자열로 바뀌어 `"합계: 10"`이 됩니다. `typeof n`이 `number`인 것은 연산 결과를 `n`에 다시 대입하지 않았기 때문입니다.
+
+예제 2에서 `-`, `*`, `/`, `%`는 문자열 피연산자를 숫자로 바꿔 계산했고, 단항 `+`는 피연산자를 숫자로 바꾼 값을 돌려줍니다. 빈 문자열은 0, 앞뒤 공백은 무시되어 `' 12 '`는 12, `'12px'`처럼 숫자로 읽을 수 없는 문자열은 `NaN`, `true`는 1, `false`와 `null`은 0, `undefined`는 `NaN`입니다.
+
+예제 3의 `'3' + 4 + 5`는 왼쪽부터 묶여 `'3' + 4`가 먼저 계산됩니다. 문자열이 있으므로 4가 `"4"`로 바뀌어 `"34"`가 되고, 다시 5가 `"5"`로 바뀌어 `"345"`가 됩니다. `3 + 4 + '5'`는 먼저 `3 + 4`가 문자열 없이 숫자 덧셈이라 7이고, 그다음 `7 + '5'`에서야 문자열이 나타나 7이 `"7"`로 바뀌어 `"75"`가 됩니다. 두 결과 모두 문자열입니다. 출력에 따옴표가 없는 것은 호스트의 출력 형식입니다.
+
+예제 4의 `c`는 `'10' - '4'`가 두 피연산자를 숫자로 바꿔 6이 되고, `6 + 2`는 문자열이 없어 숫자 덧셈이라 8입니다. `d`는 `'10' + 2`가 문자열 연결이라 `"102"`가 되고, 이 문자열이 `- 1`에서 숫자 102로 바뀌어 101이 됩니다. 같은 문자열 `'10'`으로 시작해도 `+`와 `-`는 피연산자를 바꾸는 타입이 다릅니다.
+
+예제 5의 `'10' > 9`는 둘 다 문자열은 아니므로 `'10'`이 숫자 10으로 바뀌어 `10 > 9`가 `true`입니다. `'10' > '9'`는 둘 다 문자열이라 바뀌지 않고 앞 글자부터 비교합니다. 첫 글자 `'1'`의 UTF-16 코드 유닛 값이 `'9'`보다 작으므로 `'10'`은 `'9'`보다 작고, 결과는 `false`입니다. 숫자 크기가 아니라 글자 값을 앞에서부터 비교한 결과입니다.
+
+예제 6에서 조건식은 값을 불리언으로 바꿉니다. `'0'`은 비어 있지 않은 문자열이라 truthy이므로 `'참으로 판단'`이 출력되고, 숫자 `0`은 falsy라 `'거짓으로 판단'`이 출력됩니다. `!`도 값을 불리언으로 바꾼 뒤 뒤집으므로 `!text`는 `false`, `!count`는 `true`입니다.
+
+예제 7에서 `point`는 문자열이나 숫자로 바꿔야 하는 연산에 쓰였으므로 먼저 원시 값으로 바뀝니다. 일반 객체는 문자열 `"[object Object]"`가 되어, `point + ''`와 템플릿 리터럴 모두 이 문자열이 됩니다. `+point`와 `point - 1`은 같은 문자열을 숫자로 바꿔야 하는데 숫자로 읽을 수 없어 `NaN`입니다.
+
+예제 8의 처음 세 줄은 앞의 표와 같은 결과입니다(`String(5)`는 `"5"`). `Boolean('0')`은 `true`, `Boolean('')`와 `Boolean(0)`은 `false`, `Boolean({})`는 `true`입니다. 마지막 줄의 `String(Symbol('id'))`와 `Number(10n)`은 오류 없이 `"Symbol(id)"`와 `10`이 됩니다. 암묵적으로는 Symbol을 문자열로(`Symbol('id') + ''`), BigInt를 숫자로(`+10n`) 바꿀 수 없던 것과 대비됩니다.
+
+<Callout type="misconception" title="+는 숫자가 있으면 덧셈을 한다">
+  `+`는 피연산자 중 문자열이 하나라도 있으면 문자열 연결을 합니다. 숫자가 섞여 있어도
+  마찬가지입니다. `+`는 왼쪽부터 묶이므로 `3 + 4 + '5'`는 먼저 `3 + 4`가 7이 되고, 그다음 문자열
+  `'5'`를 만나 `"75"`가 됩니다. 반대로 `'3' + 4 + 5`는 처음부터 문자열 연결이라 `"345"`입니다.
+</Callout>
+
+<Callout type="misconception" title="문자열과 숫자를 섞은 계산은 항상 문자열이 된다">
+  이 페이지의 산술·비교 연산자 중 결과가 문자열이 되는 것은 `+`가 문자열 연결을 할 때뿐입니다. `-`는
+  피연산자를 숫자로 바꾸므로 <code>{"'10' - '4'"}</code>는 숫자 6입니다. 예제 4에서 `'10' + 2`는
+  `"102"`지만, 거기서 `- 1`을 하면 다시 숫자로 바뀌어 101이 됩니다.
+</Callout>
+
+<Callout type="misconception" title="숫자 모양 문자열끼리 비교하면 숫자처럼 비교된다">
+  `>`는 두 피연산자가 모두 문자열이면 숫자로 바꾸지 않고 앞 글자부터 비교합니다. 예제 5에서 <code>{"'10' > 9"}</code>는 `true`지만 `'10' > '9'`는 `false`입니다. 숫자 크기로 비교하려면 문자열을 먼저
+  숫자로 바꿔야 합니다. 한쪽이 숫자이면 다른 쪽이 숫자로 바뀝니다.
+</Callout>
+
+<Callout type="misconception" title="타입 변환은 변수의 값을 바꾼다">
+  `n + ''`는 새 문자열을 만들 뿐 `n`을 바꾸지 않습니다. 예제 1에서 `n`에 연산 결과를 다시
+  대입(재할당)하지 않았으므로 `typeof n`은 여전히 `number`입니다. 변수가 변환된 값을 가지려면 그
+  결과를 변수에 다시 대입해야 합니다.
+</Callout>
+
+<Callout type="misconception" title="문자열 '0'은 falsy다">
+  문자열은 내용이 아니라 비어 있는지로 판정합니다. 예제 6에서 `'0'`은 truthy라 `'참으로 판단'`이
+  출력되고, 문자열 중 falsy인 것은 빈 문자열 `''`뿐입니다. 숫자 `0`은 falsy이므로 `'0'`과 `0`의
+  결과가 다릅니다.
+</Callout>
+
+<Callout type="misconception" title="숫자로 바꾸면 앞의 숫자만 읽는다">
+  숫자로 바꿀 때 문자열 전체를 숫자로 읽을 수 있어야 합니다. `'12px'`에서 앞의 `12`만 읽지 않고
+  전체가 읽히지 않아 `+'12px'`는 `NaN`입니다. 예제 2의 둘째 줄 마지막 값입니다. 앞뒤 공백은
+  무시되므로 `+' 12 '`는 12입니다.
+</Callout>
