@@ -2,6 +2,8 @@ import type { ConsoleMessage, Page } from '@playwright/test'
 
 export const CONCEPT_PATH = '/concepts/primitives-and-objects'
 export const SIMULATOR_NAME = '원시 값과 객체 시뮬레이터'
+export const SHORT_CIRCUIT_PATH = '/concepts/short-circuit-evaluation'
+export const SHORT_CIRCUIT_SIMULATOR_NAME = '단축 평가 시뮬레이터'
 
 // 404 문서 자체를 받을 때 브라우저가 남기는 리소스 로드 로그. 앱 오류가 아니므로 무시한다.
 const IGNORED_404_LOG = /Failed to load resource: the server responded with a status of 404/

@@ -1,0 +1,235 @@
+import { Simulator } from './Simulator'
+import { scenarios } from './scenarios'
+
+## 동작 원리
+
+`&&`, `||`, `??`, `?.`는 왼쪽 값을 먼저 평가하고, 그 값을 보고 오른쪽을 평가할지 정합니다. 오른쪽 피연산자를 평가하지 않고 건너뛰는 이 동작을 **단축 평가**(short-circuit evaluation)라고 부릅니다. 이 페이지에서는 편의상 `?.`까지 포함해 네 가지를 함께 "연산자"라고 부릅니다(명세는 `?.`를 연산자가 아닌 별도 문법으로 정의합니다).
+
+### truthy와 falsy
+
+`&&`와 `||`는 왼쪽 값이 "참처럼 취급되는 값"인지 판정합니다. 명세는 이 판정을 ToBoolean이라는 추상 연산으로 정의합니다. ToBoolean이 `false`를 돌려주는 값을 **falsy**, `true`를 돌려주는 값을 **truthy**라고 부릅니다.
+
+falsy 값은 다음 여덟 가지뿐이고, 나머지는 모두 truthy입니다.
+
+- `false`
+- `0`, `-0`
+- `0n` (bigint 타입의 0)
+- `NaN`
+- `''` (빈 문자열)
+- `null`
+- `undefined`
+
+그래서 `'0'`, `'false'`, `' '`(공백 하나), `-1`, 빈 객체 `{}`는 모두 truthy입니다. `!!x`는 `!`를 두 번 적용해 `x`의 ToBoolean 결과를 `true`나 `false`로 얻는 방법입니다. 예제 1에서 이 방법으로 값들을 확인합니다.
+
+### && 와 ||
+
+`&&`와 `||`는 같은 순서로 동작합니다.
+
+1. 왼쪽 피연산자를 평가합니다.
+2. 그 값을 ToBoolean으로 판정합니다.
+3. 판정만으로 결과가 정해지면 **왼쪽 값을 그대로** 결과로 하고, 오른쪽 피연산자는 평가하지 않습니다.
+4. 정해지지 않으면 오른쪽 피연산자를 평가하고, 그 값을 결과로 합니다.
+
+`&&`는 왼쪽이 falsy일 때, `||`는 왼쪽이 truthy일 때 결과가 정해집니다. 결과는 ToBoolean의 판정 결과(`true`나 `false`)가 아니라, 변환하지 않은 두 피연산자 중 한쪽의 값 그 자체입니다.
+
+### ??
+
+`??`는 왼쪽 값이 `null` 또는 `undefined`일 때만 오른쪽 피연산자를 평가합니다. 그 밖의 값이면 왼쪽 값을 결과로 하고 오른쪽을 평가하지 않습니다. `0`, `''`, `false`도 `null`이나 `undefined`가 아니므로 그대로 결과가 됩니다. 이 점이 falsy 전체를 보는 `||`와 다릅니다.
+
+`??`를 `&&`나 `||`와 괄호 없이 한 식에서 섞어 쓰면 SyntaxError(문법 오류)입니다. 섞어 쓰려면 `(a ?? b) || c`처럼 괄호로 묶어야 합니다.
+
+### ?.
+
+`?.`는 **바로 왼쪽 값**이 `null` 또는 `undefined`인지 확인합니다. 그렇다면 체인의 나머지, 즉 뒤에 이어지는 프로퍼티 접근과 함수 호출(그 인수 포함)을 평가하지 않고 결과를 `undefined`로 합니다. 이때 결과는 왼쪽 값 `null`이 아니라 항상 `undefined`입니다. 왼쪽 값이 `null`·`undefined`가 아니면 체인을 끝까지 평가하고, 그 값이 결과입니다.
+
+`?.` 없이 `null`이나 `undefined`의 프로퍼티를 읽으면 TypeError가 발생합니다.
+
+## 예제
+
+다섯 예제의 출력을 먼저 예측한 뒤, 아래 시뮬레이터로 한 단계씩 확인해 보세요. 예제의 `console.log`는 값을 출력하는 호스트 API이며, ECMAScript 언어의 일부가 아닙니다.
+
+### 예제 1: truthy와 falsy
+
+```js file=./examples/truthy-falsy.js
+
+```
+
+<PredictQuiz
+  question="예제 1의 출력은 무엇일까요?"
+  choices={[
+    'false false false false false false false false / true true true true true',
+    'false false false false false false false false / false false false false true',
+    'false false false false false false false false / true false true true true',
+  ]}
+  answer={0}
+  explanation="출력의 두 줄을 ' / '로 이어 적었습니다. 첫 줄의 여덟 값이 falsy의 전부입니다. 둘째 줄은 문자열 '0'과 'false', 공백 하나인 문자열, -1, 빈 객체인데, 이들은 모두 truthy입니다. 문자열은 내용이 아니라 비어 있는지만 판정합니다."
+/>
+
+### 예제 2: 결과는 피연산자의 값
+
+```js file=./examples/logical-result.js
+
+```
+
+<PredictQuiz
+  question="예제 2의 출력은 무엇일까요?"
+  choices={['true true false true', 'hello hi 0 hello', 'hello hi hello hi', 'hello hello 0 hello']}
+  answer={1}
+  explanation="0 || 'hello'는 왼쪽이 falsy라 오른쪽 'hello'가 결과입니다. 'hi' || 'hello'는 왼쪽이 truthy라 'hi'가 결과입니다. 0 && 'hello'는 왼쪽이 falsy라 왼쪽 0이 결과입니다. 'hi' && 'hello'는 왼쪽이 truthy라 오른쪽 'hello'가 결과입니다. 결과는 true나 false가 아니라 피연산자의 값입니다."
+/>
+
+### 예제 3: 오른쪽을 평가하지 않는 경우
+
+`check` 함수는 호출되면 `평가: 라벨`을 출력한 뒤 받은 값을 그대로 돌려줍니다. 어떤 피연산자가 실제로 평가되었는지 출력으로 드러내는 도구입니다.
+
+```js file=./examples/skip-right.js
+
+```
+
+<PredictQuiz
+  question="예제 3의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다)"
+  choices={[
+    '평가: A / 평가: B / 0 / 평가: C / 평가: D / ok / 평가: E / 평가: F / 2',
+    '평가: A / 0 / 평가: C / ok / 평가: E / 평가: F / 2',
+    '평가: A / false / 평가: C / true / 평가: E / 평가: F / true',
+    '평가: A / 0 / 평가: C / ok / 평가: E / 1',
+  ]}
+  answer={1}
+  explanation="check('A', 0)이 0이라 falsy이므로 &&의 결과가 정해져 check('B', 1)은 평가하지 않습니다. check('C', 'ok')가 truthy라 ||도 check('D', 2)를 평가하지 않습니다. check('E', 1)은 truthy이므로 &&는 오른쪽 check('F', 2)를 평가하고 그 값 2가 결과입니다."
+/>
+
+### 예제 4: ?? 와 ||
+
+`JSON.stringify`는 빈 문자열을 출력에서 `""`로 보이게 하려는 출력용입니다. 빈 문자열은 그대로 출력하면 아무것도 보이지 않습니다.
+
+```js file=./examples/nullish.js
+
+```
+
+<PredictQuiz
+  question="예제 4의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다)"
+  choices={[
+    '10 10 / "제목 없음" "제목 없음" / 메모 없음',
+    '10 0 / "제목 없음" "" / 메모 없음',
+    '10 0 / "제목 없음" "제목 없음" / 메모 없음',
+    '0 0 / "" "" / undefined',
+  ]}
+  answer={1}
+  explanation="count가 0이고 title이 빈 문자열이므로 falsy입니다. || 는 falsy 전체를 보기 때문에 오른쪽 10과 '제목 없음'이 결과입니다. ??는 null과 undefined만 보기 때문에 0과 빈 문자열을 그대로 결과로 합니다. memo는 undefined이므로 ??의 오른쪽 '메모 없음'이 결과입니다."
+/>
+
+### 예제 5: ?. 체인
+
+```js file=./examples/optional-chaining.js
+
+```
+
+<PredictQuiz
+  question="예제 5의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다)"
+  choices={[
+    '30 / null / 나이 정보 없음',
+    '30 / undefined / 나이 정보 없음',
+    '30 / undefined / undefined',
+  ]}
+  answer={1}
+  explanation="user는 null도 undefined도 아니므로 체인을 끝까지 평가해 30이 됩니다. guest는 null이라 ?.가 체인의 나머지(.profile과 .age)를 평가하지 않고 undefined를 결과로 합니다. null이 아닙니다. 셋째 줄에서는 이 undefined가 ??의 왼쪽 값이 되어 오른쪽 '나이 정보 없음'이 결과입니다."
+/>
+
+### 시뮬레이터로 확인하기
+
+예제 2~5를 한 단계씩 실행하며 어떤 조각이 평가되고 어떤 조각이 건너뛰어지는지 확인해 보세요.
+
+<Simulator scenarios={scenarios} />
+
+## 결과와 이유
+
+<div className="my-6 overflow-x-auto">
+  <table className="w-full border-collapse text-left">
+    <thead>
+      <tr>
+        <th className="border-border border px-3 py-2">연산자</th>
+        <th className="border-border border px-3 py-2">왼쪽 값을 보는 기준</th>
+        <th className="border-border border px-3 py-2">오른쪽을 평가하는 경우</th>
+        <th className="border-border border px-3 py-2">결과</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'&&'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">truthy인가, falsy인가</td>
+        <td className="border-border border px-3 py-2">왼쪽이 truthy일 때</td>
+        <td className="border-border border px-3 py-2">
+          왼쪽이 falsy면 왼쪽 값, 아니면 오른쪽을 평가한 값
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'||'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">truthy인가, falsy인가</td>
+        <td className="border-border border px-3 py-2">왼쪽이 falsy일 때</td>
+        <td className="border-border border px-3 py-2">
+          왼쪽이 truthy면 왼쪽 값, 아니면 오른쪽을 평가한 값
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'??'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>null</code> 또는 <code>undefined</code>인가
+        </td>
+        <td className="border-border border px-3 py-2">
+          왼쪽이 <code>null</code> 또는 <code>undefined</code>일 때
+        </td>
+        <td className="border-border border px-3 py-2">
+          왼쪽이 <code>null</code>·<code>undefined</code>가 아니면 왼쪽 값, 맞으면 오른쪽을 평가한
+          값
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'?.'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>null</code> 또는 <code>undefined</code>인가
+        </td>
+        <td className="border-border border px-3 py-2">
+          왼쪽이 <code>null</code>·<code>undefined</code>가 아닐 때(체인의 나머지를 평가)
+        </td>
+        <td className="border-border border px-3 py-2">
+          왼쪽이 <code>null</code>·<code>undefined</code>면 <code>undefined</code>, 아니면 체인
+          끝까지 평가한 값
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+예제 2에서 네 결과가 모두 `true`나 `false`가 아닌 것은 `&&`와 `||`가 ToBoolean의 판정 결과가 아니라 피연산자의 값을 결과로 하기 때문입니다. 예제 3에서 `check('B', 1)`과 `check('D', 2)`의 출력이 없는 것은 왼쪽 값만으로 결과가 정해져 그 오른쪽 피연산자를 평가하지 않았기 때문이고, `check('F', 2)`는 결과가 정해지지 않아 평가되었습니다. 예제 4에서 `||`와 `??`의 결과가 갈리는 것은 두 연산자가 왼쪽 값을 보는 기준이 달라서입니다. `0`과 `''`는 falsy이지만 `null`이나 `undefined`는 아닙니다. 예제 5에서 `guest?.profile.age`가 오류 없이 `undefined`가 되는 것은 `guest`가 `null`이라 `?.`가 체인의 나머지를 평가하지 않기 때문입니다.
+
+<Callout type="misconception" title="&&와 ||는 항상 true나 false를 돌려준다">
+  `&&`와 `||`는 판정에 ToBoolean을 쓰지만, 결과는 판정 결과가 아니라 피연산자의 값 그 자체입니다.
+  예제 2에서 `0 || 'hello'`는 `'hello'`, `'hi' || 'hello'`는 `'hi'`입니다. truthy·falsy 판정에만
+  쓰는 곳에서는 차이가 드러나지 않을 뿐입니다.
+</Callout>
+
+<Callout type="misconception" title="||로 기본값을 주면 값이 없을 때만 기본값이 된다">
+  `||`는 왼쪽이 falsy이기만 하면 오른쪽을 결과로 합니다. 값이 없는 경우(`null`, `undefined`)뿐
+  아니라 `0`이나 `''`처럼 의도한 값도 기본값으로 바뀝니다. 예제 4에서 `count || 10`은 `10`이 되지만
+  `count ?? 10`은 `0`입니다. 값이 없을 때만 기본값을 주려면 `??`를 씁니다.
+</Callout>
+
+<Callout type="misconception" title="?.를 한 번 쓰면 뒤의 모든 접근이 안전하다">
+  `?.`가 확인하는 것은 바로 왼쪽 값 하나입니다. `user`가 `{}`처럼 값이 있는 변수일 때
+  `user?.missing.age`는 `user`가 `null`이나 `undefined`가 아니므로 체인을 계속 평가합니다.
+  `user.missing`은 `undefined`이고, 그 `undefined`의 `.age`를 읽는 순간 TypeError가 발생합니다.
+</Callout>
+
+<Callout type="misconception" title="null?.x의 결과는 null이다">
+  왼쪽 값이 `null`이어도 `?.`의 결과는 왼쪽 값이 아니라 `undefined`입니다. 예제 5의 `guest`는
+  `null`이지만 `guest?.profile.age`의 결과는 `undefined`입니다. `&&`가 왼쪽이 falsy일 때 왼쪽 값을
+  그대로 돌려주는 것(`null && 'x'`는 `null`)과 다릅니다.
+</Callout>

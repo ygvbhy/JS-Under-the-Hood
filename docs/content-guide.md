@@ -94,6 +94,7 @@ Prettier가 이 블록 안에 빈 줄을 넣을 수 있는데, 동작에는 영�
 - 시뮬레이터처럼 개념 폴더 안의 컴포넌트는 MDX 맨 위에서 직접 `import`합니다.
 - 헤딩(h2, h3)에는 자동으로 앵커가 붙습니다. h1은 쓰지 않습니다(레이아웃이 제목을 그립니다).
 - 미리 알 수 없는 값으로 첫 렌더를 바꾸는 코드를 넣지 않습니다([AGENTS.md](../AGENTS.md)의 하이드레이션 규칙).
+- 굵게(`**…**`)의 닫는 `**` 바로 앞이 문장부호이고 바로 뒤가 한글이면 굵게 처리되지 않고 별표가 그대로 보입니다(CommonMark 규칙). 예: `**단축 평가(short-circuit evaluation)**라고` → `**단축 평가**(short-circuit evaluation)라고`. `npm run test:build`의 본문 첫 문단 검사가 첫 문단에서만 이를 잡아 줍니다.
 
 ### 5. (선택) 시뮬레이터
 
@@ -150,7 +151,7 @@ export default function ConceptRoute() {
 npm run lint && npm run format:check && npm run typecheck && npm test && npm run test:build && npm run e2e
 ```
 
-`format:check`가 실패하면 `npm run format`으로 고칩니다. `e2e`·axe·가로 스크롤 검사는 현재 첫 개념 페이지만 대상이므로, 새 개념을 추가하면 브라우저에서 375px·다크 모드·키보드 조작을 직접 확인하고 필요하면 `e2e`에 경로를 추가합니다.
+`format:check`가 실패하면 `npm run format`으로 고칩니다. `e2e`·axe·가로 스크롤 검사는 개념마다 경로를 직접 등록한 페이지만 대상입니다(현재 `primitives-and-objects`, `short-circuit-evaluation`, `tests/e2e/helpers.ts`의 경로 상수). 새 개념을 추가하면 브라우저에서 375px·다크 모드·키보드 조작을 직접 확인하고, 시뮬레이터가 있으면 `a11y.spec.ts`·`responsive.spec.ts`에 그 개념의 경로와 시뮬레이터 진행 검사를 추가합니다(기존 케이스는 고치지 않고 추가만 합니다).
 
 ### 10. 사용자 검토 후 `reviewedAt` 기록
 
