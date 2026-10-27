@@ -1,0 +1,256 @@
+import { Simulator } from './Simulator'
+import { scenarios } from './scenarios'
+
+## 동작 원리
+
+함수를 호출한다는 것은 `f(인수1, 인수2)`처럼 괄호 안에 값을 넘겨 함수 본문을 실행하는 것입니다. 호출할 때 넘기는 값을 인수(argument)라 하고, 함수를 선언할 때 괄호 안에 적어 그 값을 받는 이름을 매개변수(parameter)라 합니다. 이 페이지의 질문은 "인수의 개수가 매개변수와 다르면 무슨 일이 일어나고, 호출 결과는 무엇이 되는가"입니다.
+
+### 호출의 순서
+
+`f(인수1, 인수2)`를 평가하면 다음 순서로 진행됩니다.
+
+1. 인수 식을 왼쪽부터 차례로 모두 평가해 인수 목록을 만듭니다.
+2. 인수 목록의 값을 매개변수에 차례로 넣습니다.
+3. 함수 본문을 실행합니다.
+
+인수 식 안에 다른 함수 호출이 있으면, 그 호출이 끝나야 인수 식의 값이 정해집니다. 그래서 바깥 함수의 본문은 인수 식을 모두 평가한 뒤에야 시작됩니다(예제 3).
+
+### 인수의 개수가 다를 때
+
+- 인수가 모자라면, 인수를 받지 못한 매개변수는 `undefined`입니다.
+- 인수가 남으면, 남는 인수는 매개변수에 들어가지 않습니다. 오류가 아닙니다. 남는 인수를 함수 안에서 읽는 방법(`arguments`)은 별도 개념에서 다룹니다.
+
+### 매개변수 기본값
+
+`count = 1`처럼 매개변수에 기본값(default value)을 적으면, 그 매개변수의 값이 `undefined`일 때만 기본값이 쓰입니다. 인수가 없을 때와 `undefined`를 직접 넘겼을 때가 여기에 해당합니다. `null`과 `0`은 `undefined`가 아니므로 기본값 대신 넘긴 값이 그대로 쓰입니다. 왼쪽 값이 falsy이기만 하면 오른쪽 값을 쓰는 [단축 평가](/concepts/short-circuit-evaluation)의 `||`와는 조건이 다릅니다.
+
+### 호출 결과와 return
+
+- `return 식;`은 식의 값을 호출 결과로 하고, 그 자리에서 함수를 끝냅니다.
+- `return;`은 값 없이 함수를 끝내며, 호출 결과는 `undefined`입니다.
+- `return`을 만나지 않고 본문 끝까지 실행했을 때도 호출 결과는 `undefined`입니다.
+- 반복문이나 `switch` 안의 `return`도 함수 전체를 끝냅니다. `break`는 가장 가까운 반복문이나 `switch`만 끝내지만([switch와 break·continue](/concepts/switch-break-continue) 참고), `return`은 함수를 끝냅니다.
+
+### f와 f()의 차이
+
+괄호 없는 `f`는 함수 자체, 즉 함수 값이고, `typeof f`는 `'function'`입니다([typeof 연산자](/concepts/typeof-operator) 참고). `f()`는 그 함수를 호출해서 얻은 호출 결과입니다. 함수가 아닌 값에 `()`를 붙이면 TypeError입니다. 예를 들어 `getName()`의 결과가 문자열이면 `getName()()`은 문자열을 호출하려는 것이라 TypeError입니다.
+
+## 예제
+
+여섯 예제의 출력을 먼저 예측해 보세요. 예제 1~3은 뒤에 있는 시뮬레이터로 한 단계씩 확인할 수 있습니다. 예제의 `console.log`는 값을 출력하는 호스트 API이며 ECMAScript 언어의 일부가 아닙니다. 여러 줄 출력은 퀴즈에서 ' / '로 이어 적었습니다.
+
+### 예제 1: 인수가 모자라거나 남을 때
+
+```js file=./examples/arg-count.js
+
+```
+
+<PredictQuiz
+  question="예제 1의 출력은 무엇일까요?"
+  choices={['3 / TypeError로 멈춤 / 3', '3 / undefined / 3', '3 / NaN / 3', '3 / NaN / 6']}
+  answer={2}
+  explanation="add(1)에서 b는 인수를 받지 못해 undefined이고, 1 + undefined는 NaN입니다. add(1, 2, 3)의 세 번째 인수 3은 매개변수에 들어가지 않으므로 a와 b만 더한 3이 됩니다. 어느 쪽도 오류가 아닙니다."
+/>
+
+### 예제 2: return이 없을 때
+
+```js file=./examples/no-return.js
+
+```
+
+<PredictQuiz
+  question="예제 2의 출력은 무엇일까요?"
+  choices={[
+    '안녕, 민지 / 계산 / undefined undefined 5',
+    '안녕, 민지 / undefined undefined 5',
+    '안녕, 민지 / 계산 / 안녕, 민지 undefined 5',
+    '안녕, 민지 / 계산 / 계산 undefined 5',
+  ]}
+  answer={0}
+  explanation="greet는 return 없이 본문 끝까지 실행되므로 호출 결과가 undefined입니다. half(-4)는 return;으로 끝나 '계산'을 출력하지 않고 undefined를 돌려줍니다. half(10)만 '계산'을 출력하고 5를 돌려줍니다."
+/>
+
+### 예제 3: 인수 식의 평가 순서
+
+```js file=./examples/eval-order.js
+
+```
+
+<PredictQuiz
+  question="예제 3의 출력은 무엇일까요?"
+  choices={[
+    'add 시작 / square 2 / square 3 / 13',
+    'square 3 / square 2 / add 시작 / 13',
+    'add 시작 / square 2 / square 3 / 25',
+    'square 2 / square 3 / add 시작 / 13',
+  ]}
+  answer={3}
+  explanation="add의 인수 식 square(2)와 square(3)이 왼쪽부터 먼저 평가되어 4와 9로 된 인수 목록이 만들어집니다. 그다음에야 add의 본문이 시작되어 'add 시작'을 출력합니다. 4 + 9는 13입니다."
+/>
+
+### 시뮬레이터로 확인하기
+
+예제 1~3을 한 단계씩 실행하며 인수가 매개변수에 들어가는 과정과 호출 결과가 정해지는 과정을 확인해 보세요.
+
+<Simulator scenarios={scenarios} />
+
+### 예제 4: 매개변수 기본값
+
+```js file=./examples/default-param.js
+
+```
+
+<PredictQuiz
+  question="예제 4의 출력은 무엇일까요?"
+  choices={[
+    '사과 3개 / 사과 1개 / 사과 1개 / 사과 1개 / 사과 1개',
+    '사과 3개 / 사과 1개 / 사과 1개 / 사과 null개 / 사과 0개',
+    '사과 3개 / 사과 1개 / 사과 undefined개 / 사과 null개 / 사과 0개',
+    '사과 3개 / 사과 1개 / 사과 1개 / 사과 null개 / 사과 1개',
+  ]}
+  answer={1}
+  explanation="count의 값이 undefined일 때만 기본값 1이 쓰입니다. 인수가 없을 때와 undefined를 넘겼을 때가 그렇습니다. null과 0은 undefined가 아니므로 넘긴 값이 그대로 쓰여 '사과 null개'와 '사과 0개'가 됩니다."
+/>
+
+### 예제 5: 반복문과 switch 안의 return
+
+```js file=./examples/return-in-loop.js
+
+```
+
+<PredictQuiz
+  question="예제 5의 출력은 무엇일까요?"
+  choices={[
+    '5 아님 / 6 아님 / 7 아님 / 8 아님 / 8 / 없음 / 둘 모름',
+    '5 아님 / 6 아님 / 7 아님 / 8 / 없음 / 둘 모름',
+    '5 아님 / 6 아님 / 7 아님 / 8 / 둘 모름',
+    '5 아님 / 6 아님 / 7 아님 / 8 / 둘 둘',
+  ]}
+  answer={2}
+  explanation="firstMultiple(5, 4)는 i가 8일 때 return으로 반복문과 함수를 함께 끝내므로, 8에서는 '8 아님'도 '없음'도 실행되지 않고 호출 결과 8이 출력됩니다. label(2)는 case 2의 return으로 '둘'이 되고, label(3)은 일치하는 case가 없어 switch를 지나 return '모름'까지 가므로 한 줄에 '둘 모름'이 출력됩니다."
+/>
+
+### 예제 6: f와 f()
+
+```js file=./examples/call-vs-reference.js
+
+```
+
+<PredictQuiz
+  question="예제 6의 출력은 무엇일까요?"
+  choices={[
+    'function string / true 민지',
+    'function function / true 민지',
+    'string string / false 민지',
+    'function string / false 민지',
+  ]}
+  answer={0}
+  explanation="fn의 값은 getName과 같은 함수이므로 typeof fn은 'function'이고 fn === getName은 true입니다. result는 getName()을 호출해서 얻은 호출 결과 '민지'라서 typeof result는 'string'입니다. fn()도 호출이므로 '민지'가 나옵니다."
+/>
+
+## 결과와 이유
+
+<div className="my-6 overflow-x-auto">
+  <table className="w-full border-collapse text-left">
+    <thead>
+      <tr>
+        <th scope="col" className="border-border border px-3 py-2">
+          예제
+        </th>
+        <th scope="col" className="border-border border px-3 py-2">
+          출력
+        </th>
+        <th scope="col" className="border-border border px-3 py-2">
+          이유
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td className="border-border border px-3 py-2">1: 인수가 모자라거나 남을 때</td>
+        <td className="border-border border px-3 py-2">3 / NaN / 3</td>
+        <td className="border-border border px-3 py-2">
+          모자란 인수의 매개변수는 undefined이고, 남는 인수는 매개변수에 들어가지 않음
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">2: return이 없을 때</td>
+        <td className="border-border border px-3 py-2">
+          안녕, 민지 / 계산 / undefined undefined 5
+        </td>
+        <td className="border-border border px-3 py-2">
+          return이 없거나 값 없는 return;이면 호출 결과는 undefined
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">3: 인수 식의 평가 순서</td>
+        <td className="border-border border px-3 py-2">square 2 / square 3 / add 시작 / 13</td>
+        <td className="border-border border px-3 py-2">
+          인수 식을 왼쪽부터 모두 평가한 뒤에 본문을 실행
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">4: 매개변수 기본값</td>
+        <td className="border-border border px-3 py-2">
+          사과 3개 / 사과 1개 / 사과 1개 / 사과 null개 / 사과 0개
+        </td>
+        <td className="border-border border px-3 py-2">값이 undefined일 때만 기본값이 쓰임</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">5: 반복문과 switch 안의 return</td>
+        <td className="border-border border px-3 py-2">5 아님 / 6 아님 / 7 아님 / 8 / 둘 모름</td>
+        <td className="border-border border px-3 py-2">
+          return은 반복문과 switch를 지나 함수 전체를 끝냄
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">6: f와 f()</td>
+        <td className="border-border border px-3 py-2">function string / true 민지</td>
+        <td className="border-border border px-3 py-2">
+          괄호 없는 이름은 함수 자체, 괄호를 붙이면 호출 결과
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+예제 1에서 `add(1, 2)`는 인수 1, 2가 차례로 `a`, `b`에 들어가 `3`입니다. `add(1)`은 인수가 하나뿐이라 `b`는 인수를 받지 못해 `undefined`이고, `1 + undefined`에서 `undefined`가 숫자로 바뀌면 `NaN`이라 결과도 `NaN`입니다([암묵적 타입 변환](/concepts/type-coercion) 참고). `add(1, 2, 3)`의 세 번째 인수 `3`은 들어갈 매개변수가 없어서 매개변수에 들어가지 않습니다. 오류도 나지 않고 `a + b`는 `3`입니다.
+
+예제 2에서 `greet('민지')`는 `return` 없이 본문 끝까지 실행됩니다. 호출 결과가 `undefined`이므로 `a`는 `undefined`입니다. `half(-4)`는 `n < 0`이라 `return;`을 만나 `'계산'`을 출력하기 전에 끝나고, 호출 결과 `b`는 `undefined`입니다. `half(10)`은 `'계산'`을 출력하고 `return n / 2;`로 `5`를 돌려줍니다. 그래서 마지막 줄은 `undefined undefined 5`입니다.
+
+예제 3에서 `add(square(2), square(3))`을 평가할 때는 인수 식을 왼쪽부터 평가합니다. 먼저 `square(2)`가 `'square 2'`를 출력하고 `4`를 돌려주고, 이어서 `square(3)`이 `'square 3'`을 출력하고 `9`를 돌려줍니다. 4와 9로 된 인수 목록이 만들어진 뒤에야 `add`의 본문이 시작되어 `'add 시작'`을 출력하고 `4 + 9`인 `13`을 돌려줍니다. 그래서 `total`은 `13`입니다.
+
+예제 4에서 `order('사과', 3)`은 `count`가 `3`입니다. `order('사과')`는 인수가 없어 `count`가 `undefined`가 되므로 기본값 `1`이 쓰입니다. `order('사과', undefined)`도 값이 `undefined`라 같은 결과입니다. `order('사과', null)`은 `null`이 `undefined`가 아니므로 기본값이 쓰이지 않고, 문자열을 이어 붙이는 과정에서 `null`이 문자열 `"null"`이 되어 `사과 null개`가 됩니다. `order('사과', 0)`도 `0`이 그대로 쓰여 `사과 0개`입니다.
+
+예제 5의 `firstMultiple(5, 4)`는 `i`가 `5`, `6`, `7`일 때 4의 배수가 아니라서 `'5 아님'`, `'6 아님'`, `'7 아님'`을 출력합니다. `i`가 `8`이면 `8 % 4 === 0`이라 `return i;`가 실행되어 반복문과 함수가 함께 끝나고 호출 결과는 `8`입니다. 그래서 `'8 아님'`을 출력하는 줄과 반복문 뒤의 `return '없음'`은 실행되지 않습니다. `label(2)`는 `case 2`의 `return '둘'`로 함수가 끝나 `'둘'`입니다. `label(3)`은 일치하는 `case`가 없어 `switch`를 그냥 지나가고, 그 뒤의 `return '모름'`이 실행됩니다. 두 호출 결과를 한 `console.log`에 넘겼으므로 `둘 모름`이 한 줄로 출력됩니다.
+
+예제 6에서 `const fn = getName`은 괄호가 없으므로 함수 자체를 `fn`에 대입합니다. 그래서 `typeof fn`은 `'function'`이고 `fn === getName`은 `true`입니다. `const result = getName()`은 함수를 호출한 결과 `'민지'`를 대입하므로 `typeof result`는 `'string'`입니다. `fn()`은 `fn`의 값인 함수를 호출하는 것이라 `'민지'`가 나옵니다.
+
+<Callout type="misconception" title="인수 개수가 매개변수와 다르면 오류가 난다">
+  인수가 모자라거나 남아도 호출은 오류 없이 진행됩니다. 예제 1에서 `add(1)`은 `b`가 `undefined`인
+  채로 실행되어 `NaN`이 되었고, `add(1, 2, 3)`은 세 번째 인수가 매개변수에 들어가지 않은 채로 `3`을
+  돌려줬습니다. 함수가 아닌 값에 `()`를 붙이면 그때는 TypeError가 납니다.
+</Callout>
+
+<Callout type="misconception" title="return이 없으면 마지막 줄의 값이 반환된다">
+  `return`을 만나지 않고 본문 끝까지 실행하면 호출 결과는 `undefined`입니다. 예제 2의
+  `greet('민지')`는 마지막 줄에서 문자열을 출력했지만 그 값이 호출 결과가 되지는 않아서 `a`는
+  `undefined`였습니다.
+</Callout>
+
+<Callout type="misconception" title="바깥 함수 add의 본문이 먼저 시작된다">
+  `add(square(2), square(3))`은 코드에서 `add`가 가장 앞에 있지만, 본문은 인수 식을 모두 평가한 뒤에
+  실행됩니다. 예제 3에서 `add 시작`은 `square 2`와 `square 3`보다 뒤에 출력됐습니다.
+</Callout>
+
+<Callout type="misconception" title="기본값은 null이나 0처럼 비어 보이는 값에도 쓰인다">
+  기본값은 매개변수의 값이 `undefined`일 때만 쓰입니다. 예제 4에서 `null`을 넘긴 호출은{' '}
+  <code>{'사과 null개'}</code>, `0`을 넘긴 호출은 <code>{'사과 0개'}</code>가 되어 기본값 `1`이
+  쓰이지 않았습니다.
+</Callout>
+
+<Callout type="misconception" title="반복문 안의 return은 break처럼 반복문만 끝낸다">
+  `break`는 가장 가까운 반복문이나 `switch`만 끝내고 그 뒤 코드로 넘어갑니다. `return`은 함수 전체를
+  끝냅니다. 예제 5에서 `firstMultiple`은 `i`가 `8`일 때 `return`으로 함수가 끝나, 반복문 뒤의
+  <code>{"return '없음'"}</code>은 실행되지 않고 `8`을 돌려줬습니다.
+</Callout>

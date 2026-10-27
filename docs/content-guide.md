@@ -161,7 +161,7 @@ export default function ConceptRoute() {
 npm run lint && npm run format:check && npm run typecheck && npm test && npm run test:build && npm run e2e
 ```
 
-`format:check`가 실패하면 `npm run format`으로 고칩니다. `e2e`·axe·가로 스크롤 검사는 개념마다 경로를 직접 등록한 페이지만 대상입니다(현재 `primitives-and-objects`, `short-circuit-evaluation`, `type-coercion`, `equality-operators`, `number-type`, `typeof-operator`, `increment-decrement`, `switch-break-continue`, `property-keys`, `tests/e2e/helpers.ts`의 경로 상수). 새 개념을 추가하면 브라우저에서 375px·다크 모드·키보드 조작을 직접 확인하고, 시뮬레이터가 있으면 `a11y.spec.ts`·`responsive.spec.ts`에 그 개념의 경로와 시뮬레이터 진행 검사를 추가합니다(기존 케이스는 고치지 않고 추가만 합니다).
+`format:check`가 실패하면 `npm run format`으로 고칩니다. `e2e`·axe·가로 스크롤 검사는 개념마다 경로를 직접 등록한 페이지만 대상입니다(현재 `primitives-and-objects`, `short-circuit-evaluation`, `type-coercion`, `equality-operators`, `number-type`, `typeof-operator`, `increment-decrement`, `switch-break-continue`, `property-keys`, `function-calls`, `tests/e2e/helpers.ts`의 경로 상수). 새 개념을 추가하면 브라우저에서 375px·다크 모드·키보드 조작을 직접 확인하고, 시뮬레이터가 있으면 `a11y.spec.ts`·`responsive.spec.ts`에 그 개념의 경로와 시뮬레이터 진행 검사를 추가합니다(기존 케이스는 고치지 않고 추가만 합니다).
 
 ### 10. 사용자 검토 후 `reviewedAt` 기록
 
