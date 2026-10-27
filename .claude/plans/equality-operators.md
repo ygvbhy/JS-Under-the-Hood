@@ -298,8 +298,8 @@
 - Critical/High 0. Low 2건(`RoundItem` `operator` prop 타입이 `string`, meta 단순화 1의 "묶어서 표시하지 않습니다" 문구)은 보고만 하고 남겼다.
 
 ### 후속 작업
-- [ ] 사용자 콘텐츠 검토 후 `meta.ts`의 `reviewedAt` 기록
-- [ ] `Object.is`·`Number.isNaN` 학습 범위 확인(7절 미확정)
+- [x] 사용자 콘텐츠 검토 후 `meta.ts`의 `reviewedAt` 기록 — 2026-10-27 사용자 승인, `'2026-10-27'`
+- [x] `Object.is`·`Number.isNaN` 학습 범위 확인 — 사용자가 페이지를 그대로 승인(2026-10-27), 유지
 - [ ] 리뷰 Low 2건 반영 여부 결정
 - [ ] 9절 추가 개선 후보(역방향 `related`, `null >= 0` 대비)
 - [ ] 로드맵 2번 "숫자 타입의 함정" 계획
