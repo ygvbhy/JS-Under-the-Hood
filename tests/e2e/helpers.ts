@@ -18,6 +18,8 @@ export const PROPERTY_KEYS_PATH = '/concepts/property-keys'
 export const PROPERTY_KEYS_SIMULATOR_NAME = '프로퍼티 키 시뮬레이터'
 export const FUNCTION_CALLS_PATH = '/concepts/function-calls'
 export const FUNCTION_CALLS_SIMULATOR_NAME = '함수 호출 시뮬레이터'
+export const HOISTING_PATH = '/concepts/hoisting'
+export const HOISTING_SIMULATOR_NAME = '호이스팅 시뮬레이터'
 
 // 404 문서 자체를 받을 때 브라우저가 남기는 리소스 로드 로그. 앱 오류가 아니므로 무시한다.
 const IGNORED_404_LOG = /Failed to load resource: the server responded with a status of 404/

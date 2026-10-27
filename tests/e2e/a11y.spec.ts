@@ -12,6 +12,8 @@ import {
   SIMULATOR_NAME,
   FUNCTION_CALLS_PATH,
   FUNCTION_CALLS_SIMULATOR_NAME,
+  HOISTING_PATH,
+  HOISTING_SIMULATOR_NAME,
   PROPERTY_KEYS_PATH,
   PROPERTY_KEYS_SIMULATOR_NAME,
   SWITCH_PATH,
@@ -244,6 +246,34 @@ for (const colorScheme of ['light', 'dark'] as const) {
         const next = region.getByRole('button', { name: '다음' })
         // 시나리오의 단계 수는 모두 15 이하이므로 마지막 단계까지 모든 단계를 검사한다.
         for (let i = 0; i < 18 && (await next.isEnabled()); i++) {
+          await next.click()
+          await expectNoSeriousViolations(page)
+        }
+        await expect(next).toBeDisabled()
+      }
+    })
+
+    test('개념 페이지: 호이스팅', async ({ page }) => {
+      await page.goto(HOISTING_PATH)
+      await waitForHydration(page)
+      await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
+      await expectNoSeriousViolations(page)
+    })
+
+    test('개념 페이지: 호이스팅 시뮬레이터를 진행한 뒤', async ({ page }) => {
+      test.slow() // 3개 시나리오(5/8/6단계)의 모든 단계에서 axe를 돌린다
+      await page.goto(HOISTING_PATH)
+      await waitForHydration(page)
+      const region = page.getByRole('region', { name: HOISTING_SIMULATOR_NAME })
+      for (const scenario of [
+        'var 선언 전 참조',
+        '함수 선언과 함수 표현식',
+        '같은 이름의 var와 함수',
+      ]) {
+        await region.getByRole('radio', { name: scenario, exact: true }).check()
+        const next = region.getByRole('button', { name: '다음' })
+        // 시나리오의 단계 수는 모두 8 이하이므로 마지막 단계까지 모든 단계를 검사한다.
+        for (let i = 0; i < 10 && (await next.isEnabled()); i++) {
           await next.click()
           await expectNoSeriousViolations(page)
         }

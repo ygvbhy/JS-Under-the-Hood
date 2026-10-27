@@ -1,0 +1,231 @@
+import { Simulator } from './Simulator'
+import { scenarios } from './scenarios'
+
+## 동작 원리
+
+이 페이지는 클래식 스크립트, 즉 `type="module"`이 아닌 `<script>`로 실행되는 코드를 기준으로 설명합니다. 예제의 출력도 클래식 스크립트로 실행해 확인했습니다. ES 모듈과 Node.js에서 파일로 실행하는 코드는 아래에서 따로 짚습니다.
+
+스크립트를 실행하면 두 단계가 차례로 일어납니다. 먼저 코드를 실행하기 전에 스크립트 안의 선언을 처리하고, 그다음에 코드를 위에서부터 실행합니다. ECMAScript 명세는 이 순서를 스크립트 평가(ScriptEvaluation)에서 정합니다. 앞 단계는 명세의 GlobalDeclarationInstantiation이고, 뒤 단계는 스크립트 본문의 평가(Evaluation)입니다. 이 페이지는 두 단계를 "선언 처리"와 "실행"이라고 부릅니다.
+
+선언 처리에서 만들어지는 것은 바인딩(binding)입니다. 바인딩은 이름과 값의 연결로, 코드가 그 이름을 읽으면 바인딩의 값을 얻습니다. 선언 처리가 실행보다 먼저 끝나기 때문에, 선언문보다 앞에 있는 줄도 그 선언으로 만들어진 바인딩을 읽을 수 있습니다. 이 동작을 흔히 호이스팅(hoisting)이라 부르지만 명세가 정의한 용어는 아니고, 코드가 실제로 위로 옮겨지는 것도 아닙니다. 이 페이지는 맨 바깥 코드(함수 밖에 있는 코드)만 다룹니다.
+
+### 선언 처리에서 하는 일
+
+- 함수 선언(function declaration)은 함수 객체를 만들고, 그 이름의 바인딩을 만들어 그 함수로 초기화합니다.
+- `var` 선언은 그 이름의 바인딩을 만들고 `undefined`로 초기화합니다.
+- `var score = 10`의 `= 10` 같은 대입은 선언 처리에서 일어나지 않습니다. 함수 표현식(function expression)도 이때 평가하지 않습니다.
+
+### 실행 단계에서 하는 일
+
+- `var score = 10;`은 그 줄에 도달했을 때 값 `10`을 `score`에 대입합니다. 바인딩은 이미 만들어져 있으므로 대입만 합니다. `var score;`처럼 대입이 없는 줄은 아무 일도 하지 않습니다.
+- 맨 바깥의 함수 선언문은 아무 일도 하지 않고 지나갑니다. 그 바인딩은 선언 처리에서 이미 함수로 초기화되었기 때문입니다. 블록(`{ }`) 안의 함수 선언은 다르게 동작하며 이 페이지에서 다루지 않습니다.
+- 함수 표현식 `function (n) { ... }`은 실행 단계에서 그 줄에 도달해 평가될 때 함수 객체가 만들어집니다.
+
+### 같은 이름의 선언
+
+같은 이름의 `var` 선언과 함수 선언이 함께 있으면, 선언 처리가 끝났을 때 그 이름의 값은 함수입니다. `var` 선언은 그 값을 `undefined`로 바꾸지 않습니다. 맨 바깥 코드에서 명세는 바인딩을 만들기 전에 처리할 선언을 먼저 모으는데, 이때 함수 선언과 이름이 같은 `var` 선언은 목록에서 뺍니다. 그래서 그 이름의 바인딩은 함수 선언으로만 만들어집니다. 함수 안에서는 처리 순서가 다르지만, 선언 처리가 끝났을 때 값이 함수라는 결과는 같습니다.
+
+같은 이름의 함수 선언이 여러 개면 소스에서 마지막 것이 쓰입니다. 같은 이름의 `var` 선언이 여러 개여도 바인딩은 하나만 만들어집니다.
+
+이 절의 규칙은 클래식 스크립트에 대한 것입니다. ES 모듈에서는 함수 선언과 같은 이름의 `var` 선언, 같은 이름의 함수 선언 두 개가 모두 SyntaxError라서 코드가 실행되지 않습니다.
+
+### 실행되지 않는 줄도 선언 처리에 포함됩니다
+
+`var` 선언은 그 줄이 실행되는지와 관계없이 선언 처리에 포함됩니다. 선언 처리는 코드를 실행하지 않고, 코드에 적힌 선언을 모아 처리하기 때문입니다. 그래서 `if (false) { var flag = true; }`처럼 한 번도 실행되지 않는 줄의 `var`도 바인딩이 만들어집니다. 블록과 `var`의 관계(스코프)는 별도 개념에서 다룹니다.
+
+### 찾을 수 없는 이름과의 차이
+
+선언하지 않았고 호스트가 미리 제공하지도 않는 이름(예: 브라우저의 `name`은 호스트가 제공합니다), 즉 어디에서도 찾을 수 없는 이름을 읽으면 ReferenceError가 납니다. 그러나 `var`로 선언했다면 대입 줄에 도달하기 전에 읽어도 오류가 아니라 `undefined`입니다. 선언 처리에서 바인딩이 이미 만들어져 `undefined`로 초기화되었기 때문입니다. 한편 `typeof`는 찾을 수 없는 이름에도 오류 없이 `'undefined'`를 돌려주므로, `typeof`의 결과만으로는 두 경우를 구별할 수 없습니다([typeof 연산자](/concepts/typeof-operator) 참고).
+
+### var에 담은 함수 표현식
+
+`var triple = function (n) { ... };`에서 선언 처리가 하는 일은 `triple` 바인딩을 만들어 `undefined`로 초기화하는 것까지입니다. 함수 객체는 실행 단계에서 그 줄에 도달해 함수 표현식을 평가할 때 만들어져 `triple`에 대입됩니다. 그 전에 `triple(3)`을 호출하면 `undefined`를 호출하려는 것이 되어 TypeError가 납니다. 함수가 아닌 값에 `()`를 붙이면 TypeError가 난다는 점은 [함수 호출](/concepts/function-calls)에서 다뤘습니다. `var` 대신 `const`나 `let`으로 선언하면 같은 호출이 TypeError가 아니라 ReferenceError가 납니다. 이 차이는 별도 개념에서 다룹니다.
+
+### ES 모듈과 Node.js 파일에서는
+
+- ES 모듈(`<script type="module">`, `import`·`export`를 쓰는 파일)에서는 선언 처리를 명세의 InitializeEnvironment가 맡습니다. `var`가 `undefined`로, 함수 선언이 함수로 실행 전에 초기화된다는 점은 같지만, 바인딩은 모듈마다 따로 만들어져 전역 객체의 프로퍼티가 되지 않고, 코드는 항상 strict mode로 실행됩니다. 그래서 아래 예제 3과 예제 5는 모듈에서 SyntaxError입니다.
+- Node.js는 파일을 `package.json`의 `"type"` 값 등에 따라 CommonJS나 ES 모듈로 실행합니다. CommonJS로 실행되면(예: `"type": "module"`이 없는 폴더에 있는, `import`·`export` 없는 `.js` 파일) 이 페이지 예제의 출력은 같지만, Node.js가 파일 코드를 함수로 감싸 실행하므로 맨 바깥의 `var`·함수 선언이 전역 객체의 프로퍼티가 되지 않습니다. ES 모듈로 실행되면 바로 위 항목과 같습니다.
+
+## 예제
+
+다섯 예제의 출력을 먼저 예측해 보세요. 예제 1~3은 뒤에 있는 시뮬레이터로 한 단계씩 확인할 수 있습니다. 예제의 `console.log`는 값을 출력하는 호스트 API이며 ECMAScript 언어의 일부가 아닙니다. 여러 줄 출력은 퀴즈에서 ' / '로 이어 적었습니다.
+
+### 예제 1: var 선언 전 참조
+
+```js file=./examples/var-before.js
+
+```
+
+<PredictQuiz
+  question="예제 1의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={['ReferenceError로 멈춤', 'undefined / 10', '10 / 10', 'null / 10']}
+  answer={1}
+  explanation="선언 처리에서 score 바인딩이 만들어져 undefined로 초기화됩니다. 1번 줄은 아직 대입 줄에 도달하기 전이라 undefined를 출력하고, 2번 줄을 실행하면 10이 대입되어 3번 줄은 10을 출력합니다."
+/>
+
+### 예제 2: 함수 선언과 함수 표현식
+
+```js file=./examples/decl-vs-expr.js
+
+```
+
+<PredictQuiz
+  question="예제 2의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={['TypeError로 멈춤', '8 / undefined / 9', '8 / function / 9', 'ReferenceError로 멈춤']}
+  answer={1}
+  explanation="double은 함수 선언이라 선언 처리에서 바인딩이 함수로 초기화되므로 1번 줄에서 double(4)가 8입니다. triple은 var 선언이라 선언 처리에서 undefined로 초기화되었을 뿐이므로 typeof triple은 'undefined'입니다. 그 뒤 대입 줄을 실행하고 나서 triple(3)을 호출하므로 오류 없이 9입니다. TypeError는 대입 줄보다 앞에서 triple(3)을 호출할 때 납니다."
+/>
+
+### 예제 3: 같은 이름의 var와 함수 선언
+
+```js file=./examples/same-name.js
+
+```
+
+<PredictQuiz
+  question="예제 3의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={['undefined / number', 'function / function', 'function / number', 'number / number']}
+  answer={2}
+  explanation="선언 처리가 끝났을 때 item의 값은 함수입니다. 같은 이름의 var item 선언은 그 값을 undefined로 바꾸지 않습니다. 그래서 1번 줄은 function입니다. 실행 단계에서 2번 줄의 var item = 1이 숫자 1을 대입하고, 3번 줄의 맨 바깥 함수 선언문은 아무 일도 하지 않으므로 4번 줄은 number입니다."
+/>
+
+### 시뮬레이터로 확인하기
+
+예제 1~3을 한 단계씩 실행하며 선언 처리에서 어떤 바인딩이 만들어지고, 실행 단계에서 값이 어떻게 바뀌는지 확인해 보세요.
+
+<Simulator scenarios={scenarios} />
+
+### 예제 4: 실행되지 않는 줄의 var
+
+```js file=./examples/unexecuted-var.js
+
+```
+
+<PredictQuiz
+  question="예제 4의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'ReferenceError로 멈춤',
+    'undefined / true',
+    'undefined / undefined',
+    'false / undefined',
+  ]}
+  answer={2}
+  explanation="if (false) 안의 줄은 실행되지 않으므로 flag = true 대입은 일어나지 않습니다. 하지만 var flag 선언은 선언 처리에 포함되어 flag 바인딩이 undefined로 초기화되었습니다. 그래서 오류 없이 두 줄 모두 undefined입니다."
+/>
+
+### 예제 5: 같은 이름의 함수 선언 두 번
+
+```js file=./examples/duplicate-function.js
+
+```
+
+<PredictQuiz
+  question="예제 5의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={['처음 / 나중', '처음 / 처음', '나중 / 나중', 'TypeError로 멈춤']}
+  answer={2}
+  explanation="같은 이름의 함수 선언이 여러 개면 소스에서 마지막 것이 쓰입니다. 선언 처리가 끝난 시점에 pick의 값은 두 번째 함수이므로, 첫 번째 함수 선언 앞인 1번 줄에서도 '나중'이 나옵니다. 맨 바깥의 함수 선언문은 실행 단계에서 아무 일도 하지 않으므로 마지막 줄도 '나중'입니다."
+/>
+
+## 결과와 이유
+
+<div className="my-6 overflow-x-auto">
+  <table className="w-full border-collapse text-left">
+    <thead>
+      <tr>
+        <th scope="col" className="border-border border px-3 py-2">
+          예제
+        </th>
+        <th scope="col" className="border-border border px-3 py-2">
+          출력
+        </th>
+        <th scope="col" className="border-border border px-3 py-2">
+          이유
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td className="border-border border px-3 py-2">1: var 선언 전 참조</td>
+        <td className="border-border border px-3 py-2">undefined / 10</td>
+        <td className="border-border border px-3 py-2">
+          선언 처리에서 score 바인딩이 undefined로 초기화되고, 10은 실행 단계에서 대입 줄에 도달해야
+          대입됨
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">2: 함수 선언과 함수 표현식</td>
+        <td className="border-border border px-3 py-2">8 / undefined / 9</td>
+        <td className="border-border border px-3 py-2">
+          double은 선언 처리에서 함수로 초기화되고, var triple은 undefined로 초기화됨
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">3: 같은 이름의 var와 함수 선언</td>
+        <td className="border-border border px-3 py-2">function / number</td>
+        <td className="border-border border px-3 py-2">
+          선언 처리가 끝났을 때 item은 함수(var 선언은 undefined로 바꾸지 않음)이고, 실행 단계의 var
+          item = 1 대입이 값을 바꿈
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">4: 실행되지 않는 줄의 var</td>
+        <td className="border-border border px-3 py-2">undefined / undefined</td>
+        <td className="border-border border px-3 py-2">
+          var 선언은 그 줄이 실행되지 않아도 선언 처리에 포함되고, 대입은 일어나지 않음
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">5: 같은 이름의 함수 선언 두 번</td>
+        <td className="border-border border px-3 py-2">나중 / 나중</td>
+        <td className="border-border border px-3 py-2">
+          같은 이름의 함수 선언이 여럿이면 마지막 것이 쓰임
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+예제 1에서 `score` 바인딩은 선언 처리에서 만들어져 `undefined`로 초기화됩니다. 1번 줄의 `console.log(score)`는 아직 대입 줄에 도달하기 전이라 `undefined`를 출력합니다. 2번 줄에 도달하면 `var score = 10;`이 값 `10`을 대입하고, 3번 줄은 `10`을 출력합니다.
+
+예제 2에서 `double`은 함수 선언이므로 선언 처리에서 바인딩이 함수로 초기화됩니다. 그래서 선언문보다 앞의 `double(4)`가 `8`입니다. `triple`은 `var`로 선언했으므로 선언 처리에서는 `undefined`로 초기화될 뿐이고, 함수 표현식은 실행 단계에서 대입 줄에 도달해야 평가됩니다. 그래서 2번 줄의 `typeof triple`은 `'undefined'`입니다. 대입 줄을 지난 뒤에는 `triple`의 값이 함수이므로 `triple(3)`은 `9`입니다. 이 예제에서 `triple(3)`을 대입 줄보다 앞으로 옮기면 `undefined`를 호출하게 되어 TypeError가 납니다.
+
+예제 3에서 선언 처리가 끝났을 때 `item`의 값은 함수입니다. 명세는 함수 선언과 이름이 같은 `var item`을 바인딩을 만들 목록에서 빼므로, `item`이 `undefined`로 초기화되는 일은 없습니다. 1번 줄의 `typeof item`은 `'function'`입니다. 실행 단계에서 2번 줄이 같은 이름의 `item` 바인딩에 `1`을 대입해 값이 숫자가 되고, 3번 줄의 맨 바깥 함수 선언문은 아무 일도 하지 않으므로 4번 줄의 `typeof item`은 `'number'`입니다.
+
+예제 4에서 `if (false)` 안의 줄은 실행되지 않지만, `var flag` 선언은 선언 처리에 포함되어 `flag` 바인딩이 `undefined`로 초기화됩니다. 두 `console.log` 모두 대입 없이 `undefined`를 읽습니다. `flag`를 어디에서도 선언하지 않았다면 첫 줄에서 ReferenceError가 났을 것입니다.
+
+예제 5에서 선언 처리는 같은 이름의 함수 선언 중 소스에서 마지막 것으로 `pick` 바인딩을 초기화합니다. 그래서 첫 번째 함수 선언문보다 앞의 호출도, 마지막 줄의 호출도 `'나중'`을 돌려줍니다.
+
+<Callout type="misconception" title="호이스팅은 선언을 코드 맨 위로 옮기는 것이다">
+  코드는 움직이지 않습니다. 코드를 실행하기 전에 선언을 먼저 처리해서, 선언문보다 앞에 있는 줄도 그
+  선언으로 만들어진 바인딩을 읽을 수 있을 뿐입니다. 예제 1에서 <code>{'var score = 10;'}</code>은
+  2번 줄에 그대로 있고, 실행 단계에서 그 줄에 도달했을 때 대입이 일어납니다. 선언 처리에서 일어난
+  일은 `score` 바인딩을 만들고 `undefined`로 초기화한 것뿐입니다.
+</Callout>
+
+<Callout type="misconception" title="선언문보다 앞에서 변수를 읽으면 항상 오류가 난다">
+  `var`로 선언한 변수는 선언 처리에서 바인딩이 만들어져 `undefined`로 초기화되므로, 대입 줄보다
+  앞에서 읽어도 오류 없이 `undefined`입니다. 예제 1의 첫 줄이 그렇습니다. 이 페이지가 다루는
+  범위에서 ReferenceError는 어디에서도 찾을 수 없는 이름을 읽을 때 납니다. `nope`를 선언한 적이 없고
+  호스트가 제공하지도 않는다면 `console.log(nope);`는 ReferenceError입니다.
+</Callout>
+
+<Callout type="misconception" title="함수 표현식도 함수이므로 선언문보다 먼저 호출할 수 있다">
+  먼저 호출할 수 있는 것은 함수 선언입니다. 함수 선언의 바인딩은 선언 처리에서 함수로 초기화되지만,{' '}
+  <code>{'var triple = function ...'}</code>은 선언 처리에서 `triple` 바인딩이 `undefined`로
+  초기화될 뿐이고, 함수 객체는 실행 단계에서 대입 줄에 도달해야 만들어져 대입됩니다. 예제 2에서 대입
+  줄보다 앞의 `typeof triple`은 `'undefined'`였고, 그 시점에 `triple(3)`을 호출했다면 TypeError였을
+  것입니다.
+</Callout>
+
+<Callout type="misconception" title="실행되지 않는 줄의 var는 선언되지 않는다">
+  `var` 선언은 그 줄이 실행되는지와 관계없이 선언 처리에 포함됩니다. 예제 4에서{' '}
+  <code>{'flag = true'}</code> 대입은 한 번도 실행되지 않았지만, <code>{'var flag'}</code> 선언은
+  이미 처리되어 두 `console.log` 모두 오류 없이 `undefined`를 출력했습니다.
+</Callout>
+
+<Callout type="misconception" title="같은 이름을 다시 선언하면 값이 undefined로 돌아간다">
+  같은 이름의 `var` 선언이 여러 개여도 바인딩은 하나만 만들어지고, 함수 선언과 이름이 같은 `var`
+  선언은 그 함수 값을 `undefined`로 바꾸지 않습니다. 실행 단계에서 대입 없는 `var`는 아무 일도 하지
+  않습니다. 예제 3에서 `item`은 <code>{'var item = 1'}</code>의 대입으로만 숫자가 되었습니다.{' '}
+  <code>{'var a = 1; var a;'}</code> 다음에 `a`를 읽으면 `1`입니다.
+</Callout>

@@ -10,6 +10,8 @@ import {
   SHORT_CIRCUIT_SIMULATOR_NAME,
   FUNCTION_CALLS_PATH,
   FUNCTION_CALLS_SIMULATOR_NAME,
+  HOISTING_PATH,
+  HOISTING_SIMULATOR_NAME,
   PROPERTY_KEYS_PATH,
   PROPERTY_KEYS_SIMULATOR_NAME,
   SWITCH_PATH,
@@ -255,6 +257,37 @@ test('함수 호출 개념 페이지: 시뮬레이터를 끝까지 진행해도 
   await waitForHydration(page)
   const region = page.getByRole('region', { name: FUNCTION_CALLS_SIMULATOR_NAME })
   for (const scenario of ['인수 개수가 다를 때', 'return이 없을 때', '인수 평가 순서']) {
+    await region.getByRole('radio', { name: scenario, exact: true }).check()
+    const next = region.getByRole('button', { name: '다음' })
+    while (await next.isEnabled()) {
+      await next.click()
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - window.innerWidth,
+      )
+      expect(overflow).toBeLessThanOrEqual(0)
+    }
+  }
+})
+
+test(`${HOISTING_PATH}: 가로 스크롤이 없다`, async ({ page }) => {
+  await page.goto(HOISTING_PATH)
+  await waitForHydration(page)
+  const { scrollWidth, innerWidth } = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    innerWidth: window.innerWidth,
+  }))
+  expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
+})
+
+test('호이스팅 개념 페이지: 시뮬레이터를 끝까지 진행해도 가로 스크롤이 없다', async ({ page }) => {
+  await page.goto(HOISTING_PATH)
+  await waitForHydration(page)
+  const region = page.getByRole('region', { name: HOISTING_SIMULATOR_NAME })
+  for (const scenario of [
+    'var 선언 전 참조',
+    '함수 선언과 함수 표현식',
+    '같은 이름의 var와 함수',
+  ]) {
     await region.getByRole('radio', { name: scenario, exact: true }).check()
     const next = region.getByRole('button', { name: '다음' })
     while (await next.isEnabled()) {
