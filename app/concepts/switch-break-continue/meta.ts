@@ -151,5 +151,5 @@ export const concept = {
       url: 'https://developer.mozilla.org/ko/docs/Web/JavaScript/Reference/Statements/for',
     },
   ],
-  reviewedAt: null,
+  reviewedAt: '2026-10-27',
 } satisfies ConceptMeta

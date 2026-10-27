@@ -331,7 +331,7 @@
 - Critical/High 0. Low 3건(`PropertyView.tsx:88`의 도달하지 않는 분기, `content.mdx:13`의 `obj.1` 이유 설명, `delete` 단계 접근 패널 코드 표기)은 보고만 했고, 사용자가 고치지 않은 상태로 승인했다.
 
 ### 후속 작업
-- [ ] 사용자 콘텐츠 검토 후 `meta.ts`의 `reviewedAt` 기록(4번 `increment-decrement`, 5번 `switch-break-continue`도 대기 중)
+- [ ] 사용자 콘텐츠 검토 후 `meta.ts`의 `reviewedAt` 기록(4·5번은 2026-10-27 검토 승인 완료)
 - [ ] 리뷰 Low 3건 정리 여부(선택)
 - [ ] 9절 추가 개선 후보(`short-circuit-evaluation` 선행 개념 slug 연결, 역방향 `related`)
 - [ ] 로드맵 7번 "함수 호출: 매개변수와 반환" 계획

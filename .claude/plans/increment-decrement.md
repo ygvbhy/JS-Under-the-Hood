@@ -284,7 +284,7 @@
 - Critical/High 0. Low 2건(`content.mdx:30`의 "재할당" 용어, `build-output.test.ts` 블록 순서)은 보고만 하고 고치지 않았다.
 
 ### 후속 작업
-- [ ] 사용자 콘텐츠 검토 후 `meta.ts`의 `reviewedAt` 기록
+- [x] 사용자 콘텐츠 검토 후 `meta.ts`의 `reviewedAt` 기록 — 2026-10-27 사용자 승인, `'2026-10-27'`
 - [ ] 9절 추가 개선 후보(역방향 `related`, 5·7번에서 `i++` 선행 링크)
 - [ ] 로드맵 5번 "`switch`의 fall-through와 `break`·`continue`" 계획
 
