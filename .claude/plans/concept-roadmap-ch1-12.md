@@ -24,7 +24,7 @@
 | 1 | `==`와 `===`: 동등 비교 규칙 | 7·9 | `null == undefined`, `NaN !== NaN`, `0 == ''`, `+0`/`-0` | 비교 단계 시뮬레이터 | `equality-operators.md` | 완료 |
 | 2 | 숫자 타입의 함정 | 6 | `0.1 + 0.2 !== 0.3`, `NaN`·`Infinity`, 안전한 정수 범위 | 표 + 퀴즈 | `number-type.md` | 완료 |
 | 3 | `typeof`가 알려 주는 것 | 6·7 | `typeof null === 'object'`, 함수는 `'function'`, 선언하지 않은 식별자 | 표 + 퀴즈 | `typeof-operator.md` | 완료 |
-| 4 | 증감 연산자와 부수 효과 | 7 | `x++`와 `++x`의 값, 대입 식의 값 | 단계별 시뮬레이터 | - | 대기 |
+| 4 | 증감 연산자와 부수 효과 | 7 | `x++`와 `++x`의 값, 대입 식의 값 | 단계별 시뮬레이터 | `increment-decrement.md` | 완료(콘텐츠 검토 대기) |
 | 5 | `switch`의 fall-through와 `break`·`continue` | 8 | `break` 누락 시 다음 `case`로 진행, `case`는 `===` 비교 | 실행 흐름 시뮬레이터 | - | 대기 |
 | 6 | 프로퍼티 키와 접근 | 10 | `obj[1]`과 `obj['1']`이 같은 프로퍼티, 점·대괄호 표기, 없는 프로퍼티는 `undefined`, 동적 추가·`delete` | 객체 박스 시뮬레이터 | - | 대기 |
 | 7 | 함수 호출: 매개변수와 반환 | 12 | 인수가 모자라면 `undefined`, 남으면 무시, `return` 없으면 `undefined` | 호출 영역 시뮬레이터 | - | 대기 |
@@ -45,3 +45,4 @@
 - 2026-10-27: 2번 `number-type` 구현·리뷰 완료, 커밋. `reviewedAt`은 사용자 콘텐츠 검토 후 기록.
 - 2026-10-27: 3번 `typeof-operator` 구현·리뷰 완료, 커밋. `reviewedAt`은 사용자 콘텐츠 검토 후 기록.
 - 2026-10-27: 1~3번과 기존 `type-coercion` 콘텐츠 검토 승인(사용자), `reviewedAt` 기록. 표 줄바꿈은 그대로 두기로 함.
+- 2026-10-27: 4번 `increment-decrement` 구현·리뷰 완료, 커밋. `reviewedAt`은 사용자 콘텐츠 검토 후 기록.

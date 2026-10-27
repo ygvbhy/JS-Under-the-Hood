@@ -1,0 +1,242 @@
+import { Simulator } from './Simulator'
+import { scenarios } from './scenarios'
+
+## 동작 원리
+
+증가 연산자 `++`와 감소 연산자 `--`는 변수의 값을 1 늘리거나 줄입니다. 변수 앞에 쓰는 전위(`++x`, `--x`)와 뒤에 쓰는 후위(`x++`, `x--`)가 있어 모두 네 개입니다. 이 페이지에서는 증가 연산자를 중심으로 설명하고, 감소 연산자는 1을 뺀다는 점만 다릅니다.
+
+- 증감 연산자는 먼저 변수의 값을 읽어 숫자로 바꿉니다(명세의 ToNumeric).
+- 그 값에 1을 더하거나 뺀 새 값을 변수에 넣습니다.
+- 식의 값으로는 후위는 옛 값(바꾸기 전 값)을, 전위는 새 값을 돌려줍니다.
+- 후위든 전위든 변수에 남는 값은 같고, 달라지는 것은 식의 값뿐입니다.
+- 이 변화는 식을 평가하는 바로 그 순간 일어납니다. 문이 끝난 뒤나 나중에 일어나지 않습니다.
+
+### 부수 효과와 식의 값
+
+식은 값을 만드는 것 말고도 변수의 값을 바꿀 수 있습니다. 이 페이지에서는 이를 부수 효과라고 부릅니다(명세 용어가 아니라 일반 용어입니다). 증감 연산자는 식의 값을 만들면서 동시에 변수의 값을 바꾸는 부수 효과를 가집니다.
+
+`n++;`처럼 증감 연산자를 단독 문으로 쓰면 식의 값을 어디에도 쓰지 않습니다. 변수에 새 값이 들어가는 부수 효과만 남으므로, 이때는 `n++;`와 `++n;`의 결과가 같습니다. 후위와 전위의 차이는 식의 값을 쓸 때만 드러납니다.
+
+### 대입도 식이다
+
+대입 `p = 3`도 식이라서 값을 가집니다. 그 값은 오른쪽의 값 3입니다. 복합 대입 `m += 5`의 값은 계산한 결과입니다. `p = q = 7`은 `p = (q = 7)`로 묶입니다. 안쪽의 `q = 7`을 평가하면 `q`에 7이 들어가고, 그 식의 값 7이 `p`에 들어갑니다.
+
+### 문자열 피연산자
+
+변수의 값이 문자열이면 증감 연산자는 그 값을 숫자로 바꿔 계산합니다. 후위가 돌려주는 옛 값도 문자열이 아니라 숫자로 바꾼 값입니다. 문자열이 숫자로 바뀌는 결과는 [암묵적 타입 변환](/concepts/type-coercion) 페이지의 표와 같으므로 여기서 반복하지 않습니다.
+
+### 값을 넣을 수 있는 대상에만 쓴다
+
+증감 연산자는 값을 넣을 수 있는 대상에만 쓸 수 있습니다. `5++`와 `(a + b)++`는 실행하기 전에 SyntaxError입니다. `const`로 선언한 변수에 쓰면 그 변수에 새 값을 넣는 재할당이므로 TypeError입니다. 재할당이 무엇인지는 [원시 값과 객체](/concepts/primitives-and-objects) 페이지를 참고하세요.
+
+## 예제
+
+여섯 예제의 출력을 먼저 예측해 보세요. 예제 1, 5, 6은 뒤에 있는 시뮬레이터로 한 단계씩 확인할 수 있습니다. 예제의 `console.log`는 값을 출력하는 호스트 API이며, ECMAScript 언어의 일부가 아닙니다. 문자열을 따옴표 없이 출력하는 것도 호스트의 출력 형식입니다.
+
+### 예제 1: 후위와 전위
+
+```js file=./examples/postfix-prefix.js
+
+```
+
+<PredictQuiz
+  question="예제 1의 출력은 무엇일까요?"
+  choices={['2 1 2 2', '2 2 2 2', '1 1 2 2', '2 1 1 2']}
+  answer={0}
+  explanation="a++는 a에 2를 넣고 식의 값으로 옛 값 1을 돌려주므로 a는 2, b는 1입니다. ++c는 c에 2를 넣고 식의 값으로 새 값 2를 돌려주므로 c와 d 모두 2입니다."
+/>
+
+### 예제 2: 단독 문으로 쓰기
+
+```js file=./examples/statement.js
+
+```
+
+<PredictQuiz
+  question="예제 2의 출력은 무엇일까요?"
+  choices={['5', '6', '7', '4']}
+  answer={1}
+  explanation="n++;와 ++n;은 식의 값을 쓰지 않으므로 둘 다 n을 1 늘리는 효과만 남습니다. 5에서 6, 7이 되고 n--;로 6이 됩니다."
+/>
+
+### 예제 3: 대입 식의 값
+
+```js file=./examples/assignment-value.js
+
+```
+
+<PredictQuiz
+  question="예제 3의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다)"
+  choices={['3 7 7 / 15 10', '3 7 7 / 15 15', 'undefined 7 7 / 15 15', '3 7 undefined / 10 15']}
+  answer={1}
+  explanation="p = 3은 식의 값 3을 가지므로 r은 3입니다. p = q = 7은 p = (q = 7)로 묶여 q와 p 모두 7이 됩니다. m += 5는 계산 결과 15를 m에 넣고 식의 값으로도 15를 돌려주므로 둘째 줄은 15 15입니다."
+/>
+
+### 예제 4: 문자열 피연산자
+
+```js file=./examples/string-operand.js
+
+```
+
+<PredictQuiz
+  question="예제 4의 출력은 무엇일까요?"
+  choices={['string 5 string 6', 'number 5 number 6', 'string 5 number 6', 'number 6 number 6']}
+  answer={1}
+  explanation="s++는 s의 값 '5'를 숫자 5로 바꿔 계산합니다. 새 값 6을 s에 넣고, 식의 값으로는 옛 값을 돌려주는데 이 옛 값도 숫자 5입니다. 그래서 t와 s 모두 숫자입니다."
+/>
+
+### 예제 5: 자기 자신에 대입
+
+```js file=./examples/self-assign.js
+
+```
+
+<PredictQuiz
+  question="예제 5의 출력은 무엇일까요?"
+  choices={['1', '2', 'undefined', '3']}
+  answer={0}
+  explanation="x = x++에서 x++가 먼저 평가됩니다. 이때 x에 2가 들어가지만 식의 값은 옛 값 1입니다. 이어서 대입이 그 값 1을 x에 넣으므로 x는 1이 됩니다."
+/>
+
+### 예제 6: 피연산자 평가 순서
+
+```js file=./examples/operand-order.js
+
+```
+
+<PredictQuiz
+  question="예제 6의 출력은 무엇일까요?"
+  choices={['2 2', '3 2', '2 1', '3 1']}
+  answer={1}
+  explanation="i++ + i에서는 왼쪽의 i++가 먼저 평가되어 i에 2가 들어가고 식의 값은 옛 값 1입니다. 이어서 오른쪽의 i를 읽으면 이미 바뀐 2이므로 합계는 1 + 2 = 3, i는 2입니다."
+/>
+
+### 시뮬레이터로 확인하기
+
+예제 1, 5, 6을 한 단계씩 실행하며 변수를 읽고, 새 값을 넣고, 식의 값이 정해지는 순서를 확인해 보세요.
+
+<Simulator scenarios={scenarios} />
+
+## 결과와 이유
+
+<div className="my-6 overflow-x-auto">
+  <table className="w-full border-collapse text-left">
+    <thead>
+      <tr>
+        <th scope="col" className="border-border border px-3 py-2">
+          식
+        </th>
+        <th scope="col" className="border-border border px-3 py-2">
+          변수에 남는 값
+        </th>
+        <th scope="col" className="border-border border px-3 py-2">
+          식의 값
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'const b = a++'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">a는 2, b는 1</td>
+        <td className="border-border border px-3 py-2">1 (옛 값)</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'const d = ++c'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">c는 2, d는 2</td>
+        <td className="border-border border px-3 py-2">2 (새 값)</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'n++; ++n; n--;'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">n은 6</td>
+        <td className="border-border border px-3 py-2">쓰지 않음</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'p = 3'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">p는 3</td>
+        <td className="border-border border px-3 py-2">3</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'p = q = 7'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">p는 7, q는 7</td>
+        <td className="border-border border px-3 py-2">7 (안쪽 q = 7의 값이 p에 들어감)</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'m += 5'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">m은 15</td>
+        <td className="border-border border px-3 py-2">15 (계산 결과)</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'s++'}</code> (s는 <code>{"'5'"}</code>)
+        </td>
+        <td className="border-border border px-3 py-2">s는 6 (숫자)</td>
+        <td className="border-border border px-3 py-2">5 (숫자)</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'x = x++'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">x는 1</td>
+        <td className="border-border border px-3 py-2">1</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'i++ + i'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">i는 2</td>
+        <td className="border-border border px-3 py-2">3</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+예제 1에서 `a++`와 `++c`는 변수에 같은 값(2)을 남깁니다. 달라지는 것은 식의 값입니다. `a++`는 바꾸기 전 값 1을, `++c`는 바꾼 뒤 값 2를 돌려주므로 `b`는 1, `d`는 2입니다.
+
+예제 2의 `n++;`와 `++n;`은 단독 문이라 식의 값을 쓰지 않습니다. 그래서 어느 쪽이든 `n`이 1씩 늘어난 결과만 남아, 5에서 6, 7이 되고 `n--;`로 6이 됩니다. 감소 연산자도 같은 방식입니다. `let n = 5`일 때 `n--`의 값은 옛 값 5이고 `n`은 4가 되며, 이어서 `--n`의 값은 새 값 3입니다.
+
+예제 3의 `p = 3`은 오른쪽 값 3을 식의 값으로 가지므로 `r`에 3이 들어갑니다. `p = q = 7`은 `p = (q = 7)`로 묶여 안쪽 대입의 값 7이 `p`에 들어갑니다. `m += 5`는 `m`의 값 10에 5를 더한 15를 `m`에 넣고 15를 식의 값으로 돌려줍니다. 대입 식이 값을 가진다는 것은 `typeof (p = 3)`이 `"number"`인 것으로도 확인됩니다.
+
+예제 4의 `s`는 문자열 `'5'`이지만 `s++`는 먼저 그 값을 숫자 5로 바꿉니다. 이 숫자에 1을 더한 6이 `s`에 들어가고, 후위가 돌려주는 옛 값도 숫자로 바꾼 값 5입니다. 그래서 `typeof t`와 `typeof s` 모두 `number`입니다.
+
+예제 5의 `x = x++`에서는 대입할 대상 `x`를 먼저 정해 둡니다. 이어서 오른쪽의 `x++`를 평가하면 `x`에 2가 들어가고 식의 값은 옛 값 1이 됩니다. 마지막으로 대입이 그 값 1을 `x`에 넣어, 방금 들어간 2를 덮어씁니다. 결과는 1입니다.
+
+예제 6의 `i++ + i`는 왼쪽 피연산자를 먼저 평가하고 그다음 오른쪽 피연산자를 읽습니다. 왼쪽 `i++`가 평가될 때 `i`에는 이미 2가 들어가고 식의 값은 1입니다. 오른쪽의 `i`는 그 뒤에 읽으므로 2입니다. 합은 3이고 `i`는 2입니다.
+
+<Callout type="misconception" title="x++는 문이 끝난 뒤에 값을 늘린다">
+  변수에 새 값이 들어가는 것은 `x++`를 평가하는 바로 그 순간입니다. 문이 끝난 뒤가 아닙니다. 예제
+  6에서 <code>{'i++ + i'}</code>의 오른쪽 `i`는 이미 2였고, 그래서 합이 3이었습니다. 후위가 늦게
+  바꾸는 것이 아니라, 식의 값으로 바꾸기 전 값을 돌려주는 것입니다.
+</Callout>
+
+<Callout type="misconception" title="x = x++는 x를 1 늘린다">
+  <code>{'x = x++'}</code>에서 `x++`는 `x`에 2를 넣지만, 곧이어 대입이 `x++`의 식의 값인 옛 값 1을
+  `x`에 넣어 덮어씁니다. 예제 5에서 `x`는 늘어나지 않고 1이었습니다.
+</Callout>
+
+<Callout type="misconception" title="x++;와 ++x;는 단독 문에서도 결과가 다르다">
+  후위와 전위의 차이는 식의 값에만 있습니다. 단독 문으로 쓰면 식의 값을 쓰지 않으므로 두 문의 결과가
+  같습니다. 예제 2에서 `n++;`와 `++n;`은 모두 `n`을 1 늘렸습니다.
+</Callout>
+
+<Callout type="misconception" title="s++는 문자열 '5'를 돌려준다">
+  증감 연산자는 변수의 값을 먼저 숫자로 바꿉니다. 후위가 돌려주는 옛 값도 숫자로 바꾼 값입니다. 예제
+  4에서 `t`는 문자열 `'5'`가 아니라 숫자 5였고, `s`도 숫자 6이 되었습니다.
+</Callout>
+
+<Callout type="misconception" title="대입은 값을 만들지 않는다">
+  대입도 식이므로 값을 가집니다. <code>{'p = 3'}</code>의 값은 오른쪽 값 3이고, 그래서{' '}
+  <code>{'const r = (p = 3)'}</code>처럼 쓸 수 있으며, <code>{'p = q = 7'}</code>은{' '}
+  <code>{'p = (q = 7)'}</code>로 묶여 두 변수가 모두 7이 됩니다. 예제 3에서 확인한 결과입니다.
+</Callout>
