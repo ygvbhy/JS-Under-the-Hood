@@ -10,7 +10,12 @@ const clientDir = join(process.cwd(), 'build', 'client')
 const read = (path: string) => readFileSync(join(clientDir, path), 'utf8')
 
 const escapeHtml = (s: string) =>
-  s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+  s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;')
 
 const htmlToText = (html: string) =>
   html
@@ -382,6 +387,30 @@ describe('시뮬레이터 프리렌더 (switch-break-continue)', () => {
   it('시뮬레이터 region과 시나리오 선택 라디오 3개 이상이 있다', () => {
     expect(html).toMatch(/role="region"[^>]*aria-label="switch와 break·continue 시뮬레이터"/)
     for (const label of ['break가 없을 때', '반복문의 break와 continue', '반복문 안의 switch']) {
+      expect(text).toContain(label)
+    }
+    expect(html.match(/type="radio"/g)?.length).toBeGreaterThanOrEqual(3)
+  })
+
+  it('퀴즈 정답이 <details>로 7개 이상 프리렌더된다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(7)
+  })
+})
+
+// 아홉 번째 개념(property-keys)의 시뮬레이터와 퀴즈도 프리렌더 HTML에 정적으로 들어 있어야 한다.
+describe('시뮬레이터 프리렌더 (property-keys)', () => {
+  const html = read('concepts/property-keys/index.html')
+  const text = htmlToText(html)
+
+  it('단계 0(실행 전) 텍스트와 빈 상태 문구가 HTML에 있다', () => {
+    expect(text).toContain('단계 1: 실행 전')
+    expect(text).toContain('이 단계에는 프로퍼티 접근이 없습니다.')
+    expect(text).toContain('아직 표시할 변수가 없습니다.')
+  })
+
+  it('시뮬레이터 region과 시나리오 선택 라디오 3개 이상이 있다', () => {
+    expect(html).toMatch(/role="region"[^>]*aria-label="프로퍼티 키 시뮬레이터"/)
+    for (const label of ['숫자 키와 문자열 키', '점 표기와 대괄호 표기', '추가·갱신·삭제']) {
       expect(text).toContain(label)
     }
     expect(html.match(/type="radio"/g)?.length).toBeGreaterThanOrEqual(3)

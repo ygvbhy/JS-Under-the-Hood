@@ -10,6 +10,8 @@ import {
   SHORT_CIRCUIT_PATH,
   SHORT_CIRCUIT_SIMULATOR_NAME,
   SIMULATOR_NAME,
+  PROPERTY_KEYS_PATH,
+  PROPERTY_KEYS_SIMULATOR_NAME,
   SWITCH_PATH,
   SWITCH_SIMULATOR_NAME,
   TYPE_COERCION_PATH,
@@ -192,6 +194,30 @@ for (const colorScheme of ['light', 'dark'] as const) {
         const next = region.getByRole('button', { name: '다음' })
         // 시나리오의 단계 수는 모두 21 이하이므로 마지막 단계까지 모든 단계를 검사한다.
         for (let i = 0; i < 25 && (await next.isEnabled()); i++) {
+          await next.click()
+          await expectNoSeriousViolations(page)
+        }
+        await expect(next).toBeDisabled()
+      }
+    })
+
+    test('개념 페이지: 프로퍼티 키', async ({ page }) => {
+      await page.goto(PROPERTY_KEYS_PATH)
+      await waitForHydration(page)
+      await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
+      await expectNoSeriousViolations(page)
+    })
+
+    test('개념 페이지: 프로퍼티 키 시뮬레이터를 진행한 뒤', async ({ page }) => {
+      test.slow() // 3개 시나리오(9/7/10단계)의 모든 단계에서 axe를 돌린다
+      await page.goto(PROPERTY_KEYS_PATH)
+      await waitForHydration(page)
+      const region = page.getByRole('region', { name: PROPERTY_KEYS_SIMULATOR_NAME })
+      for (const scenario of ['숫자 키와 문자열 키', '점 표기와 대괄호 표기', '추가·갱신·삭제']) {
+        await region.getByRole('radio', { name: scenario, exact: true }).check()
+        const next = region.getByRole('button', { name: '다음' })
+        // 시나리오의 단계 수는 모두 10 이하이므로 마지막 단계까지 모든 단계를 검사한다.
+        for (let i = 0; i < 12 && (await next.isEnabled()); i++) {
           await next.click()
           await expectNoSeriousViolations(page)
         }
