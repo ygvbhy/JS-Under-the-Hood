@@ -21,6 +21,7 @@
 - 의존성은 근거를 제시하고 사용자 승인을 받은 뒤에만 추가한다. 패키지 버전은 정확히 고정한다(`npm install --save-exact`, `package.json`에 `^`·`~` 금지). 예: 마크다운 표(GFM)를 위해 `remark-gfm`을 넣는 대신 표는 JSX `<table>`로 쓴다. `serve@14.2.6`이 고정한 취약 `compression`(GHSA-vc2v-76pw-4v95)은 `package.json` `overrides`로 1.8.2에 고정했다. `serve`가 고친 버전을 내면 override를 제거한다.
 - 계획 문서는 `.claude/plans/`에 둔다. 구현 중 사실과 결정은 해당 계획 문서의 "구현 진행"에 기록한다.
 - 커밋은 사용자가 요청했을 때만 한다.
+- Claude가 만든 커밋은 메시지 끝에 `Co-Authored-By: Claude <모델명> <noreply@anthropic.com>`(예: `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`)을 넣는다. GitHub이 이 줄로 Claude를 공동 작성자로 표시한다.
 
 ## 디렉터리 구조
 
