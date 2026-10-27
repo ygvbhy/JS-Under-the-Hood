@@ -184,6 +184,20 @@ describe('시뮬레이터 프리렌더 (equality-operators)', () => {
   })
 })
 
+// 다섯 번째 개념(number-type)은 시뮬레이터 없이 표와 퀴즈로 구성된다. 둘 다 프리렌더 HTML에 있어야 한다.
+describe('프리렌더 (number-type)', () => {
+  const html = read('concepts/number-type/index.html')
+  const text = htmlToText(html)
+
+  it('퀴즈 정답이 <details>로 4개 이상 프리렌더된다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(4)
+  })
+
+  it('0.1이 실제로 저장되는 값이 표에 있다', () => {
+    expect(text).toContain('0.1000000000000000055511151231257827021181583404541015625')
+  })
+})
+
 describe('홈·소개 HTML', () => {
   it('홈에 모든 개념 제목과 링크가 있다', () => {
     const html = read('index.html')

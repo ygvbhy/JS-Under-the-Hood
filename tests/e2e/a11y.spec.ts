@@ -4,6 +4,7 @@ import {
   CONCEPT_PATH,
   EQUALITY_PATH,
   EQUALITY_SIMULATOR_NAME,
+  NUMBER_TYPE_PATH,
   SHORT_CIRCUIT_PATH,
   SHORT_CIRCUIT_SIMULATOR_NAME,
   SIMULATOR_NAME,
@@ -122,6 +123,13 @@ for (const colorScheme of ['light', 'dark'] as const) {
 
     test('개념 페이지: 동등 비교', async ({ page }) => {
       await page.goto(EQUALITY_PATH)
+      await waitForHydration(page)
+      await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
+      await expectNoSeriousViolations(page)
+    })
+
+    test('개념 페이지: 숫자 타입', async ({ page }) => {
+      await page.goto(NUMBER_TYPE_PATH)
       await waitForHydration(page)
       await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
       await expectNoSeriousViolations(page)

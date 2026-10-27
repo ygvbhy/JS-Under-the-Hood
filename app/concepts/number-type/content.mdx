@@ -1,0 +1,289 @@
+import { storedValues } from './stored-values'
+
+## 동작 원리
+
+### 숫자 타입은 하나
+
+자바스크립트에는 정수용 타입과 실수용 타입이 따로 없습니다. 명세는 Number 타입의 값을 IEEE 754 binary64, 곧 64비트 배정밀도 부동소수점 값으로 정의하고, `NaN`과 양·음의 무한대도 이 타입에 속하는 값으로 둡니다. 그래서 `1`과 `1.0`은 같은 값이고, `5 / 2`는 정수 나눗셈처럼 2로 잘리지 않고 2.5입니다.
+
+`0b101`(2진수), `0o17`(8진수), `0xff`(16진수) 리터럴도 별도의 타입이 아닙니다. 같은 숫자 값을 다른 표기로 쓴 것이라 각각 5, 15, 255가 됩니다.
+
+### 십진 소수는 가장 가까운 값으로 저장된다
+
+숫자 리터럴을 읽을 때 명세는 그 수학적 값에 가장 가까운 Number 값을 고르도록 정합니다. 즉 소스에 쓴 십진 소수는 **가장 가까운 값으로 반올림되어 저장**됩니다. `0.5`(1/2), `0.25`(1/4), `0.75`(3/4)는 2진수로 몇 자리 안에 끝나는 소수라 그 값 그대로 저장됩니다. 반면 `0.1`, `0.2`, `0.3`은 2진수로 쓰면 끝나지 않고 이어지는 소수라 그대로 담을 수 없고, 가장 가까운 Number 값으로 저장됩니다. 아래 표는 각 식의 값을 십진수로 정확히 풀어 쓴 것입니다.
+
+<div className="my-6 overflow-x-auto">
+  <table className="w-full border-collapse text-left">
+    <thead>
+      <tr>
+        <th scope="col" className="border-border border px-3 py-2">
+          식
+        </th>
+        <th scope="col" className="border-border border px-3 py-2">
+          실제로 저장되는 값
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      {storedValues.map((row) => (
+        <tr key={row.source}>
+          <th scope="row" className="border-border border px-3 py-2">
+            <code>{row.source}</code>
+          </th>
+          <td className="border-border border px-3 py-2">
+            <code className="break-all">{row.stored}</code>
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
+
+덧셈도 같은 방식으로 정의됩니다. 명세의 덧셈은 두 저장 값의 정확한 합을 구한 뒤, 그 합을 다시 가장 가까운 Number 값으로 반올림합니다. `0.1 + 0.2`는 `0.1`과 `0.2`의 저장 값을 더해 반올림한 값이고, 표에서 보듯 `0.3`의 저장 값보다 큽니다. 서로 다른 값이므로 `0.1 + 0.2 === 0.3`은 `false`입니다.
+
+반대로 `(1 + 2) / 10`은 정확한 3/10을 한 번 반올림한 값이라 리터럴 `0.3`과 같은 값이 됩니다. 이것은 이 식에서 반올림이 한 번만 일어난다는 설명일 뿐, 항상 이렇게 쓰라는 규칙이 아닙니다. 반면 `0.5 + 0.25`는 두 값과 합이 모두 정확히 저장되는 값이라 `0.75`와 같습니다.
+
+### 큰 정수
+
+2의 53제곱까지는 모든 정수를 정확히 표현할 수 있습니다. 그보다 커지면 표현할 수 있는 정수 사이의 간격이 2 이상으로 벌어져, 그 사이의 정수는 표현할 수 있는 값으로 반올림됩니다. `2 ** 53 + 1`은 표현할 수 있는 두 값 `2 ** 53`과 `2 ** 53 + 2`의 정확히 가운데입니다. 가운데일 때 명세의 반올림 규칙은 2진 표현의 마지막 자리가 0인 쪽을 고르므로 `2 ** 53`이 됩니다. 소스에 쓴 리터럴 `9007199254740993`도 같은 이유로 `9007199254740992`가 됩니다. `2 ** 53 + 2`는 표현할 수 있는 값이라 그대로 `9007199254740994`입니다.
+
+이 때문에 `2 ** 53` 자체도 "그 값이 `2 ** 53 + 1`을 반올림한 결과일 수 있는" 값이 됩니다. 명세는 이런 혼동이 없는 범위, 즉 절댓값이 2의 53제곱에서 1을 뺀 값 이하인 정수를 "안전한 정수"라고 부릅니다.
+
+### Infinity와 NaN
+
+`Infinity`, `-Infinity`, `NaN`도 숫자 타입의 값이므로 `typeof`는 모두 `'number'`입니다. 이 값들은 오류 없이 계산 결과로 나옵니다.
+
+- 0이 아닌 수를 0으로 나누면 오류가 아니라 `Infinity` 또는 `-Infinity`입니다. `0 / 0`은 `NaN`입니다.
+- 결과가 표현할 수 있는 범위를 넘으면 `Infinity`가 됩니다. `2 ** 1024`가 그렇습니다.
+- 수학적으로 값이 정해지지 않는 연산은 `NaN`입니다. `Infinity - Infinity`가 그렇습니다.
+- `NaN`이 들어간 산술 결과는 `NaN`입니다. `NaN + 1`이 그렇습니다.
+
+`NaN`을 비교하는 방법과 `-0`은 [동등 비교](/concepts/equality-operators) 페이지에서 다룹니다.
+
+## 예제
+
+네 예제의 출력을 먼저 예측해 보세요. 예제의 `console.log`는 값을 출력하는 호스트 API이며 ECMAScript 언어의 일부가 아닙니다. 숫자를 어떤 형식으로 보여 주는지도 호스트의 출력 형식입니다(아래 단순화 참고).
+
+### 예제 1: 숫자 타입은 하나
+
+```js file=./examples/one-type.js
+
+```
+
+<PredictQuiz
+  question="예제 1의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다)"
+  choices={[
+    'number number true / 2.5 5 15 255',
+    'number number true / 2 5 15 255',
+    'number number false / 2.5 5 15 255',
+    'number number true / 2.5 101 17 ff',
+  ]}
+  answer={0}
+  explanation="정수 1, 소수 1.5의 typeof는 모두 number이고, 1 === 1.0은 같은 값이라 true입니다. 5 / 2는 2.5입니다. 0b101, 0o17, 0xff는 같은 숫자 값을 다른 표기로 쓴 것이라 5, 15, 255로 출력됩니다."
+/>
+
+### 예제 2: 0.1 + 0.2
+
+```js file=./examples/decimal-sum.js
+
+```
+
+<PredictQuiz
+  question="예제 2의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다)"
+  choices={[
+    '0.3 true / 0.75 true / true',
+    '0.30000000000000004 false / 0.75 true / true',
+    '0.30000000000000004 false / 0.75 false / false',
+    '0.30000000000000004 false / 0.75 true / false',
+  ]}
+  answer={1}
+  explanation="0.1 + 0.2는 두 저장 값의 정확한 합을 가장 가까운 값으로 반올림한 값이고, 0.3의 저장 값과 달라 === 비교가 false입니다. 0.5 + 0.25는 모두 정확히 저장되는 값이라 0.75이고 true입니다. (1 + 2) / 10은 정확한 3/10을 한 번 반올림한 값이라 리터럴 0.3과 같은 값이어서 true입니다."
+/>
+
+### 예제 3: 2의 53제곱 근처의 정수
+
+```js file=./examples/safe-integer.js
+
+```
+
+<PredictQuiz
+  question="예제 3의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다)"
+  choices={[
+    '9007199254740992 9007199254740993 9007199254740994 / false false',
+    '9007199254740992 9007199254740992 9007199254740994 / true true',
+    '9007199254740992 9007199254740992 9007199254740992 / true true',
+    '9007199254740992 9007199254740993 9007199254740994 / false true',
+  ]}
+  answer={1}
+  explanation="2 ** 53 이상에서는 표현할 수 있는 정수 사이의 간격이 2 이상입니다. big + 1은 big과 big + 2의 정확히 가운데라 명세의 반올림 규칙에 따라 big이 되고, big + 2는 표현할 수 있는 값이라 그대로입니다. 그래서 big + 1 === big이 true이고, 리터럴 9007199254740993도 9007199254740992로 저장되어 big과 같습니다."
+/>
+
+### 예제 4: Infinity와 NaN
+
+```js file=./examples/special-values.js
+
+```
+
+<PredictQuiz
+  question="예제 4의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다)"
+  choices={[
+    'Infinity -Infinity NaN / number number / Infinity NaN NaN',
+    'Infinity -Infinity NaN / object number / Infinity NaN NaN',
+    'Infinity -Infinity 0 / number number / Infinity 0 NaN',
+    'Infinity -Infinity NaN / number number / Infinity NaN 1',
+  ]}
+  answer={0}
+  explanation="0으로 나누기는 오류가 아니라 Infinity나 -Infinity이고, 0 / 0은 NaN입니다. Infinity와 NaN은 모두 숫자 타입이라 typeof가 number입니다. 2 ** 1024는 표현 범위를 넘어 Infinity, Infinity - Infinity는 NaN, NaN이 들어간 NaN + 1도 NaN입니다."
+/>
+
+## 결과와 이유
+
+<div className="my-6 overflow-x-auto">
+  <table className="w-full border-collapse text-left">
+    <thead>
+      <tr>
+        <th scope="col" className="border-border border px-3 py-2">
+          식
+        </th>
+        <th scope="col" className="border-border border px-3 py-2">
+          결과
+        </th>
+        <th scope="col" className="border-border border px-3 py-2">
+          이유
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th scope="row" className="border-border border px-3 py-2">
+          <code>{'5 / 2'}</code>
+        </th>
+        <td className="border-border border px-3 py-2">
+          <code>2.5</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          정수와 실수 구분 없이 하나의 숫자 타입이라 나머지를 버리지 않습니다.
+        </td>
+      </tr>
+      <tr>
+        <th scope="row" className="border-border border px-3 py-2">
+          <code>{'0.1 + 0.2 === 0.3'}</code>
+        </th>
+        <td className="border-border border px-3 py-2">
+          <code>false</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          저장 값을 더해 반올림한 값이 0.3의 저장 값보다 큽니다.
+        </td>
+      </tr>
+      <tr>
+        <th scope="row" className="border-border border px-3 py-2">
+          <code>{'0.5 + 0.25 === 0.75'}</code>
+        </th>
+        <td className="border-border border px-3 py-2">
+          <code>true</code>
+        </td>
+        <td className="border-border border px-3 py-2">두 값과 합이 모두 정확히 저장됩니다.</td>
+      </tr>
+      <tr>
+        <th scope="row" className="border-border border px-3 py-2">
+          <code>{'(1 + 2) / 10 === 0.3'}</code>
+        </th>
+        <td className="border-border border px-3 py-2">
+          <code>true</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          정확한 3/10을 한 번 반올림한 값이 리터럴 0.3의 저장 값과 같습니다.
+        </td>
+      </tr>
+      <tr>
+        <th scope="row" className="border-border border px-3 py-2">
+          <code>{'2 ** 53 + 1'}</code>
+        </th>
+        <td className="border-border border px-3 py-2">
+          <code>9007199254740992</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          2 ** 53과 2 ** 53 + 2의 정확히 가운데라 명세의 반올림 규칙에 따라 2 ** 53이 됩니다.
+        </td>
+      </tr>
+      <tr>
+        <th scope="row" className="border-border border px-3 py-2">
+          <code>{'2 ** 53 + 2'}</code>
+        </th>
+        <td className="border-border border px-3 py-2">
+          <code>9007199254740994</code>
+        </td>
+        <td className="border-border border px-3 py-2">표현할 수 있는 정수입니다.</td>
+      </tr>
+      <tr>
+        <th scope="row" className="border-border border px-3 py-2">
+          <code>{'1 / 0'}</code>
+        </th>
+        <td className="border-border border px-3 py-2">
+          <code>Infinity</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          0으로 나누어도 오류가 아니라 무한대입니다.
+        </td>
+      </tr>
+      <tr>
+        <th scope="row" className="border-border border px-3 py-2">
+          <code>{'0 / 0'}</code>
+        </th>
+        <td className="border-border border px-3 py-2">
+          <code>NaN</code>
+        </td>
+        <td className="border-border border px-3 py-2">계산 결과를 숫자로 정할 수 없습니다.</td>
+      </tr>
+      <tr>
+        <th scope="row" className="border-border border px-3 py-2">
+          <code>{'2 ** 1024'}</code>
+        </th>
+        <td className="border-border border px-3 py-2">
+          <code>Infinity</code>
+        </td>
+        <td className="border-border border px-3 py-2">결과가 표현할 수 있는 범위를 넘습니다.</td>
+      </tr>
+      <tr>
+        <th scope="row" className="border-border border px-3 py-2">
+          <code>{'NaN + 1'}</code>
+        </th>
+        <td className="border-border border px-3 py-2">
+          <code>NaN</code>
+        </td>
+        <td className="border-border border px-3 py-2">NaN이 들어간 산술 결과는 NaN입니다.</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+**예제 1**: `typeof`는 `1`과 `1.5`에 모두 `'number'`를 돌려주고, `1 === 1.0`은 같은 Number 값이라 `true`입니다. `5 / 2`는 하나의 숫자 타입에서 나눈 값이므로 2.5입니다. 2진수·8진수·16진수 리터럴은 표기만 다르고 값은 5, 15, 255입니다.
+
+**예제 2**: `0.1`, `0.2`, `0.3`은 각각 가장 가까운 Number 값으로 반올림되어 저장됩니다. `0.1 + 0.2`는 그 두 저장 값의 정확한 합을 다시 가장 가까운 값으로 반올림한 결과이고, 저장 값 표에서 보듯 `0.3`의 저장 값과 다른 값입니다. 그래서 `console.log`가 `0.30000000000000004`를 보여 주고 `===` 비교는 `false`입니다. 이는 계산이 틀린 것이 아니라 명세가 정한 반올림 규칙의 결과입니다.
+
+**예제 3**: 2의 53제곱까지는 모든 정수가 정확히 표현됩니다. 그 위에서는 표현할 수 있는 정수 사이가 2 이상 벌어지므로, 그 가운데에 있는 `2 ** 53 + 1`은 `2 ** 53`으로 반올림되고, `+ 1`이 값을 바꾸지 못합니다. 리터럴 `9007199254740993`도 읽는 시점에 같은 값으로 반올림되어 `2 ** 53`과 `===`입니다.
+
+**예제 4**: `1 / 0`, `-1 / 0`은 `Infinity`, `-Infinity`이고 `0 / 0`은 `NaN`입니다. 어느 쪽도 예외를 던지지 않으며 `typeof`는 `'number'`입니다. `2 ** 1024`는 범위 초과로 `Infinity`가 되고, `Infinity - Infinity`는 수학적으로 값이 정해지지 않아 `NaN`이며, `NaN`이 섞인 산술은 `NaN`입니다.
+
+<Callout type="misconception" title="정수와 실수는 다른 타입이다">
+  자바스크립트에는 정수 타입과 실수 타입이 따로 없습니다. `1`과 `1.0`은 같은 Number 값이고,
+  `typeof`도 둘 다 `'number'`입니다. 그래서 <code>{'5 / 2'}</code>는 2로 잘리지 않고 2.5입니다.
+</Callout>
+
+<Callout type="misconception" title="0.1 + 0.2가 0.3이 아닌 것은 계산 실수(버그)다">
+  명세가 정한 대로 동작한 결과입니다. 리터럴은 가장 가까운 Number 값으로 반올림되어 저장되고, 덧셈도
+  정확한 합을 다시 가장 가까운 값으로 반올림합니다. 그 결과 <code>{'0.1 + 0.2'}</code>의 값이
+  `0.3`의 저장 값과 달라진 것입니다. 반대로 `0.5`, `0.25`, `0.75`처럼 정확히 저장되는 값끼리의
+  계산은 예제 2의 둘째 줄처럼 같은 값이 됩니다.
+</Callout>
+
+<Callout type="misconception" title="0으로 나누면 오류가 난다">
+  숫자를 0으로 나누어도 예외가 발생하지 않습니다. `1 / 0`은 `Infinity`, `-1 / 0`은 `-Infinity`이고,
+  `0 / 0`은 `NaN`입니다. 예제 4에서 실제로 확인할 수 있습니다.
+</Callout>
+
+<Callout type="misconception" title="정수 계산은 크기와 관계없이 정확하다">
+  2의 53제곱까지는 모든 정수가 정확히 표현되지만, 그보다 큰 정수는 표현할 수 없는 값이 있습니다.
+  예제 3에서 <code>{'2 ** 53 + 1'}</code>은 `2 ** 53`으로 반올림되어 `+ 1`이 값을 바꾸지 못합니다.
+</Callout>

@@ -3,6 +3,7 @@ import {
   CONCEPT_PATH,
   EQUALITY_PATH,
   EQUALITY_SIMULATOR_NAME,
+  NUMBER_TYPE_PATH,
   SHORT_CIRCUIT_PATH,
   SHORT_CIRCUIT_SIMULATOR_NAME,
   TYPE_COERCION_PATH,
@@ -98,6 +99,16 @@ test('암묵적 타입 변환 개념 페이지: 시뮬레이터를 끝까지 진
 
 test(`${EQUALITY_PATH}: 가로 스크롤이 없다`, async ({ page }) => {
   await page.goto(EQUALITY_PATH)
+  await waitForHydration(page)
+  const { scrollWidth, innerWidth } = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    innerWidth: window.innerWidth,
+  }))
+  expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
+})
+
+test(`${NUMBER_TYPE_PATH}: 가로 스크롤이 없다`, async ({ page }) => {
+  await page.goto(NUMBER_TYPE_PATH)
   await waitForHydration(page)
   const { scrollWidth, innerWidth } = await page.evaluate(() => ({
     scrollWidth: document.documentElement.scrollWidth,
