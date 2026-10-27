@@ -46,7 +46,7 @@ npm run dev
 
 ## 배포 (Vercel)
 
-설정은 `vercel.json`에 있습니다(`framework: null`, `npm ci`, `npm run build`, 출력 `build/client`, `/assets/*` immutable 캐시). main 브랜치가 Production, PR이 Preview 배포입니다.
+설정은 `vercel.json`에 있습니다(`framework: null`, `npm ci`, `npm run build`, 출력 `build/client`, `/assets/*` immutable 캐시, 모든 경로의 기본 보안 헤더). main 브랜치가 Production, PR이 Preview 배포입니다.
 
 처음 배포할 때 직접 할 일:
 

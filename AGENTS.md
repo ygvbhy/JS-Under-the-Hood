@@ -18,7 +18,7 @@
 
 - 도서 본문·예제를 복사하지 않는다. 도서는 참고 자료로만 언급하고 예제·문장은 직접 작성한다.
 - 사용자가 학습한 범위의 개념만 작성한다. 미학습 개념(실행 컨텍스트, TDZ, Event Loop 등)의 콘텐츠를 앞서 쓰지 않는다. 학습 범위가 불분명하면 먼저 묻는다.
-- 의존성은 근거를 제시하고 사용자 승인을 받은 뒤에만 추가한다. 패키지 버전은 정확히 고정한다(`npm install --save-exact`, `package.json`에 `^`·`~` 금지). 예: 마크다운 표(GFM)를 위해 `remark-gfm`을 넣는 대신 표는 JSX `<table>`로 쓴다.
+- 의존성은 근거를 제시하고 사용자 승인을 받은 뒤에만 추가한다. 패키지 버전은 정확히 고정한다(`npm install --save-exact`, `package.json`에 `^`·`~` 금지). 예: 마크다운 표(GFM)를 위해 `remark-gfm`을 넣는 대신 표는 JSX `<table>`로 쓴다. `serve@14.2.6`이 고정한 취약 `compression`(GHSA-vc2v-76pw-4v95)은 `package.json` `overrides`로 1.8.2에 고정했다. `serve`가 고친 버전을 내면 override를 제거한다.
 - 계획 문서는 `.claude/plans/`에 둔다. 구현 중 사실과 결정은 해당 계획 문서의 "구현 진행"에 기록한다.
 - 커밋은 사용자가 요청했을 때만 한다.
 
@@ -63,7 +63,7 @@ vercel.json, serve.json          # 배포 설정, 로컬 정적 서빙 설정
 
 - 출력 결과를 주장하는 예제는 반드시 `examples/*.js`에 파일로 두고 `meta.examples`에 등록한다. 본문의 코드 블록은 `file=` 문법으로 그 파일을 가져온다(복붙 금지).
 - `console.log`에는 원시 값, 불리언, `JSON.stringify` 결과만 넘긴다. 객체를 직접 출력하지 않는다(호스트마다 출력 형식이 다르다).
-- 예제는 Node `vm`에서 sloppy mode 스크립트로 실행된다(예제마다 새 컨텍스트, 2초 제한). strict/sloppy에 따라 결과가 달라지는 예제는 쓰지 않는다. 타이머·DOM 등 호스트 API 예제는 현재 지원하지 않는다.
+- 예제는 Node `vm`에서 sloppy mode 스크립트로 실행된다(예제마다 새 컨텍스트, 2초 제한). strict/sloppy에 따라 결과가 달라지는 예제는 쓰지 않는다. 타이머·DOM 등 호스트 API 예제는 현재 지원하지 않는다. Promise 콜백(microtask)은 평가 직후 같은 제한 시간 안에서 실행되어 출력이 수집된다(`microtaskMode: 'afterEvaluate'`).
 - `app/concepts/*/examples/**`는 Prettier와 ESLint에서 제외한다. 시뮬레이터가 줄 번호(`line`)로 코드를 강조하므로 자동 포맷으로 줄이 바뀌면 안 된다.
 - `node:vm`은 보안 경계가 아니다. 저장소에 포함된 신뢰된 예제만 실행한다.
 
@@ -103,7 +103,7 @@ npm run lint && npm run format:check && npm run typecheck && npm test && npm run
 
 ## 배포
 
-- Vercel 정적 배포. 설정은 `vercel.json`(`framework: null`, `npm ci`, `npm run build`, 출력 `build/client`, `trailingSlash: false`, `/assets/*` immutable 캐시)이 정한다. main = Production, PR = Preview.
+- Vercel 정적 배포. 설정은 `vercel.json`(`framework: null`, `npm ci`, `npm run build`, 출력 `build/client`, `trailingSlash: false`, `/assets/*` immutable 캐시, 모든 경로에 `X-Content-Type-Options: nosniff`·`Referrer-Policy: strict-origin-when-cross-origin`·`X-Frame-Options: DENY`)이 정한다. main = Production, PR = Preview.
 - 사이트 URL(canonical·og:url·sitemap)은 `VITE_SITE_URL` 환경변수로 정한다. 기본값은 커밋된 `.env`에 있고, 배포 도메인은 Vercel Production 환경변수로 덮어쓴다(셸·플랫폼 환경변수가 `.env`보다 우선). 로컬에서 다른 값을 쓰려면 `VITE_SITE_URL=... npm run build`처럼 셸 변수로 지정한다(앱 코드와 `postbuild.mjs`가 같은 값을 보도록 `.env.local`이 아니라 `.env` 또는 셸 변수를 쓴다).
 - Node 버전: `package.json` `engines.node >= 22.22`, `.nvmrc`는 24.
 - 404: 프리렌더된 `/404`를 `404.html`로 복사해 미지 경로에 쓰고, `noindex`를 둔다. 모든 경로가 프리렌더되므로 `__spa-fallback.html`은 빌드 후 삭제한다.

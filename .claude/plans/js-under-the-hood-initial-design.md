@@ -2,7 +2,7 @@
 
 - 상태: 완료
 - 작성일: 2026-10-20
-- 기준: git 저장소 아님 (빈 디렉터리 `/Users/sk/Documents/programming/js-basic`)
+- 기준: git 저장소 아님 (빈 디렉터리 `~/Documents/programming/js-basic`)
 
 > 표기: **[확정]** 사용자 요구사항·답변으로 확정 / **[추정]** 계획 작성자의 제안·추정 (계획 승인 시 확정) / **[확인 필요]** 사용자 결정 필요
 

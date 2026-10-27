@@ -11,6 +11,7 @@ export function runExample(
   const sandbox = {
     console: { log: (...args: unknown[]) => out.push(format(...args)) },
   }
-  runInNewContext(code, sandbox, { timeout: timeoutMs })
+  // afterEvaluate: 예제가 예약한 microtask를 같은 timeout 안에서 평가 직후 실행해, Promise 콜백의 console.log도 반환 전에 수집한다.
+  runInNewContext(code, sandbox, { timeout: timeoutMs, microtaskMode: 'afterEvaluate' })
   return out
 }

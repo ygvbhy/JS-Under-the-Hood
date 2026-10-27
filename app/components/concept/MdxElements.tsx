@@ -39,7 +39,7 @@ export function Anchor({ href = '', children, ...props }: ComponentProps<'a'>) {
   const cls = 'text-accent underline underline-offset-4'
   if (href.startsWith('/')) {
     return (
-      <Link to={href} className={cls}>
+      <Link {...props} to={href} className={cls}>
         {children}
       </Link>
     )

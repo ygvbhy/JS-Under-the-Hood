@@ -1,7 +1,7 @@
 node_modules
 /build
 .react-router
-.env.local
+.env*.local
 test-results
 playwright-report
 .DS_Store
