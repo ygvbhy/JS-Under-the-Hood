@@ -2,6 +2,8 @@ import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
 import {
   CONCEPT_PATH,
+  EQUALITY_PATH,
+  EQUALITY_SIMULATOR_NAME,
   SHORT_CIRCUIT_PATH,
   SHORT_CIRCUIT_SIMULATOR_NAME,
   SIMULATOR_NAME,
@@ -107,6 +109,30 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await waitForHydration(page)
       const region = page.getByRole('region', { name: TYPE_COERCION_SIMULATOR_NAME })
       for (const scenario of ['+ 의 순서', '- 와 + 섞기', '> 비교']) {
+        await region.getByRole('radio', { name: scenario, exact: true }).check()
+        const next = region.getByRole('button', { name: '다음' })
+        // 시나리오의 단계 수는 모두 10 이하이므로 마지막 단계까지 모든 단계를 검사한다.
+        for (let i = 0; i < 12 && (await next.isEnabled()); i++) {
+          await next.click()
+          await expectNoSeriousViolations(page)
+        }
+        await expect(next).toBeDisabled()
+      }
+    })
+
+    test('개념 페이지: 동등 비교', async ({ page }) => {
+      await page.goto(EQUALITY_PATH)
+      await waitForHydration(page)
+      await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
+      await expectNoSeriousViolations(page)
+    })
+
+    test('개념 페이지: 동등 비교 시뮬레이터를 진행한 뒤', async ({ page }) => {
+      test.slow() // 3개 시나리오의 모든 단계에서 axe를 돌리므로 기본 30초에 가깝다
+      await page.goto(EQUALITY_PATH)
+      await waitForHydration(page)
+      const region = page.getByRole('region', { name: EQUALITY_SIMULATOR_NAME })
+      for (const scenario of ['숫자와 문자열', '불리언과 비교', 'null과 undefined']) {
         await region.getByRole('radio', { name: scenario, exact: true }).check()
         const next = region.getByRole('button', { name: '다음' })
         // 시나리오의 단계 수는 모두 10 이하이므로 마지막 단계까지 모든 단계를 검사한다.
