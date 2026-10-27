@@ -1,15 +1,11 @@
 import { ConceptLayout } from '~/components/concept/ConceptLayout'
 import { mdxComponents } from '~/components/concept/mdx-components'
-import { buildMeta } from '~/lib/seo'
+import { buildConceptMeta } from '~/lib/seo'
 import Content from './content.mdx'
 import { concept } from './meta'
 
 export function meta() {
-  return buildMeta({
-    title: concept.title,
-    description: concept.summary,
-    path: `/concepts/${concept.slug}`,
-  })
+  return buildConceptMeta(concept)
 }
 
 export default function ConceptRoute() {

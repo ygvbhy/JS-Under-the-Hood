@@ -1,4 +1,4 @@
-import { copyFileSync, existsSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join, posix, sep } from 'node:path'
 
 const clientDir = join(process.cwd(), 'build', 'client')
@@ -31,10 +31,43 @@ const routeDirs = readdirSync(clientDir, { recursive: true })
 const escapeXml = (s) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
-const urls = routeDirs.map((dir) => (dir === '' ? `${siteUrl}/` : `${siteUrl}/${dir}`))
+// 개념 페이지의 lastmod: 프리렌더된 HTML의 JSON-LD dateModified (HTML과 sitemap이 같은 값을 쓴다)
+// JSON-LD가 없거나 TechArticle이 아니면 빌드 실패, dateModified가 없으면 lastmod만 생략
+function readLastmod(dir) {
+  const file = join(clientDir, ...dir.split('/'), 'index.html')
+  const html = readFileSync(file, 'utf8')
+  const match = html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)
+  if (!match) throw new Error(`개념 페이지에 JSON-LD(application/ld+json)가 없습니다: ${file}`)
+  let data
+  try {
+    data = JSON.parse(match[1])
+  } catch (e) {
+    throw new Error(`JSON-LD를 JSON.parse할 수 없습니다: ${file} (${e.message})`, { cause: e })
+  }
+  if (data === null || typeof data !== 'object' || data['@type'] !== 'TechArticle') {
+    throw new Error(`JSON-LD가 TechArticle 객체가 아닙니다: ${file}`)
+  }
+  if (!('dateModified' in data)) return undefined
+  const v = data.dateModified
+  if (typeof v !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+    throw new Error(`dateModified가 YYYY-MM-DD 형식이 아닙니다: ${file} (${JSON.stringify(v)})`)
+  }
+  return v
+}
+
+const entries = routeDirs.map((dir) => ({
+  url: dir === '' ? `${siteUrl}/` : `${siteUrl}/${dir}`,
+  lastmod: /^concepts\/[^/]+$/.test(dir) ? readLastmod(dir) : undefined,
+}))
+const lastmodCount = entries.filter((e) => e.lastmod).length
 const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${urls.map((u) => `  <url><loc>${escapeXml(u)}</loc></url>`).join('\n')}
+${entries
+  .map(
+    (e) =>
+      `  <url><loc>${escapeXml(e.url)}</loc>${e.lastmod ? `<lastmod>${e.lastmod}</lastmod>` : ''}</url>`,
+  )
+  .join('\n')}
 </urlset>
 `
 writeFileSync(join(clientDir, 'sitemap.xml'), sitemap)
@@ -44,4 +77,6 @@ writeFileSync(
   `User-agent: *\nAllow: /\n\nSitemap: ${siteUrl}/sitemap.xml\n`,
 )
 
-console.log(`postbuild: sitemap.xml(${urls.length}개 URL), robots.txt 생성 (${siteUrl})`)
+console.log(
+  `postbuild: sitemap.xml(${entries.length}개 URL, lastmod ${lastmodCount}개), robots.txt 생성 (${siteUrl})`,
+)

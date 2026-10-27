@@ -34,7 +34,7 @@ app/concepts/<slug>/
 | `examples`        | `{ id, file, runtime: 'ecmascript', expectedOutput }[]`. 3단계 참고. `id`는 개념 안에서 유일해야 합니다.                                                                                 |
 | `simplifications` | 이 페이지의 설명과 시각화가 실제 명세·엔진과 다르게 단순화한 부분을 1개 이상 씁니다. 단순화가 없다고 판단되면 그 사유를 한 줄로 씁니다(빈 배열 금지).                                    |
 | `references`      | `{ label, url }[]`를 1개 이상. URL은 `https://`로 시작해야 하며, 가능하면 ECMAScript 명세의 해당 절(`https://tc39.es/ecma262/#sec-...`)과 MDN을 넣습니다. 링크는 실제로 열어 확인합니다. |
-| `reviewedAt`      | 처음에는 반드시 `null`(페이지에 "검토 중" 배지). 10단계에서 사용자 검토 후 `'YYYY-MM-DD'`로 바꿉니다.                                                                                    |
+| `reviewedAt`      | 처음에는 반드시 `null`(페이지에 "검토 중" 배지). 10단계에서 사용자 검토 후 `'YYYY-MM-DD'`로 바꿉니다. 이 날짜는 구조화 데이터의 `dateModified`와 sitemap의 `lastmod`로도 쓰입니다.       |
 
 ### 3. 예제와 `expectedOutput`
 
@@ -127,16 +127,12 @@ Prettier가 이 블록 안에 빈 줄을 넣을 수 있는데, 동작에는 영�
 ```tsx
 import { ConceptLayout } from '~/components/concept/ConceptLayout'
 import { mdxComponents } from '~/components/concept/mdx-components'
-import { buildMeta } from '~/lib/seo'
+import { buildConceptMeta } from '~/lib/seo'
 import Content from './content.mdx'
 import { concept } from './meta'
 
 export function meta() {
-  return buildMeta({
-    title: concept.title,
-    description: concept.summary,
-    path: `/concepts/${concept.slug}`,
-  })
+  return buildConceptMeta(concept)
 }
 
 export default function ConceptRoute() {
@@ -152,7 +148,7 @@ export default function ConceptRoute() {
 
 ### 7. 테스트
 
-- 예제 실행(L1), 메타 무결성·필수 h2(L3), 빌드 결과(홈 목록, sitemap, canonical 등)는 **공통 테스트가 폴더를 자동으로 찾아** 검사합니다. 따로 테스트를 쓸 필요가 없습니다.
+- 예제 실행(L1), 메타 무결성·필수 h2(L3), 빌드 결과(홈 목록, sitemap, canonical, 구조화 데이터(JSON-LD)와 sitemap `lastmod` 등)는 **공통 테스트가 폴더를 자동으로 찾아** 검사합니다. 따로 테스트를 쓸 필요가 없습니다.
 - 시뮬레이터가 있다면 `concept.test.ts`를 추가해 시나리오마다 `assertScenarioInvariants(scenario, example, source)`를 호출합니다(`tests/helpers/scenario-invariants.ts`). 코드 원문 일치, 마지막 출력 일치, 출력 누적, `line` 범위, 단계 수를 검사합니다. 상태 참조 무결성(예: 가리키는 객체 id가 존재)은 상태 모양이 개념마다 다르므로 `concept.test.ts`에서 직접 검사합니다. `primitives-and-objects/concept.test.ts`가 예시입니다.
 
 ### 8. dev 서버 재시작
@@ -169,7 +165,7 @@ npm run lint && npm run format:check && npm run typecheck && npm test && npm run
 
 ### 10. 사용자 검토 후 `reviewedAt` 기록
 
-작성자는 아래 L7 체크리스트로 자체 점검한 뒤 사용자에게 설명과 시각 표현의 검토를 요청합니다. 사용자가 승인하면 `meta.ts`의 `reviewedAt`을 승인 날짜(`'YYYY-MM-DD'`)로 바꿉니다. 승인 전에는 `null`이어야 하며 페이지에 "검토 중" 배지가 표시됩니다. 피드백은 같은 단계에서 반영한 뒤 다시 검토를 받습니다.
+작성자는 아래 L7 체크리스트로 자체 점검한 뒤 사용자에게 설명과 시각 표현의 검토를 요청합니다. 사용자가 승인하면 `meta.ts`의 `reviewedAt`을 승인 날짜(`'YYYY-MM-DD'`)로 바꿉니다. 승인 전에는 `null`이어야 하며 페이지에 "검토 중" 배지가 표시됩니다. 피드백은 같은 단계에서 반영한 뒤 다시 검토를 받습니다. `reviewedAt`은 구조화 데이터 `dateModified`와 sitemap `lastmod`로 쓰이므로, 본문을 고치면 다시 검토받고 `reviewedAt`을 갱신합니다.
 
 ## 작성 규칙
 

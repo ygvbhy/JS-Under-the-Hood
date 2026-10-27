@@ -90,6 +90,16 @@ describe.each(entries)('$folder', ({ folder, concept }) => {
     }
   })
 
+  // reviewedAt은 구조화 데이터 dateModified와 sitemap lastmod로도 쓰인다
+  it('reviewedAt은 null이거나 실제 달력 날짜(YYYY-MM-DD)다', () => {
+    const v = concept.reviewedAt
+    if (v === null) return
+    expect(v, `reviewedAt 형식: ${v}`).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+    const date = new Date(v + 'T00:00:00Z')
+    expect(Number.isNaN(date.getTime()), `존재하지 않는 날짜: ${v}`).toBe(false)
+    expect(date.toISOString().slice(0, 10), `존재하지 않는 날짜: ${v}`).toBe(v)
+  })
+
   it('content.mdx에 필수 h2 3개가 있다', () => {
     const mdx = readFileSync(join(conceptsDir, folder, 'content.mdx'), 'utf8')
     for (const heading of REQUIRED_H2) {

@@ -3,12 +3,15 @@ import { useSearchParams } from 'react-router'
 import { ConceptCard } from '~/components/site/ConceptCard'
 import { groupByCategory } from '~/lib/concept-groups'
 import { filterConcepts, listConcepts } from '~/lib/concepts'
-import { buildMeta } from '~/lib/seo'
+import { buildMeta, siteJsonLd } from '~/lib/seo'
 import { SITE_DESCRIPTION, SITE_NAME } from '~/lib/site'
 import { useHydrated } from '~/lib/useHydrated'
 
 export function meta() {
-  return buildMeta({ description: SITE_DESCRIPTION, path: '/' })
+  return [
+    ...buildMeta({ description: SITE_DESCRIPTION, path: '/' }),
+    { 'script:ld+json': siteJsonLd() },
+  ]
 }
 
 const allConcepts = listConcepts()

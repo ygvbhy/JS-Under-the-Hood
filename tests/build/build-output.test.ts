@@ -268,6 +268,41 @@ describe('OG 이미지', () => {
   })
 })
 
+const LD_JSON_RE = /<script type="application\/ld\+json">([\s\S]*?)<\/script>/g
+const ldJsonBodies = (html: string) => [...html.matchAll(LD_JSON_RE)].map((m) => m[1])
+
+describe('구조화 데이터(JSON-LD)', () => {
+  it.each(concepts.map((c) => [c.slug, c] as const))(
+    '%s는 TechArticle JSON-LD 1개를 가진다',
+    (slug, concept) => {
+      const bodies = ldJsonBodies(read(`concepts/${slug}/index.html`))
+      expect(bodies).toHaveLength(1)
+      const data = JSON.parse(bodies[0])
+      expect(data['@type']).toBe('TechArticle')
+      expect(data.headline).toBe(concept.title)
+      expect(data.url).toBe(`${SITE_URL}/concepts/${slug}`)
+      expect(data.inLanguage).toBe('ko')
+      if (concept.reviewedAt === null) {
+        expect('dateModified' in data).toBe(false)
+      } else {
+        expect(data.dateModified).toBe(concept.reviewedAt)
+      }
+    },
+  )
+
+  it('홈은 WebSite JSON-LD 1개를 가진다', () => {
+    const bodies = ldJsonBodies(read('index.html'))
+    expect(bodies).toHaveLength(1)
+    const data = JSON.parse(bodies[0])
+    expect(data['@type']).toBe('WebSite')
+    expect(data.url).toBe(`${SITE_URL}/`)
+  })
+
+  it.each(['about/index.html', '404.html'])('%s에는 JSON-LD가 없다', (page) => {
+    expect(ldJsonBodies(read(page))).toHaveLength(0)
+  })
+})
+
 describe('sitemap.xml·robots.txt', () => {
   const locs = [...read('sitemap.xml').matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1])
 
@@ -285,5 +320,26 @@ describe('sitemap.xml·robots.txt', () => {
     const robots = read('robots.txt')
     expect(robots).toContain('User-agent: *')
     expect(robots).toContain(`Sitemap: ${SITE_URL}/sitemap.xml`)
+  })
+
+  const sitemap = read('sitemap.xml')
+  const urlElement = (loc: string) => {
+    const el = sitemap.match(new RegExp(`<url><loc>${loc}</loc>[\\s\\S]*?</url>`))
+    expect(el, `${loc} 항목이 sitemap에 없습니다`).not.toBeNull()
+    return el![0]
+  }
+
+  it.each(concepts.map((c) => [c.slug, c] as const))(
+    '%s의 lastmod는 reviewedAt과 같다',
+    (slug, concept) => {
+      const el = urlElement(`${SITE_URL}/concepts/${slug}`)
+      if (concept.reviewedAt === null) expect(el).not.toContain('<lastmod>')
+      else expect(el).toContain(`<lastmod>${concept.reviewedAt}</lastmod>`)
+    },
+  )
+
+  it('홈과 소개 항목에는 lastmod가 없다', () => {
+    expect(urlElement(`${SITE_URL}/`)).not.toContain('<lastmod>')
+    expect(urlElement(`${SITE_URL}/about`)).not.toContain('<lastmod>')
   })
 })
