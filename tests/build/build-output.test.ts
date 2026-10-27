@@ -198,6 +198,20 @@ describe('프리렌더 (number-type)', () => {
   })
 })
 
+// 여섯 번째 개념(typeof-operator)은 시뮬레이터 없이 표와 퀴즈로 구성된다. 둘 다 프리렌더 HTML에 있어야 한다.
+describe('프리렌더 (typeof-operator)', () => {
+  const html = read('concepts/typeof-operator/index.html')
+  const text = htmlToText(html)
+
+  it('퀴즈 정답이 <details>로 5개 이상 프리렌더된다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(5)
+  })
+
+  it('함수 표현식 행이 표에 있다', () => {
+    expect(text).toContain('function () {}')
+  })
+})
+
 describe('홈·소개 HTML', () => {
   it('홈에 모든 개념 제목과 링크가 있다', () => {
     const html = read('index.html')

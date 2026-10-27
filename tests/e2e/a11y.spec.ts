@@ -10,6 +10,7 @@ import {
   SIMULATOR_NAME,
   TYPE_COERCION_PATH,
   TYPE_COERCION_SIMULATOR_NAME,
+  TYPEOF_PATH,
   waitForHydration,
 } from './helpers'
 
@@ -130,6 +131,13 @@ for (const colorScheme of ['light', 'dark'] as const) {
 
     test('개념 페이지: 숫자 타입', async ({ page }) => {
       await page.goto(NUMBER_TYPE_PATH)
+      await waitForHydration(page)
+      await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
+      await expectNoSeriousViolations(page)
+    })
+
+    test('개념 페이지: typeof 연산자', async ({ page }) => {
+      await page.goto(TYPEOF_PATH)
       await waitForHydration(page)
       await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
       await expectNoSeriousViolations(page)

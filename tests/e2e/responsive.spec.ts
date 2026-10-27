@@ -8,6 +8,7 @@ import {
   SHORT_CIRCUIT_SIMULATOR_NAME,
   TYPE_COERCION_PATH,
   TYPE_COERCION_SIMULATOR_NAME,
+  TYPEOF_PATH,
   waitForHydration,
 } from './helpers'
 
@@ -109,6 +110,16 @@ test(`${EQUALITY_PATH}: 가로 스크롤이 없다`, async ({ page }) => {
 
 test(`${NUMBER_TYPE_PATH}: 가로 스크롤이 없다`, async ({ page }) => {
   await page.goto(NUMBER_TYPE_PATH)
+  await waitForHydration(page)
+  const { scrollWidth, innerWidth } = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    innerWidth: window.innerWidth,
+  }))
+  expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
+})
+
+test(`${TYPEOF_PATH}: 가로 스크롤이 없다`, async ({ page }) => {
+  await page.goto(TYPEOF_PATH)
   await waitForHydration(page)
   const { scrollWidth, innerWidth } = await page.evaluate(() => ({
     scrollWidth: document.documentElement.scrollWidth,
