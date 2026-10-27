@@ -181,6 +181,9 @@
 - 기존 개념 `related`에 `number-type` 역방향 연결(`equality-operators`의 NaN 설명, `type-coercion`의 NaN).
 - 12장 이후 진도에서 `Number.EPSILON`·`Number.isSafeInteger`·`toFixed`를 다루는 보강.
 
+## 변경 이력
+- 2026-10-27 (사용자 요청 — 감수 검토 [중]): "`NaN`이 들어간 산술 결과는 `NaN`"에 반례 `NaN ** 0` → 1(명세 Number::exponentiate 2단계: 지수가 ±0이면 밑과 관계없이 1). 본문 3곳(`content.mdx` 동작 원리 목록, 결과 표, 예제 4 이유)을 `+`·`-`·`*`·`/`·`%`로 범위를 좁히고 `**` 예외를 밝힘. `concept.test.ts` 본문 서술 근거에 7건 추가(`NaN + 1` 등 → NaN, `NaN ** 0`·`NaN ** -0` → 1). 본문이 바뀌어 `reviewedAt` 재검토 필요(content-guide 10단계).
+
 ## 구현 진행
 
 - baseline (2026-10-27, `dfc5c1f`): lint·format:check·typecheck 오류 0, `npm test` 575 통과(이번에 재실행). `test:build` 32·e2e 91 통과·3 건너뜀은 같은 코드(커밋 직전, 이후 문서만 변경)에서 실행한 결과

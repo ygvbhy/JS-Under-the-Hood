@@ -33,6 +33,14 @@ describe('본문 주장 검증', () => {
       ['2 ** 53 + 3 === 2 ** 53 + 4', true],
       ['9007199254740993 === 2 ** 53', true],
       ["typeof NaN === 'number'", true],
+      // +, -, *, /, %는 피연산자에 NaN이 있으면 NaN, **는 지수가 0이면 밑과 관계없이 1(Number::exponentiate)
+      ['NaN + 1', NaN],
+      ['NaN - 1', NaN],
+      ['NaN * 0', NaN],
+      ['NaN / 1', NaN],
+      ['NaN % 1', NaN],
+      ['NaN ** 0', 1],
+      ['NaN ** -0', 1],
     ])('`%s` → %j', (source, expected) => {
       expect(runInNewContext(source)).toBe(expected)
     })

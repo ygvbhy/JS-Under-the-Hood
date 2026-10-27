@@ -56,7 +56,7 @@ import { storedValues } from './stored-values'
 - 0이 아닌 수를 0으로 나누면 오류가 아니라 `Infinity` 또는 `-Infinity`입니다. `0 / 0`은 `NaN`입니다.
 - 결과가 표현할 수 있는 범위를 넘으면 `Infinity`가 됩니다. `2 ** 1024`가 그렇습니다.
 - 수학적으로 값이 정해지지 않는 연산은 `NaN`입니다. `Infinity - Infinity`가 그렇습니다.
-- `NaN`이 들어간 산술 결과는 `NaN`입니다. `NaN + 1`이 그렇습니다.
+- `+`, `-`, `*`, `/`, `%`의 피연산자 중 하나가 `NaN`이면 결과는 `NaN`입니다. `NaN + 1`이 그렇습니다. 거듭제곱 `**`에는 예외가 있습니다. 명세는 지수가 0이면 밑과 관계없이 1로 정하므로 `NaN ** 0`은 `1`입니다.
 
 `NaN`을 비교하는 방법과 `-0`은 [동등 비교](/concepts/equality-operators) 페이지에서 다룹니다.
 
@@ -252,7 +252,9 @@ import { storedValues } from './stored-values'
         <td className="border-border border px-3 py-2">
           <code>NaN</code>
         </td>
-        <td className="border-border border px-3 py-2">NaN이 들어간 산술 결과는 NaN입니다.</td>
+        <td className="border-border border px-3 py-2">
+          NaN이 섞인 +, -, *, /, % 연산의 결과는 NaN입니다(예외: NaN ** 0은 1).
+        </td>
       </tr>
     </tbody>
   </table>
@@ -264,7 +266,7 @@ import { storedValues } from './stored-values'
 
 **예제 3**: 2의 53제곱까지는 모든 정수가 정확히 표현됩니다. 그 위에서는 표현할 수 있는 정수 사이가 2 이상 벌어지므로, 그 가운데에 있는 `2 ** 53 + 1`은 `2 ** 53`으로 반올림되고, `+ 1`이 값을 바꾸지 못합니다. 리터럴 `9007199254740993`도 읽는 시점에 같은 값으로 반올림되어 `2 ** 53`과 `===`입니다.
 
-**예제 4**: `1 / 0`, `-1 / 0`은 `Infinity`, `-Infinity`이고 `0 / 0`은 `NaN`입니다. 어느 쪽도 예외를 던지지 않으며 `typeof`는 `'number'`입니다. `2 ** 1024`는 범위 초과로 `Infinity`가 되고, `Infinity - Infinity`는 수학적으로 값이 정해지지 않아 `NaN`이며, `NaN`이 섞인 산술은 `NaN`입니다.
+**예제 4**: `1 / 0`, `-1 / 0`은 `Infinity`, `-Infinity`이고 `0 / 0`은 `NaN`입니다. 어느 쪽도 예외를 던지지 않으며 `typeof`는 `'number'`입니다. `2 ** 1024`는 범위 초과로 `Infinity`가 되고, `Infinity - Infinity`는 수학적으로 값이 정해지지 않아 `NaN`이며, `NaN`이 섞인 `+`·`-`·`*`·`/`·`%` 연산은 `NaN`입니다(`NaN ** 0`은 예외로 `1`).
 
 <Callout type="misconception" title="정수와 실수는 다른 타입이다">
   자바스크립트에는 정수 타입과 실수 타입이 따로 없습니다. `1`과 `1.0`은 같은 Number 값이고,
