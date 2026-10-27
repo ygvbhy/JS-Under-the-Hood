@@ -8,6 +8,8 @@ import {
   NUMBER_TYPE_PATH,
   SHORT_CIRCUIT_PATH,
   SHORT_CIRCUIT_SIMULATOR_NAME,
+  SWITCH_PATH,
+  SWITCH_SIMULATOR_NAME,
   TYPE_COERCION_PATH,
   TYPE_COERCION_SIMULATOR_NAME,
   TYPEOF_PATH,
@@ -164,6 +166,35 @@ test('증감 연산자 개념 페이지: 시뮬레이터를 끝까지 진행해�
   await waitForHydration(page)
   const region = page.getByRole('region', { name: INCREMENT_SIMULATOR_NAME })
   for (const scenario of ['후위와 전위', '자기 자신에 대입', '피연산자 평가 순서']) {
+    await region.getByRole('radio', { name: scenario, exact: true }).check()
+    const next = region.getByRole('button', { name: '다음' })
+    while (await next.isEnabled()) {
+      await next.click()
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - window.innerWidth,
+      )
+      expect(overflow).toBeLessThanOrEqual(0)
+    }
+  }
+})
+
+test(`${SWITCH_PATH}: 가로 스크롤이 없다`, async ({ page }) => {
+  await page.goto(SWITCH_PATH)
+  await waitForHydration(page)
+  const { scrollWidth, innerWidth } = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    innerWidth: window.innerWidth,
+  }))
+  expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
+})
+
+test('switch와 break·continue 개념 페이지: 시뮬레이터를 끝까지 진행해도 가로 스크롤이 없다', async ({
+  page,
+}) => {
+  await page.goto(SWITCH_PATH)
+  await waitForHydration(page)
+  const region = page.getByRole('region', { name: SWITCH_SIMULATOR_NAME })
+  for (const scenario of ['break가 없을 때', '반복문의 break와 continue', '반복문 안의 switch']) {
     await region.getByRole('radio', { name: scenario, exact: true }).check()
     const next = region.getByRole('button', { name: '다음' })
     while (await next.isEnabled()) {

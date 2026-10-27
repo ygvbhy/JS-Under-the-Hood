@@ -12,6 +12,8 @@ export const NUMBER_TYPE_PATH = '/concepts/number-type'
 export const TYPEOF_PATH = '/concepts/typeof-operator'
 export const INCREMENT_PATH = '/concepts/increment-decrement'
 export const INCREMENT_SIMULATOR_NAME = '증감 연산자 시뮬레이터'
+export const SWITCH_PATH = '/concepts/switch-break-continue'
+export const SWITCH_SIMULATOR_NAME = 'switch와 break·continue 시뮬레이터'
 
 // 404 문서 자체를 받을 때 브라우저가 남기는 리소스 로드 로그. 앱 오류가 아니므로 무시한다.
 const IGNORED_404_LOG = /Failed to load resource: the server responded with a status of 404/
