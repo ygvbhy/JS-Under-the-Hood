@@ -24,6 +24,8 @@ export const SCOPE_CHAIN_PATH = '/concepts/scope-chain'
 export const SCOPE_CHAIN_SIMULATOR_NAME = '스코프 체인 시뮬레이터'
 export const BLOCK_SCOPE_PATH = '/concepts/block-scope'
 export const BLOCK_SCOPE_SIMULATOR_NAME = '블록 스코프 시뮬레이터'
+export const TDZ_PATH = '/concepts/tdz'
+export const TDZ_SIMULATOR_NAME = 'TDZ 시뮬레이터'
 
 // 404 문서 자체를 받을 때 브라우저가 남기는 리소스 로드 로그. 앱 오류가 아니므로 무시한다.
 const IGNORED_404_LOG = /Failed to load resource: the server responded with a status of 404/

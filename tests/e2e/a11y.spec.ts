@@ -20,6 +20,8 @@ import {
   SCOPE_CHAIN_SIMULATOR_NAME,
   BLOCK_SCOPE_PATH,
   BLOCK_SCOPE_SIMULATOR_NAME,
+  TDZ_PATH,
+  TDZ_SIMULATOR_NAME,
   SWITCH_PATH,
   SWITCH_SIMULATOR_NAME,
   TYPE_COERCION_PATH,
@@ -331,6 +333,46 @@ for (const colorScheme of ['light', 'dark'] as const) {
         }
         await expect(next).toBeDisabled()
       }
+    })
+
+    test('개념 페이지: TDZ', async ({ page }) => {
+      await page.goto(TDZ_PATH)
+      await waitForHydration(page)
+      await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
+      await expectNoSeriousViolations(page)
+    })
+
+    test('개념 페이지: TDZ 시뮬레이터를 진행한 뒤', async ({ page }) => {
+      test.slow() // 3개 시나리오의 모든 단계에서 axe를 돌린다
+      await page.goto(TDZ_PATH)
+      await waitForHydration(page)
+      const region = page.getByRole('region', { name: TDZ_SIMULATOR_NAME })
+      for (const scenario of ['선언 전에 읽기', '안쪽 블록의 가림', '시점이 정한다']) {
+        await region.getByRole('radio', { name: scenario, exact: true }).check()
+        const next = region.getByRole('button', { name: '다음' })
+        // 시나리오의 단계 수는 모두 20 이하이므로 마지막 단계까지 모든 단계를 검사한다.
+        for (let i = 0; i < 20 && (await next.isEnabled()); i++) {
+          await next.click()
+          await expectNoSeriousViolations(page)
+        }
+        await expect(next).toBeDisabled()
+      }
+    })
+
+    test('개념 페이지: TDZ 시뮬레이터 3단계에서 초기화 전 이름 찾기 결과를 보인다', async ({
+      page,
+    }) => {
+      await page.goto(TDZ_PATH)
+      await waitForHydration(page)
+      const region = page.getByRole('region', { name: TDZ_SIMULATOR_NAME })
+      await region.getByRole('radio', { name: '선언 전에 읽기', exact: true }).check()
+      const next = region.getByRole('button', { name: '다음' })
+      await next.click()
+      await next.click()
+      await expect(region.getByText('단계 3: 2번 줄: score 읽기', { exact: true })).toBeVisible()
+      await expect(
+        region.getByText('전역 스코프에서 찾음 — 초기화 전이라 ReferenceError'),
+      ).toBeVisible()
     })
 
     test('개념 페이지: 동등 비교 시뮬레이터를 진행한 뒤', async ({ page }) => {
