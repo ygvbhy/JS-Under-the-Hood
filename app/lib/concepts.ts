@@ -12,7 +12,7 @@ export type ConceptMeta = {
   examples: {
     id: string
     file: string // examples/ 하위 파일명
-    runtime: 'ecmascript' // MVP: Node vm, sloppy script 기준
+    runtime: 'ecmascript' // MVP: Node vm script(기본 sloppy, 'use strict' 지시어로 strict)
     expectedOutput: string[] // console.log 줄 단위
   }[]
   simplifications: string[] // ≥1 (단순화가 없으면 그 사유를 1줄로)

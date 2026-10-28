@@ -8,6 +8,12 @@ describe('runExample', () => {
     ).toEqual(['sync', 'late'])
   })
 
+  it("기본은 sloppy, 첫 줄 'use strict' 지시어가 있으면 strict로 실행한다", () => {
+    const code = 'function f() { return this }\nconsole.log(f() === undefined)'
+    expect(runExample(code)).toEqual(['false'])
+    expect(runExample(`'use strict';\n${code}`)).toEqual(['true'])
+  })
+
   it('무한 microtask 루프는 timeout에서 throw한다', () => {
     expect(() =>
       runExample('(function f() { Promise.resolve().then(f) })()', { timeoutMs: 100 }),

@@ -2,7 +2,7 @@
 
 ## 목적
 
-자바스크립트 코드가 "왜 그렇게 동작하는지"를 시각적으로 확인하고 설명하는 한국어 정적 학습 사이트. 개념 1개 = 독립 URL 1개(`/concepts/<slug>`)이며, 학습 진도에 맞춰 개념을 하나씩 추가한다. 새 개념은 `app/concepts/<slug>/` 폴더만 추가하면 되고 공통 코드를 고치지 않는다. 절차는 [docs/content-guide.md](docs/content-guide.md).
+자바스크립트 코드가 "왜 그렇게 동작하는지"를 시각적으로 확인하고 설명하는 한국어 정적 학습 사이트. 개념 1개 = 독립 URL 1개(`/concepts/<slug>`)이며, 책의 장 순서에 맞춰 개념을 하나씩 추가한다. 새 개념은 `app/concepts/<slug>/` 폴더만 추가하면 되고 공통 코드를 고치지 않는다. 절차는 [docs/content-guide.md](docs/content-guide.md).
 
 스택: Vite 기반 React Router Framework mode(프리렌더, `ssr: false`) + MDX + Tailwind 4 + Shiki. 백엔드·DB는 없고 Vercel에 정적 파일로 배포한다.
 
@@ -17,7 +17,8 @@
 ## 규칙
 
 - 도서 본문·예제를 복사하지 않는다. 도서는 참고 자료로만 언급하고 예제·문장은 직접 작성한다.
-- 사용자가 학습한 범위의 개념만 작성한다. 미학습 개념(실행 컨텍스트, TDZ, Event Loop 등)의 콘텐츠를 앞서 쓰지 않는다. 학습 범위가 불분명하면 먼저 묻는다.
+- 개념은 『모던 자바스크립트 Deep Dive』의 장 순서를 따라 추가한다. 사용자가 아직 학습하지 않은 장의 개념도 미리 작성해, 사용자가 페이지를 보며 함께 공부할 수 있게 한다. 다음에 쓸 개념은 사용자에게 확인한다.
+- 한 페이지는 그 개념이 나오는 장까지의 내용만 전제로 쓴다. 뒷장 개념(예: 13장 스코프 페이지에서 15장 TDZ)은 "별도 개념"으로만 언급하고 `meta.simplifications`에 밝힌다.
 - 의존성은 근거를 제시하고 사용자 승인을 받은 뒤에만 추가한다. 패키지 버전은 정확히 고정한다(`npm install --save-exact`, `package.json`에 `^`·`~` 금지). 예: 마크다운 표(GFM)를 위해 `remark-gfm`을 넣는 대신 표는 JSX `<table>`로 쓴다. `serve@14.2.6`이 고정한 취약 `compression`(GHSA-vc2v-76pw-4v95)은 `package.json` `overrides`로 1.8.2에 고정했다. `serve`가 고친 버전을 내면 override를 제거한다.
 - 계획 문서는 `.claude/plans/`에 둔다. 구현 중 사실과 결정은 해당 계획 문서의 "구현 진행"에 기록한다.
 - 커밋은 사용자가 요청했을 때만 한다.
@@ -64,7 +65,7 @@ vercel.json, serve.json          # 배포 설정, 로컬 정적 서빙 설정
 
 - 출력 결과를 주장하는 예제는 반드시 `examples/*.js`에 파일로 두고 `meta.examples`에 등록한다. 본문의 코드 블록은 `file=` 문법으로 그 파일을 가져온다(복붙 금지).
 - `console.log`에는 원시 값, 불리언, `JSON.stringify` 결과만 넘긴다. 객체를 직접 출력하지 않는다(호스트마다 출력 형식이 다르다).
-- 예제는 Node `vm`에서 sloppy mode 스크립트로 실행된다(예제마다 새 컨텍스트, 2초 제한). strict/sloppy에 따라 결과가 달라지는 예제는 쓰지 않는다. 타이머·DOM 등 호스트 API 예제는 현재 지원하지 않는다. Promise 콜백(microtask)은 평가 직후 같은 제한 시간 안에서 실행되어 출력이 수집된다(`microtaskMode: 'afterEvaluate'`).
+- 예제는 Node `vm`에서 스크립트로 실행된다(예제마다 새 컨텍스트, 2초 제한). 기본은 sloppy mode이고, strict mode 동작을 보이려면 파일 첫 줄에 `'use strict';`를 쓴다. 이 지시어 없이 strict/sloppy에 따라 결과가 달라지는 예제는 쓰지 않는다. 타이머·DOM 등 호스트 API 예제는 현재 지원하지 않는다. Promise 콜백(microtask)은 평가 직후 같은 제한 시간 안에서 실행되어 출력이 수집된다(`microtaskMode: 'afterEvaluate'`).
 - `app/concepts/*/examples/**`는 Prettier와 ESLint에서 제외한다. 시뮬레이터가 줄 번호(`line`)로 코드를 강조하므로 자동 포맷으로 줄이 바뀌면 안 된다.
 - `node:vm`은 보안 경계가 아니다. 저장소에 포함된 신뢰된 예제만 실행한다.
 

@@ -41,7 +41,7 @@ app/concepts/<slug>/
 출력 결과를 주장하는 코드는 모두 `examples/<이름>.js` 파일로 둡니다.
 
 - `console.log`에는 원시 값, 불리언, `JSON.stringify(...)` 결과만 넘깁니다.
-- 예제는 Node `vm`에서 sloppy mode 스크립트로 실행됩니다. `import`/`export`, 타이머·DOM 같은 호스트 API, strict/sloppy에 따라 결과가 달라지는 코드는 쓰지 않습니다.
+- 예제는 Node `vm`에서 스크립트로 실행됩니다. 기본은 sloppy mode이고, strict mode 동작을 보이려면 파일 첫 줄에 `'use strict';`를 씁니다. `import`/`export`, 타이머·DOM 같은 호스트 API, 지시어 없이 strict/sloppy에 따라 결과가 달라지는 코드는 쓰지 않습니다.
 - 파일 끝에 줄바꿈 하나를 둡니다. 이 폴더의 파일은 Prettier/ESLint 대상이 아니므로 줄 번호가 바뀌지 않습니다(시뮬레이터의 줄 강조가 이 번호를 씁니다).
 - 예제 문장과 코드는 직접 작성합니다. 도서의 예제를 옮기지 않습니다.
 
