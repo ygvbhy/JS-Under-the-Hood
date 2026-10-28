@@ -20,6 +20,8 @@ import {
   BLOCK_SCOPE_SIMULATOR_NAME,
   TDZ_PATH,
   TDZ_SIMULATOR_NAME,
+  PROPERTY_ATTRIBUTES_PATH,
+  PROPERTY_ATTRIBUTES_SIMULATOR_NAME,
   SWITCH_PATH,
   SWITCH_SIMULATOR_NAME,
   TYPE_COERCION_PATH,
@@ -379,6 +381,40 @@ test('TDZ 개념 페이지: 시뮬레이터를 끝까지 진행해도 가로 스
   await waitForHydration(page)
   const region = page.getByRole('region', { name: TDZ_SIMULATOR_NAME })
   for (const scenario of ['선언 전에 읽기', '안쪽 블록의 가림', '시점이 정한다']) {
+    await region.getByRole('radio', { name: scenario, exact: true }).check()
+    const next = region.getByRole('button', { name: '다음' })
+    while (await next.isEnabled()) {
+      await next.click()
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - window.innerWidth,
+      )
+      expect(overflow).toBeLessThanOrEqual(0)
+    }
+  }
+})
+
+test(`${PROPERTY_ATTRIBUTES_PATH}: 가로 스크롤이 없다`, async ({ page }) => {
+  await page.goto(PROPERTY_ATTRIBUTES_PATH)
+  await waitForHydration(page)
+  const { scrollWidth, innerWidth } = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    innerWidth: window.innerWidth,
+  }))
+  expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
+})
+
+test('프로퍼티 어트리뷰트 개념 페이지: 시뮬레이터를 끝까지 진행해도 가로 스크롤이 없다', async ({
+  page,
+}) => {
+  await page.goto(PROPERTY_ATTRIBUTES_PATH)
+  await waitForHydration(page)
+  const region = page.getByRole('region', { name: PROPERTY_ATTRIBUTES_SIMULATOR_NAME })
+  for (const scenario of [
+    '쓰기 금지: sloppy mode',
+    '쓰기 금지: strict mode',
+    'getter는 읽을 때 호출된다',
+    'freeze는 얕다',
+  ]) {
     await region.getByRole('radio', { name: scenario, exact: true }).check()
     const next = region.getByRole('button', { name: '다음' })
     while (await next.isEnabled()) {

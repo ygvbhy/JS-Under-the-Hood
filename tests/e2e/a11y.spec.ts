@@ -22,6 +22,8 @@ import {
   BLOCK_SCOPE_SIMULATOR_NAME,
   TDZ_PATH,
   TDZ_SIMULATOR_NAME,
+  PROPERTY_ATTRIBUTES_PATH,
+  PROPERTY_ATTRIBUTES_SIMULATOR_NAME,
   SWITCH_PATH,
   SWITCH_SIMULATOR_NAME,
   TYPE_COERCION_PATH,
@@ -373,6 +375,62 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await expect(
         region.getByText('전역 스코프에서 찾음 — 초기화 전이라 ReferenceError'),
       ).toBeVisible()
+    })
+
+    test('개념 페이지: 프로퍼티 어트리뷰트', async ({ page }) => {
+      await page.goto(PROPERTY_ATTRIBUTES_PATH)
+      await waitForHydration(page)
+      await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
+      await expectNoSeriousViolations(page)
+    })
+
+    test('개념 페이지: 프로퍼티 어트리뷰트 시뮬레이터를 진행한 뒤', async ({ page }) => {
+      test.slow() // 4개 시나리오의 모든 단계에서 axe를 돌린다
+      await page.goto(PROPERTY_ATTRIBUTES_PATH)
+      await waitForHydration(page)
+      const region = page.getByRole('region', { name: PROPERTY_ATTRIBUTES_SIMULATOR_NAME })
+      for (const scenario of [
+        '쓰기 금지: sloppy mode',
+        '쓰기 금지: strict mode',
+        'getter는 읽을 때 호출된다',
+        'freeze는 얕다',
+      ]) {
+        await region.getByRole('radio', { name: scenario, exact: true }).check()
+        const next = region.getByRole('button', { name: '다음' })
+        // 시나리오의 단계 수는 모두 20 이하이므로 마지막 단계까지 모든 단계를 검사한다.
+        for (let i = 0; i < 20 && (await next.isEnabled()); i++) {
+          await next.click()
+          await expectNoSeriousViolations(page)
+        }
+        await expect(next).toBeDisabled()
+      }
+    })
+
+    test('개념 페이지: 프로퍼티 어트리뷰트 시뮬레이터 4단계에서 대입 결과를 보인다', async ({
+      page,
+    }) => {
+      await page.goto(PROPERTY_ATTRIBUTES_PATH)
+      await waitForHydration(page)
+      const region = page.getByRole('region', { name: PROPERTY_ATTRIBUTES_SIMULATOR_NAME })
+      const next = region.getByRole('button', { name: '다음' })
+
+      await region.getByRole('radio', { name: '쓰기 금지: sloppy mode', exact: true }).check()
+      for (let i = 0; i < 3; i++) await next.click()
+      await expect(
+        region.getByText('단계 4: 3번 줄: item.code에 대입', { exact: true }),
+      ).toBeVisible()
+      await expect(
+        region.getByText('writable이 false라 대입이 무시됨 — strict mode가 아니라 오류 없음', {
+          exact: true,
+        }),
+      ).toBeVisible()
+
+      await region.getByRole('radio', { name: '쓰기 금지: strict mode', exact: true }).check()
+      for (let i = 0; i < 3; i++) await next.click()
+      await expect(
+        region.getByText('단계 4: 5번 줄: item.code에 대입', { exact: true }),
+      ).toBeVisible()
+      await expect(region.getByText('TypeError 발생', { exact: true })).toBeVisible()
     })
 
     test('개념 페이지: 동등 비교 시뮬레이터를 진행한 뒤', async ({ page }) => {

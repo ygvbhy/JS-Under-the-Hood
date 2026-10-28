@@ -540,3 +540,37 @@ describe('시뮬레이터 프리렌더 (tdz)', () => {
     expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(6)
   })
 })
+
+// 열다섯 번째 개념(property-attributes)의 시뮬레이터와 퀴즈도 프리렌더 HTML에 정적으로 들어 있어야 한다.
+describe('시뮬레이터 프리렌더 (property-attributes)', () => {
+  const html = read('concepts/property-attributes/index.html')
+  const text = htmlToText(html)
+
+  it('단계 0(실행 전) 텍스트와 빈 상태 문구가 HTML에 있다', () => {
+    expect(text).toContain('단계 1: 실행 전')
+    expect(text).toContain('이 단계에서는 프로퍼티를 다루지 않습니다.')
+    expect(text).toContain('아직 표시할 변수가 없습니다.')
+    expect(text).toContain('아직 이 코드가 만든 객체가 없습니다.')
+  })
+
+  it('시뮬레이터 region과 시나리오 선택 라디오 4개 이상이 있다', () => {
+    expect(html).toMatch(/role="region"[^>]*aria-label="프로퍼티 어트리뷰트 시뮬레이터"/)
+    for (const label of [
+      '쓰기 금지: sloppy mode',
+      '쓰기 금지: strict mode',
+      'getter는 읽을 때 호출된다',
+      'freeze는 얕다',
+    ]) {
+      expect(text).toContain(label)
+    }
+    expect(html.match(/type="radio"/g)?.length).toBeGreaterThanOrEqual(4)
+  })
+
+  it('퀴즈 정답이 <details>로 8개 이상 프리렌더된다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(8)
+  })
+
+  it('본문의 표가 <table>로 프리렌더된다', () => {
+    expect(html).toContain('<table')
+  })
+})

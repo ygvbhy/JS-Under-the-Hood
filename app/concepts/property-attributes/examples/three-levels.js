@@ -1,0 +1,13 @@
+const a = Object.preventExtensions({ x: 1 });
+const b = Object.seal({ x: 1 });
+const c = Object.freeze({ x: 1 });
+a.y = 2;
+b.y = 2;
+c.y = 2;
+a.x = 3;
+b.x = 3;
+c.x = 3;
+delete a.x;
+delete b.x;
+delete c.x;
+console.log(JSON.stringify([a, b, c]));
