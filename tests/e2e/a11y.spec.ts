@@ -18,6 +18,8 @@ import {
   PROPERTY_KEYS_SIMULATOR_NAME,
   SCOPE_CHAIN_PATH,
   SCOPE_CHAIN_SIMULATOR_NAME,
+  BLOCK_SCOPE_PATH,
+  BLOCK_SCOPE_SIMULATOR_NAME,
   SWITCH_PATH,
   SWITCH_SIMULATOR_NAME,
   TYPE_COERCION_PATH,
@@ -299,6 +301,30 @@ for (const colorScheme of ['light', 'dark'] as const) {
         await region.getByRole('radio', { name: scenario, exact: true }).check()
         const next = region.getByRole('button', { name: '다음' })
         // 시나리오의 단계 수는 모두 15 이하이므로 마지막 단계까지 모든 단계를 검사한다.
+        for (let i = 0; i < 20 && (await next.isEnabled()); i++) {
+          await next.click()
+          await expectNoSeriousViolations(page)
+        }
+        await expect(next).toBeDisabled()
+      }
+    })
+
+    test('개념 페이지: 블록 스코프', async ({ page }) => {
+      await page.goto(BLOCK_SCOPE_PATH)
+      await waitForHydration(page)
+      await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
+      await expectNoSeriousViolations(page)
+    })
+
+    test('개념 페이지: 블록 스코프 시뮬레이터를 진행한 뒤', async ({ page }) => {
+      test.slow() // 3개 시나리오(10/10/8단계)의 모든 단계에서 axe를 돌린다
+      await page.goto(BLOCK_SCOPE_PATH)
+      await waitForHydration(page)
+      const region = page.getByRole('region', { name: BLOCK_SCOPE_SIMULATOR_NAME })
+      for (const scenario of ['블록 안의 var와 let', '함수 안의 블록', '암묵적 전역']) {
+        await region.getByRole('radio', { name: scenario, exact: true }).check()
+        const next = region.getByRole('button', { name: '다음' })
+        // 시나리오의 단계 수는 모두 10 이하이므로 마지막 단계까지 모든 단계를 검사한다.
         for (let i = 0; i < 20 && (await next.isEnabled()); i++) {
           await next.click()
           await expectNoSeriousViolations(page)

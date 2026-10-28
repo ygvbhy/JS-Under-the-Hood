@@ -312,7 +312,7 @@
 
 ### 후속 작업
 
-- [ ] `docs/content-guide.md` 작성 원칙 "사용자가 아직 학습하지 않은 개념을 앞서 설명하지 않습니다"를 AGENTS.md 규칙(그 개념의 장까지 전제)과 맞추기 — 사용자 결정 대기
+- [x] `docs/content-guide.md` 작성 원칙 "사용자가 아직 학습하지 않은 개념을 앞서 설명하지 않습니다"를 AGENTS.md 규칙(그 개념의 장까지 전제)과 맞추기 — 2번 `block-scope` 작업에서 반영(사용자 결정)
 - [ ] 사용자 콘텐츠 검토 후 `reviewedAt` 기록
 - [ ] `hoisting/meta.ts` `related`에 `scope-chain` 역방향 연결(기존 개념 수정, 사용자 확인)
 

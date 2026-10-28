@@ -492,3 +492,27 @@ describe('시뮬레이터 프리렌더 (scope-chain)', () => {
     expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(5)
   })
 })
+
+// 열세 번째 개념(block-scope)의 시뮬레이터와 퀴즈도 프리렌더 HTML에 정적으로 들어 있어야 한다.
+describe('시뮬레이터 프리렌더 (block-scope)', () => {
+  const html = read('concepts/block-scope/index.html')
+  const text = htmlToText(html)
+
+  it('단계 0(실행 전) 텍스트와 빈 상태 문구가 HTML에 있다', () => {
+    expect(text).toContain('단계 1: 실행 전')
+    expect(text).toContain('아직 코드를 실행하지 않았습니다.')
+    expect(text).toContain('아직 만들어진 스코프가 없습니다.')
+  })
+
+  it('시뮬레이터 region과 시나리오 선택 라디오 3개 이상이 있다', () => {
+    expect(html).toMatch(/role="region"[^>]*aria-label="블록 스코프 시뮬레이터"/)
+    for (const label of ['블록 안의 var와 let', '함수 안의 블록', '암묵적 전역']) {
+      expect(text).toContain(label)
+    }
+    expect(html.match(/type="radio"/g)?.length).toBeGreaterThanOrEqual(3)
+  })
+
+  it('퀴즈 정답이 <details>로 8개 이상 프리렌더된다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(8)
+  })
+})

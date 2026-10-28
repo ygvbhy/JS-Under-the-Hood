@@ -1,0 +1,258 @@
+import { Simulator } from './Simulator'
+import { scenarios } from './scenarios'
+
+## 동작 원리
+
+블록(block)은 문장 자리에 `{ }`로 묶은 문장들입니다. `if`·`for`의 본문이나 단독으로 쓴 `{ }`가 블록입니다. 함수 본문이나 객체 리터럴의 `{ }`는 블록이 아닙니다. 문장이 들어 있는 블록을 실행할 때마다 블록 스코프(block scope)가 새로 만들어집니다. ECMAScript 명세는 Block의 평가에서 NewDeclarativeEnvironment로 이를 정의합니다. 블록 실행이 끝나면 지금 스코프는 바깥 스코프로 돌아가며, 블록을 어떻게 빠져나가든 같습니다. 빈 블록 `{ }`은 스코프를 만들지 않습니다. 블록 스코프도 [스코프 체인](/concepts/scope-chain)의 한 칸이므로 이름을 찾는 순서는 그대로입니다. 지금 스코프에서 찾고, 없으면 바깥으로 올라갑니다.
+
+### 블록에 들어갈 때 let·const
+
+블록 안의 `let`·`const` 이름은 블록에 들어갈 때 그 블록 스코프에 만들어집니다(명세의 BlockDeclarationInstantiation). 이때는 아직 값이 없는 초기화 전 상태이고, 선언문을 실행할 때 값이 들어갑니다. 선언문보다 앞에서 그 이름을 읽으면 어떻게 되는지는 다음 개념에서 다루며, 이 페이지의 예제는 선언문 뒤에서만 읽습니다.
+
+### var는 블록을 따르지 않는다
+
+`var` 선언은 블록 안에 있어도 그 블록 스코프가 아니라, 그 코드를 감싼 함수의 스코프에 만들어집니다. 함수 밖이면 전역 스코프에 만들어집니다. 이렇게 블록이 아니라 함수를 단위로 정해지는 성질을 함수 레벨 스코프(function-level scope)라 부릅니다. 만드는 시점도 블록에 들어갈 때가 아니라, 함수를 호출하기 시작할 때나 스크립트를 실행하기 전의 선언 처리 때입니다([호이스팅](/concepts/hoisting)에서 본 것과 같습니다). 그래서 `var`로 선언한 이름은 블록이 끝난 뒤에도 찾을 수 있습니다. 반면 블록 안의 `let`·`const` 이름은 그 블록 스코프에만 있으므로 블록 밖에서는 찾을 수 없습니다.
+
+### for 문
+
+`for (var i = 0; …)`의 `i`는 `for` 문을 감싼 함수 스코프(함수 밖이면 전역 스코프)에 있으므로 `for` 문이 끝난 뒤에도 읽을 수 있습니다. `for (let j = 0; …)`의 `j`는 `for` 문 밖에서는 찾을 수 없습니다.
+
+### 중복 선언
+
+같은 스코프에서 `var`는 같은 이름을 여러 번 선언해도 되고, 이름의 바인딩은 하나입니다. 대입이 있으면 값만 바뀝니다. 반면 `let`·`const`로 선언한 이름은 같은 스코프에서 다시 선언할 수 없습니다. 같은 이름을 `var`로 선언해도 SyntaxError인데, 그 `var`가 더 안쪽 블록에 있어도 마찬가지입니다. 예를 들어 <code>{'let x; if (true) { var x; }'}</code>는 SyntaxError입니다. `var`는 블록을 지나 감싼 함수(함수 밖이면 스크립트) 단위로 처리되므로, `let`·`const`가 선언된 블록(함수 본문이나 스크립트도 같습니다) 안이라면 같은 이름의 `var`가 몇 겹의 블록 안쪽에 있어도 충돌합니다. 반면 그 블록 바깥의 `var`나 안쪽 함수 안의 `var`는 충돌하지 않습니다. 안쪽 함수 안의 `var`는 그 함수의 스코프에 만들어지기 때문입니다. 예를 들어 <code>{'{ let a = 1; } var a = 2;'}</code>와 <code>{'let x; function f() { var x; }'}</code>는 둘 다 SyntaxError가 아닙니다. 이 오류는 실행 중에 나는 것이 아니라 코드를 실행하기 전에 거부되는 early error입니다(명세는 스크립트, 함수 본문, 블록마다 Early Errors를 정의합니다). 그래서 오류가 난 선언보다 앞의 줄도 실행되지 않고, 스크립트의 어떤 줄도 실행되지 않습니다. 스크립트가 여러 `<script>`로 나뉘어 있으면 앞 스크립트의 `let`과 뒤 스크립트의 `var`처럼 서로 다른 스크립트 사이의 충돌은 뒤 스크립트를 실행하기 직전의 선언 처리에서 SyntaxError가 되며, 이때도 뒤 스크립트의 어떤 줄도 실행되지 않습니다.
+
+### const
+
+`const`는 선언할 때 값을 함께 줘야 합니다. `const c;`는 SyntaxError입니다. `for…in`·`for…of` 문의 머리에 쓰는 `const`는 반복마다 값이 들어가므로 예외입니다(이 반복문들은 별도 개념에서 다룹니다). 선언한 뒤 같은 이름에 다시 대입하면(재할당) TypeError입니다. 이 TypeError는 strict mode가 아니어도 납니다. 명세가 `const` 바인딩을 항상 strict로 다루기 때문입니다(SetMutableBinding). 다만 재할당과, 바인딩의 값인 객체를 변경하는 것은 다른 동작입니다. 재할당은 막히지만 `const`에 담은 객체의 프로퍼티를 바꾸는 것은 막히지 않습니다. 재할당과 변경의 차이는 [원시 값과 객체](/concepts/primitives-and-objects)에서 다뤘습니다.
+
+### 암묵적 전역
+
+선언하지 않은 이름에 값을 대입하면 스코프 체인 끝까지 올라가도 그 이름을 찾지 못합니다. strict mode가 아니면 이때 오류 대신 전역 객체에 그 이름의 프로퍼티가 만들어지고 값이 들어갑니다(명세의 PutValue). 이렇게 선언 없는 대입으로 만들어진 전역 객체의 프로퍼티를 암묵적 전역(implicit global)이라 부릅니다. strict mode에서는 이 대입이 ReferenceError입니다. 암묵적 전역은 선언이 아니므로 선언 처리 때 만들어지지 않습니다. 그래서 대입이 실행되기 전에 그 이름을 읽으면 ReferenceError입니다. 또 `delete`로 지울 수 있습니다. 맨 바깥의 `var`로 만든 이름은 `delete`로 지울 수 없고 `delete`가 `false`를 돌려줍니다.
+
+### 전역 객체의 프로퍼티인가
+
+`globalThis`는 전역 객체의 프로퍼티를 읽고 쓸 때 쓸 수 있는 이름입니다(브라우저에서는 `window`와 같은 값). 명세는 `globalThis`의 값을 호스트가 정할 수 있게 해 두었으며, 전역 객체와의 정확한 관계는 별도 개념에서 다룹니다. 클래식 스크립트에서 맨 바깥의 `var`와 함수 선언, 그리고 암묵적 전역은 전역 객체의 프로퍼티가 됩니다. 맨 바깥의 `let`·`const`는 전역 스코프에 있지만 전역 객체의 프로퍼티가 아닙니다.
+
+### 실행 방식에 따라 달라지는 것
+
+이 페이지는 strict mode가 아닌 클래식 스크립트를 기준으로 하며, 예제의 출력도 클래식 스크립트로 실행해 확인했습니다. ES 모듈은 항상 strict mode이고, Node.js가 CommonJS로 실행하는 파일은 코드를 함수로 감싸 실행하므로 맨 바깥 코드가 그 함수의 스코프에서 실행됩니다. 예제 4, 5, 6의 결과는 실행 방식에 따라 다릅니다.
+
+<table>
+  <thead>
+    <tr>
+      <th>예제</th>
+      <th>클래식 스크립트</th>
+      <th>ES 모듈</th>
+      <th>Node.js CommonJS</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>4</td>
+      <td>100 / 100</td>
+      <td>ReferenceError</td>
+      <td>클래식 스크립트와 같음</td>
+    </tr>
+    <tr>
+      <td>5</td>
+      <td>false / true / number / undefined</td>
+      <td>SyntaxError</td>
+      <td>클래식 스크립트와 같음</td>
+    </tr>
+    <tr>
+      <td>6</td>
+      <td>서울 / undefined / undefined</td>
+      <td>undefined / undefined / undefined</td>
+      <td>undefined / undefined / undefined</td>
+    </tr>
+  </tbody>
+</table>
+
+예제 4는 모듈이 strict mode라 선언 없는 대입이 ReferenceError가 되고, 예제 5는 strict mode에서 식별자에 `delete`를 쓰는 것이 SyntaxError라 어떤 줄도 실행되지 않습니다. 예제 6은 맨 바깥의 `var city`가 모듈 스코프(모듈)나 감싼 함수의 스코프(CommonJS)에 속해 전역 객체의 프로퍼티가 되지 않으므로 세 값이 모두 `undefined`입니다. 나머지 예제 1, 2, 3, 7, 8은 어느 쪽에서도 같은 결과입니다. 모듈은 이 페이지에서 다루지 않습니다.
+
+브라우저 개발자 도구의 콘솔은 입력을 클래식 스크립트와 다르게 처리하는 부분이 있습니다. 예를 들어 Chrome 콘솔은 따로따로 입력한 줄 사이의 `let` 재선언을 허용하므로, 중복 선언의 SyntaxError가 재현되지 않을 수 있습니다. 예제는 `.html` 파일에 `<script>`로 넣어 확인하는 것이 정확합니다.
+
+## 예제
+
+여덟 예제의 출력을 먼저 예측해 보세요. 예제 1, 2, 4는 뒤에 있는 시뮬레이터로 한 단계씩 확인할 수 있습니다. 예제의 `console.log`는 값을 출력하는 호스트 API이며 ECMAScript 언어의 일부가 아닙니다. 여러 줄 출력은 퀴즈에서 ' / '로 이어 적었습니다.
+
+### 예제 1: 블록 안의 var와 let
+
+```js file=./examples/block-var-let.js
+
+```
+
+<PredictQuiz
+  question="예제 1의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '사과 물 / 사과 / undefined',
+    '사과 물 / undefined / undefined',
+    '사과 물 / 사과 / 물',
+    'ReferenceError로 멈춤',
+  ]}
+  answer={0}
+  explanation="2번 줄의 var fruit은 if 블록 스코프가 아니라 전역 스코프에 만들어집니다. 그래서 블록이 끝난 뒤 6번 줄에서도 '사과'를 찾을 수 있습니다. 3번 줄의 let drink는 if 블록 스코프에 만들어지므로 4번 줄에서는 '사과 물'이 나오지만 블록이 끝난 7번 줄에서는 찾을 수 없습니다. typeof는 찾을 수 없는 이름에도 오류 없이 'undefined'를 돌려줍니다."
+/>
+
+### 예제 2: 함수 안의 블록
+
+```js file=./examples/function-block.js
+
+```
+
+<PredictQuiz
+  question="예제 2의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={['연필 / undefined', 'undefined / undefined', '연필 / 연필', 'ReferenceError로 멈춤']}
+  answer={0}
+  explanation="3번 줄의 var item은 if 블록 스코프가 아니라 pick 함수 스코프에 만들어집니다. 그래서 if 블록이 끝난 뒤인 5번 줄에서도 item을 찾아 '연필'을 돌려줍니다. 9번 줄은 전역 스코프의 코드이고 pick 함수 스코프의 item은 찾는 경로에 없으므로 typeof item은 'undefined'입니다."
+/>
+
+### 예제 3: for 문의 var와 let
+
+```js file=./examples/for-loop.js
+
+```
+
+<PredictQuiz
+  question="예제 3의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={['3 / undefined', 'undefined / undefined', '2 / undefined', '3 / number']}
+  answer={0}
+  explanation="1번 줄의 var i는 for 문이 아니라 전역 스코프에 있으므로 for 문이 끝난 뒤에도 읽을 수 있고, 반복이 끝났을 때의 값 3이 나옵니다. 4번 줄의 let j는 for 문 밖에서 찾을 수 없어서 typeof j는 'undefined'입니다."
+/>
+
+### 예제 4: 선언 없는 대입
+
+```js file=./examples/implicit-global.js
+
+```
+
+<PredictQuiz
+  question="예제 4의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={['100 / 100', 'ReferenceError로 멈춤', '100 / undefined', 'undefined / undefined']}
+  answer={0}
+  explanation="setScore 안의 score는 선언이 없어서 스코프 체인 끝까지 찾지 못합니다. strict mode가 아니므로 오류 대신 전역 객체에 score 프로퍼티가 만들어지고 100이 들어갑니다. 그래서 6번 줄의 score도, 7번 줄의 globalThis.score도 100입니다."
+/>
+
+### 예제 5: 암묵적 전역과 var의 delete
+
+```js file=./examples/implicit-vs-var.js
+
+```
+
+<PredictQuiz
+  question="예제 5의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'false / true / number / undefined',
+    'false / false / number / number',
+    'true / true / undefined / undefined',
+    'false / true / number / number',
+  ]}
+  answer={0}
+  explanation="1번 줄의 var kept는 맨 바깥의 var로 만든 이름이라 delete가 false를 돌려주고 지워지지 않으므로 typeof kept는 'number'입니다. 2번 줄의 removed는 선언이 아니라 대입으로 만든 암묵적 전역이라 delete가 true를 돌려주고 실제로 지워지므로 typeof removed는 'undefined'입니다."
+/>
+
+### 예제 6: 전역 객체의 프로퍼티인가
+
+```js file=./examples/global-object.js
+
+```
+
+<PredictQuiz
+  question="예제 6의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '서울 / undefined / undefined',
+    '서울 / 마포 / 합정',
+    'undefined / undefined / undefined',
+    '서울 / 마포 / undefined',
+  ]}
+  answer={0}
+  explanation="맨 바깥의 var city는 전역 객체의 프로퍼티가 되어 globalThis.city가 '서울'입니다. 맨 바깥의 let town과 const village는 전역 스코프에 있지만 전역 객체의 프로퍼티가 아니므로 globalThis.town과 globalThis.village는 undefined입니다."
+/>
+
+### 예제 7: 같은 var를 두 번 선언하기
+
+```js file=./examples/redeclare.js
+
+```
+
+<PredictQuiz
+  question="예제 7의 출력은 무엇일까요?"
+  choices={['2', 'SyntaxError로 실행되지 않음', '1', 'undefined']}
+  answer={0}
+  explanation="같은 스코프에서 var는 여러 번 선언해도 오류가 아니고 바인딩은 하나입니다. 2번 줄은 새 변수를 만드는 것이 아니라 그 변수에 2를 대입하는 것과 같아서 3번 줄은 2를 출력합니다. 같은 이름을 let으로 두 번 선언했다면 SyntaxError였을 것입니다."
+/>
+
+### 예제 8: const에 담은 객체 바꾸기
+
+```js file=./examples/const-object.js
+
+```
+
+<PredictQuiz
+  question="예제 8의 출력은 무엇일까요?"
+  choices={['2', 'TypeError로 멈춤', '1', 'undefined']}
+  answer={0}
+  explanation="const는 box에 다시 대입하는 것(재할당)을 막을 뿐입니다. 2번 줄은 box에 대입하는 것이 아니라 box의 값인 객체의 count 프로퍼티를 변경하는 것이므로 오류 없이 실행되고, 3번 줄은 2를 출력합니다."
+/>
+
+### 시뮬레이터로 확인하기
+
+세 가지 시나리오(블록 안의 var와 let, 함수 안의 블록, 암묵적 전역)를 한 단계씩 실행하며 스코프가 만들어지는 때와 이름이 만들어지는 스코프를 확인해 보세요. 각각 예제 1, 2, 4에 해당합니다.
+
+<Simulator scenarios={scenarios} />
+
+## 결과와 이유
+
+예제 1에서 `if` 블록에 들어가면 `if 블록 스코프`가 만들어지고 그 안에 `let drink`의 이름이 초기화 전 상태로 만들어집니다. `var fruit`은 블록이 아니라 전역 스코프에 만들어지며, 이는 스크립트를 실행하기 전의 선언 처리 때 이미 처리됩니다. 2번 줄에서 `fruit`에 `'사과'`가 들어가고 3번 줄에서 `drink`에 `'물'`이 들어가므로 4번 줄은 `사과 물`을 출력합니다. 블록이 끝나면 지금 스코프는 전역 스코프로 돌아갑니다. 6번 줄의 `fruit`은 전역 스코프에서 찾아 `사과`를 출력하고, 7번 줄에서 `drink`는 전역 스코프에 없고 더 바깥도 없어서 찾을 수 없으므로 `typeof drink`가 `'undefined'`를 돌려줍니다.
+
+예제 2에서 `var item`은 `if` 블록 안에 있지만 `pick` 함수 스코프에 만들어집니다. 그래서 `if` 블록이 끝난 뒤의 5번 줄에서도 `item`을 찾아 `'연필'`을 반환합니다. 9번 줄은 전역 스코프의 코드이고, 전역 스코프에서는 바깥 방향으로만 찾으므로 `pick` 함수 스코프의 `item`은 찾는 경로에 없습니다. 그래서 `typeof item`은 `'undefined'`입니다.
+
+예제 3의 1번 줄에서 `var i`는 `for` 문을 감싼 전역 스코프에 있습니다. 반복이 끝났을 때 `i`는 `3`이고 2번 줄은 전역 스코프에서 `i`를 찾아 `3`을 출력합니다. 4번 줄의 `let j`는 `for` 문 밖에서 찾을 수 없으므로 5번 줄의 `typeof j`는 `'undefined'`입니다.
+
+예제 4에서 `setScore` 안의 `score`는 선언이 없으므로 `setScore` 함수 스코프에서도, 전역 스코프에서도 찾지 못합니다. strict mode가 아니므로 이 대입은 전역 객체에 `score` 프로퍼티를 만들고 `100`을 넣습니다. 그 뒤 6번 줄의 `score`는 전역 스코프에서 전역 객체의 프로퍼티로 찾아져 `100`을, 7번 줄의 `globalThis.score`도 `100`을 출력합니다.
+
+예제 5에서 `kept`는 맨 바깥의 `var`로 선언한 이름이라 지울 수 없어 3번 줄의 `delete kept`가 `false`입니다. `removed`는 2번 줄의 대입이 만든 암묵적 전역이어서 4번 줄의 `delete removed`가 `true`이고 실제로 지워집니다. 그래서 5번 줄의 `typeof kept`는 `'number'`, 6번 줄의 `typeof removed`는 `'undefined'`입니다.
+
+예제 6에서 맨 바깥의 `var city`는 전역 객체의 프로퍼티가 되어 4번 줄이 `서울`을 출력합니다. `let town`과 `const village`는 전역 스코프에 만들어지지만 전역 객체의 프로퍼티가 아니므로 5번, 6번 줄은 `undefined`를 출력합니다. 이 결과는 클래식 스크립트 기준입니다.
+
+예제 7에서 두 번째 `var level`은 새 변수를 만들지 않고 같은 이름의 바인딩에 `2`를 대입합니다. 그래서 3번 줄은 `2`를 출력합니다.
+
+예제 8에서 `box`는 `const`라서 `box`에 다시 대입하는 것은 TypeError입니다. 그러나 2번 줄은 `box`에 대입하지 않고 `box`의 값인 객체의 `count` 프로퍼티를 `2`로 바꾸므로 오류가 없습니다. 3번 줄은 `2`를 출력합니다.
+
+<Callout type="misconception" title="블록 안의 var는 블록 안에서만 보인다">
+  `var`는 블록 스코프를 따르지 않습니다. 블록 안에 써도 그 블록 스코프가 아니라 감싼 함수의
+  스코프(함수 밖이면 전역 스코프)에 만들어지므로 블록이 끝난 뒤에도 찾을 수 있습니다. 예제 1의
+  <code>{'var fruit'}</code>은 6번 줄에서 읽혔고, 예제 2의 <code>{'var item'}</code>은 `pick` 함수
+  스코프에 있어 `if` 블록이 끝난 뒤의 `return item`에서 찾아졌습니다. 블록 안에서만 보이는 것은
+  `let`·`const`입니다.
+</Callout>
+
+<Callout type="misconception" title="let은 선언문에 도달해야 만들어진다">
+  블록 안의 `let`·`const` 이름은 선언문을 실행할 때가 아니라 블록에 들어갈 때 그 블록 스코프에
+  만들어집니다. 선언문을 실행하면 거기서 값이 들어갑니다. 그 전의 상태가 초기화 전이며, 시뮬레이터의
+  예제 1에서 `if 블록 스코프`가 만들어지는 단계에 <code>{'drink'}</code>가 이미 초기화 전으로 보이는
+  것이 이 때문입니다. 선언문보다 앞에서 읽으면 어떻게 되는지는 다음 개념에서 다룹니다.
+</Callout>
+
+<Callout type="misconception" title="선언 없이 대입하면 전역 변수가 선언된다">
+  선언 없이 대입하면 변수가 선언되는 것이 아니라 전역 객체에 프로퍼티가 만들어질 뿐입니다. 선언이
+  아니므로 선언 처리 때 만들어지지 않아 대입이 실행되기 전에는 읽을 수 없고(ReferenceError),
+  `delete`로 지울 수 있습니다. 예제 5에서 대입으로 만든 <code>{'removed'}</code>는 `delete`가
+  `true`였고 맨 바깥의 `var kept`는 `false`였습니다. strict mode에서는 이 대입이 ReferenceError이고,
+  예제 4는 ES 모듈에서 ReferenceError가 됩니다.
+</Callout>
+
+<Callout type="misconception" title="const면 값을 바꿀 수 없다">
+  `const`가 막는 것은 같은 이름에 다시 대입하는 것(재할당)입니다. 바인딩의 값이 객체일 때 그 객체의
+  프로퍼티를 바꾸는 것(변경)은 재할당이 아니어서 막지 않습니다. 예제 8에서{' '}
+  <code>{'box.count = 2'}</code>는 오류 없이 실행되었습니다. <code>{'box = { count: 2 }'}</code>처럼
+  `box`에 다시 대입했다면 TypeError입니다. 이 TypeError는 strict mode가 아니어도 납니다.
+</Callout>
+
+<Callout type="misconception" title="맨 바깥의 let도 전역 객체의 프로퍼티다">
+  전역 스코프에 있다고 모두 전역 객체의 프로퍼티인 것은 아닙니다. 클래식 스크립트에서 맨 바깥의
+  `var`와 함수 선언, 암묵적 전역만 전역 객체의 프로퍼티가 됩니다. 예제 6에서 `globalThis.city`는
+  `'서울'`이었지만 <code>{'let town'}</code>과 <code>{'const village'}</code>는 전역 스코프에 있어도
+  `globalThis.town`과 `globalThis.village`가 `undefined`였습니다. ES 모듈과 CommonJS에서는 맨 바깥의
+  `var`도 전역 객체의 프로퍼티가 되지 않아 세 값이 모두 `undefined`입니다.
+</Callout>
