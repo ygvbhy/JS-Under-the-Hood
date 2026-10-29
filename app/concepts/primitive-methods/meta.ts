@@ -184,5 +184,5 @@ export const concept = {
       url: 'https://developer.mozilla.org/ko/docs/Web/JavaScript/Reference/Operators/Optional_chaining',
     },
   ],
-  reviewedAt: null,
+  reviewedAt: '2026-10-29',
 } satisfies ConceptMeta
