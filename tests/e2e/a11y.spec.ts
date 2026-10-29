@@ -28,6 +28,7 @@ import {
   NEW_OPERATOR_SIMULATOR_NAME,
   PROTOTYPE_CHAIN_PATH,
   PROTOTYPE_CHAIN_SIMULATOR_NAME,
+  PRIMITIVE_METHODS_PATH,
   SWITCH_PATH,
   SWITCH_SIMULATOR_NAME,
   TYPE_COERCION_PATH,
@@ -509,6 +510,13 @@ for (const colorScheme of ['light', 'dark'] as const) {
         }
         await expect(next).toBeDisabled()
       }
+    })
+
+    test('개념 페이지: 원시 값의 메서드 호출', async ({ page }) => {
+      await page.goto(PRIMITIVE_METHODS_PATH)
+      await waitForHydration(page)
+      await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
+      await expectNoSeriousViolations(page)
     })
 
     test('개념 페이지: 프로토타입 체인 시뮬레이터 10단계에서 체인 끝을 보인다', async ({

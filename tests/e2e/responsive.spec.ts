@@ -26,6 +26,7 @@ import {
   NEW_OPERATOR_SIMULATOR_NAME,
   PROTOTYPE_CHAIN_PATH,
   PROTOTYPE_CHAIN_SIMULATOR_NAME,
+  PRIMITIVE_METHODS_PATH,
   SWITCH_PATH,
   SWITCH_SIMULATOR_NAME,
   TYPE_COERCION_PATH,
@@ -497,4 +498,14 @@ test('프로토타입 체인 개념 페이지: 시뮬레이터를 끝까지 진�
       expect(overflow).toBeLessThanOrEqual(0)
     }
   }
+})
+
+test(`${PRIMITIVE_METHODS_PATH}: 가로 스크롤이 없다`, async ({ page }) => {
+  await page.goto(PRIMITIVE_METHODS_PATH)
+  await waitForHydration(page)
+  const { scrollWidth, innerWidth } = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    innerWidth: window.innerWidth,
+  }))
+  expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
 })

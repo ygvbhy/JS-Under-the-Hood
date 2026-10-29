@@ -1,0 +1,328 @@
+import { wrapperTable } from './wrapper-table'
+
+## 동작 원리
+
+`'hello'.toUpperCase()`처럼 문자열에 메서드를 붙여 부르는 코드는 흔합니다. 그런데 `typeof 'hello'`는 `'string'`이고 문자열은 객체가 아닙니다. 객체가 아닌 값에서 어떻게 프로퍼티를 읽을 수 있을까요? 이 페이지는 원시 값의 프로퍼티를 읽을 때 명세가 하는 일, 원시 값에 프로퍼티를 대입하면 결과가 어떻게 되는지, `null`과 `undefined`가 왜 다른지, 그리고 `new String('hi')`처럼 래퍼 객체를 직접 만들 때 생기는 차이를 설명합니다. 원시 값과 객체의 구분은 [원시 값과 객체](/concepts/primitives-and-objects), `typeof`는 [typeof 연산자](/concepts/typeof-operator), 프로토타입은 [프로토타입 체인](/concepts/prototype-chain), `writable`은 [프로퍼티 어트리뷰트와 접근자](/concepts/property-attributes)에서 본 것을 전제합니다.
+
+### 원시 값은 객체가 아니다(그런데 프로퍼티를 읽을 수 있다)
+
+문자열, 숫자, 불리언, Symbol, BigInt, `null`, `undefined`는 원시 값이고 객체가 아닙니다. 그래서 `typeof 'hi'`는 `'object'`가 아니라 `'string'`입니다. 그런데도 `'hi'.length`는 `2`이고 `'hi'.toUpperCase()`는 `'HI'`입니다. 이 동작은 원시 값이 사실은 객체라서가 아니라, 프로퍼티를 읽는 연산을 명세가 정의하는 방식 때문입니다. 다음 절에서 그 정의를 봅니다.
+
+### 프로퍼티를 읽을 때: ToObject와 래퍼 객체
+
+`str.length`나 `str.toUpperCase`처럼 프로퍼티를 읽는 식의 값은 명세의 GetValue가 정합니다. 읽는 대상(기준 값)이 객체가 아니면, GetValue는 먼저 기준 값에 ToObject를 적용합니다. ToObject는 문자열이면 String 객체, 숫자이면 Number 객체, 불리언이면 Boolean 객체(Symbol과 BigInt도 각각의 객체)를 새로 만들어 돌려주는 명세의 연산입니다. 이 객체를 래퍼 객체(wrapper object)라고 부릅니다. 그리고 GetValue는 그 래퍼 객체의 `[[Get]]`으로 프로퍼티를 찾습니다. 찾는 과정은 [프로토타입 체인](/concepts/prototype-chain)에서 본 그대로입니다. 이때 `[[Get]]`에 넘기는 receiver(접근자 프로퍼티라면 getter를 부를 때 넘기는 this 값)는 아래 PutValue와 마찬가지로 래퍼 객체가 아니라 원시 값 자체입니다.
+
+이 래퍼 객체는 명세가 읽기 동작을 정의하려고 쓰는 객체입니다. 명세는 이 객체가 그 연산 밖에서는 접근할 수 없고, 구현이 객체를 실제로 만들지 않아도 된다고 적고 있습니다. 그러므로 "래퍼 객체를 만들어 찾는다"는 규칙을 설명하는 방식이지, 엔진이 읽을 때마다 객체를 만든다는 뜻이 아닙니다. 코드에서 보이는 결과는 래퍼 객체를 거친 것과 같습니다.
+
+`in` 연산자는 다릅니다. `'length' in 'abc'`는 `in`의 오른쪽이 객체여야 하고 ToObject를 적용하지 않기 때문에 TypeError입니다. "원시 값은 어디서나 자동으로 객체가 된다"는 규칙은 없습니다. 프로퍼티를 읽거나 쓰는 참조(GetValue와 PutValue)처럼 ToObject를 쓰도록 정의된 연산에서만 래퍼 객체를 거칩니다. 예제 3의 `Object.getPrototypeOf`와 `Object.hasOwn`도 인수에 ToObject를 적용하는 함수입니다.
+
+### 메서드는 프로토타입에 있다
+
+`'abc'.toUpperCase`를 읽으면, 래퍼 객체인 String 객체에는 자기 프로퍼티로 `toUpperCase`가 없으므로 `[[Prototype]]`인 `String.prototype`에서 찾습니다. 문자열 메서드는 `String.prototype`에, 숫자 메서드는 `Number.prototype`에, 불리언 메서드는 `Boolean.prototype`에 있습니다. 예제 3에서 `str.toUpperCase`가 `String.prototype.toUpperCase`와 같은 함수이고, `str` 자신은 `toUpperCase`를 자기 프로퍼티로 갖지 않는 것을 확인합니다.
+
+메서드가 돌려주는 값은 새 값이고 원시 값 자체는 바뀌지 않습니다. `str.toUpperCase()`는 대문자 문자열을 새로 돌려줄 뿐 `str`은 그대로입니다(예제 1). 원시 값은 변경할 수 없는 값이기 때문입니다([원시 값과 객체](/concepts/primitives-and-objects)).
+
+숫자 리터럴에 바로 점을 쓸 때는 주의가 필요합니다. `255.toString(16)`은 SyntaxError입니다. 숫자 리터럴 뒤의 점을 소수점으로 읽기 때문입니다. `(255).toString(16)`처럼 괄호로 감싸거나 변수에 담아 쓰면 동작합니다(예제 2).
+
+### 원시 값에 대입하면
+
+`str.custom = 1`처럼 원시 값에 프로퍼티를 대입하는 식은 명세의 PutValue가 처리합니다. PutValue도 기준 값에 ToObject를 적용하고 그 객체의 `[[Set]]`을 호출합니다. 이때 값을 받을 대상(receiver)으로 넘기는 것은 래퍼 객체가 아니라 원시 값 자체입니다. `[[Set]]`이 하는 일은 [프로토타입 체인](/concepts/prototype-chain)의 대입 규칙을 따르는데, 찾은 프로퍼티가 쓰기 가능한 데이터 프로퍼티이거나 어디에도 없어서 새로 만들어야 할 때 receiver가 객체가 아니면 false를 돌려줍니다. 그래서 어디에도 프로퍼티가 만들어지지 않고, `String.prototype`에 이미 있는 이름에 대입해도(`str.toUpperCase = 1`) 같은 이유로 실패합니다. 대입이 실패하면 PutValue는 sloppy mode에서는 아무 일도 하지 않고 지나가고, strict mode에서는 TypeError를 던집니다.
+
+흔한 설명은 "임시 래퍼 객체에 프로퍼티를 저장했다가 버린다"입니다. 명세의 정의는 그렇지 않습니다. 대입한 프로퍼티는 래퍼 객체에도, 다른 어디에도 만들어지지 않습니다. 결과(읽으면 `undefined`)는 같아 보여도 이유는 다릅니다.
+
+`length`도 같은 결과입니다. 문자열의 `length`는 쓰기 불가(`writable`이 `false`)여서 `str.length = 1`은 실패합니다. sloppy mode에서는 무시되고 strict mode에서는 TypeError입니다(예제 4의 4번 줄). 예제 4는 sloppy mode(클래식 스크립트)에서, 예제 5는 `'use strict';`로 strict mode에서 실행됩니다.
+
+### null과 undefined에는 래퍼가 없다
+
+ToObject는 `null`과 `undefined`에 TypeError를 던집니다. 이 둘은 대응하는 래퍼 객체가 없습니다. 그래서 `null.length` 같은 읽기뿐 아니라 `null.a = 1` 같은 대입도 TypeError이고, 이것은 sloppy mode에서도 같습니다(예제 6).
+
+옵셔널 체이닝 `?.`는 기준 값이 `null`이나 `undefined`이면 TypeError를 던지는 대신 `undefined`를 돌려줍니다. 예제 6의 마지막 두 줄이 그렇습니다. `?.`가 `undefined`를 돌려줘도 `null`에 프로퍼티나 래퍼가 생기는 것은 아닙니다. `?.`의 나머지 동작은 다루지 않습니다.
+
+### 래퍼 객체를 직접 만들면
+
+`new String('hi')`, `new Number(5)`, `new Boolean(false)`는 래퍼 객체를 코드에서 직접 만듭니다. 이 값은 원시 값이 아니라 객체입니다.
+
+- `typeof new String('hi')`는 `'string'`이 아니라 `'object'`입니다.
+- `new String('hi') === 'hi'`는 `false`입니다. 타입이 다르기 때문입니다. 반면 `==`는 `true`입니다(예제 7). `==`가 객체를 원시 값으로 바꾸는 과정은 [동등 비교 연산자](/concepts/equality-operators)에서 결과만 확인합니다.
+- 객체이므로 프로퍼티를 대입하면 남습니다. 예제 7의 `a.custom`은 `1`입니다. 원시 값 `'hi'`에 대입했을 때와 다른 점입니다.
+- `new Boolean(false)`는 객체라서 truthy입니다. 조건식에 쓰면 참으로 평가되고 `Boolean(flag)`도 `true`입니다(예제 8). truthy와 falsy는 [단축 평가](/concepts/short-circuit-evaluation)에서 다룹니다. 안에 든 원시 값은 `valueOf()`로 꺼내며, 예제 8에서 `false`입니다.
+
+### new 없이 부르면 변환 함수
+
+`String`, `Number`, `Boolean`을 `new` 없이 부르면 래퍼 객체가 아니라 변환한 원시 값을 돌려줍니다. `String(123)`은 문자열, `Number('42')`는 숫자, `Boolean('x')`는 불리언입니다(예제 9). `new`가 있고 없고의 차이는 [new 연산자](/concepts/new-operator)에서 본 `new` 호출과 이어집니다. `Symbol`과 `BigInt`는 `new`로 부르면 TypeError입니다.
+
+`Object('hi')`는 다릅니다. `Object`는 `String`·`Number`·`Boolean`처럼 원시 값을 돌려주는 함수가 아니라 객체를 돌려주는 생성자이고, ToObject 그 자체도 아닙니다. 문자열을 주면 String 래퍼 객체를 돌려주므로 `typeof`가 `'object'`이고 `'hi'`와 `===`도 `false`입니다. 하지만 `Object(null)`과 `Object(undefined)`는 TypeError가 아니라 새 빈 객체를 돌려줍니다. 이 점에서 ToObject와 다릅니다.
+
+### 원시 타입별 정리
+
+아래 표는 타입마다 프로퍼티를 읽을 때 쓰이는 래퍼 생성자와, `new`로 만들었을 때의 결과를 모은 것입니다. 표의 결과는 같은 식을 실제로 실행해 확인한 값입니다.
+
+<div
+  className="focus-visible:outline-accent my-6 overflow-x-auto focus-visible:outline-2"
+  tabIndex={0}
+  role="region"
+  aria-label="원시 타입별 정리 표(좁은 화면에서는 가로로 스크롤할 수 있습니다)"
+>
+  <table className="w-full border-collapse text-left [&_code]:whitespace-nowrap">
+    <thead>
+      <tr>
+        <th scope="col" className="border-border border px-3 py-2">
+          타입
+        </th>
+        <th scope="col" className="border-border border px-3 py-2">
+          래퍼 생성자
+        </th>
+        <th scope="col" className="border-border border px-3 py-2">
+          프로퍼티 읽기 예와 결과
+        </th>
+        <th scope="col" className="border-border border px-3 py-2">
+          new로 만들면
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      {wrapperTable.map((row) => (
+        <tr key={row.type}>
+          <th scope="row" className="border-border border px-3 py-2">
+            {row.type}
+          </th>
+          <td className="border-border border px-3 py-2">
+            {row.newSource === null ? row.wrapper : <code>{row.wrapper}</code>}
+          </td>
+          <td className="border-border border px-3 py-2">
+            <code>{row.readSource}</code> → <code>{row.readResult}</code>
+          </td>
+          <td className="border-border border px-3 py-2">
+            {row.newSource === null || row.newResult === null ? (
+              '해당 없음'
+            ) : (
+              <>
+                <code>{row.newSource}</code> →{' '}
+                {row.newResult === 'typeof: object' ? '객체(typeof object)' : row.newResult}
+              </>
+            )}
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
+
+`null`과 `undefined`는 래퍼가 없어서 읽기도 TypeError입니다. `Symbol`과 `BigInt`는 프로퍼티를 읽을 수 있지만 `new`로 만들 수는 없습니다.
+
+## 예제
+
+아홉 개 예제의 출력을 먼저 예측해 보세요. 예제의 `console.log`는 값을 출력하는 호스트 API이며 ECMAScript 언어의 일부가 아닙니다. 여러 줄 출력은 퀴즈에서 ' / '로 이어 적었습니다. 오류 이름을 출력하려고 `try`와 `catch`를 쓰지만 오류 처리는 별도 개념입니다. 메서드 안의 `this`는 이 페이지에서 다루지 않습니다.
+
+### 예제 1: 문자열의 프로퍼티와 메서드
+
+```js file=./examples/string-property.js
+
+```
+
+<PredictQuiz
+  question="예제 1의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '5 / h / HELLO / HELLO / string',
+    '5 / h / HELLO / hello / object',
+    '5 / h / HELLO / hello / string',
+    'undefined / undefined / HELLO / hello / string',
+  ]}
+  answer={2}
+  explanation="length는 5, str[0]은 h이고 toUpperCase()는 새 문자열 HELLO를 돌려줍니다. 원시 값 str은 바뀌지 않으므로 5번 줄은 hello이고, typeof str은 object가 아니라 string입니다."
+/>
+
+### 예제 2: 숫자와 불리언의 메서드
+
+```js file=./examples/number-boolean.js
+
+```
+
+<PredictQuiz
+  question="예제 2의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '3.14 / string / ff / true',
+    '3.14 / number / ff / true',
+    '3.14 / string / 255 / true',
+    '3.14 / string / ff / TypeError',
+  ]}
+  answer={0}
+  explanation="toFixed(2)는 숫자가 아니라 문자열 3.14를 돌려주므로 typeof는 string입니다. (255).toString(16)은 16진수 문자열 ff이고, true.toString()은 문자열 true입니다. 불리언도 Boolean.prototype의 메서드를 쓸 수 있어 TypeError가 나지 않습니다."
+/>
+
+### 예제 3: 메서드는 어디에 있을까
+
+```js file=./examples/method-source.js
+
+```
+
+<PredictQuiz
+  question="예제 3의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'true / true / true / true',
+    'true / false / false / true',
+    'false / false / true / true',
+    'true / true / true / false',
+  ]}
+  answer={3}
+  explanation="toUpperCase는 String.prototype의 자기 프로퍼티이고(2번 줄), str.toUpperCase는 그 함수와 같습니다(3번 줄). Object.getPrototypeOf는 str을 ToObject로 바꾼 String 객체의 프로토타입인 String.prototype을 돌려주고(4번 줄), str 자신은 toUpperCase를 자기 프로퍼티로 갖지 않으므로 5번 줄은 false입니다."
+/>
+
+### 예제 4: 원시 값에 대입하기(sloppy mode)
+
+이 예제는 클래식 스크립트로 실행하므로 sloppy mode입니다.
+
+```js file=./examples/assign-sloppy.js
+
+```
+
+<PredictQuiz
+  question="예제 4는 sloppy mode(클래식 스크립트)에서 실행됩니다. 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={['1 / 5 / hello', 'undefined / 5 / hello', 'undefined / 1 / h', '1 / 1 / h']}
+  answer={1}
+  explanation="원시 값에 대입한 프로퍼티는 어디에도 만들어지지 않으므로 str.custom은 undefined입니다. 문자열의 length는 쓰기 불가라 대입이 무시되어 5 그대로이고, str도 hello 그대로입니다. sloppy mode라서 오류는 나지 않습니다."
+/>
+
+### 예제 5: 원시 값에 대입하기(strict mode)
+
+```js file=./examples/assign-strict.js
+
+```
+
+<PredictQuiz
+  question="예제 5의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'undefined / undefined',
+    'TypeError / 1',
+    'TypeError / undefined',
+    'TypeError / TypeError',
+  ]}
+  answer={2}
+  explanation="strict mode에서는 원시 값에 대한 대입이 실패하면 TypeError를 던지므로 catch가 TypeError를 출력합니다. 프로퍼티는 만들어지지 않았으므로 str.custom을 읽는 마지막 줄은 오류 없이 undefined입니다."
+/>
+
+### 예제 6: null과 undefined의 프로퍼티
+
+```js file=./examples/null-undefined.js
+
+```
+
+<PredictQuiz
+  question="예제 6의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'TypeError / TypeError / undefined / undefined',
+    'TypeError / undefined / undefined / undefined',
+    'undefined / undefined / undefined / undefined',
+    'TypeError / TypeError / TypeError / TypeError',
+  ]}
+  answer={0}
+  explanation="null과 undefined는 ToObject가 TypeError를 던지므로 empty.length와 missing.length는 둘 다 TypeError입니다. ?.는 기준 값이 null이나 undefined이면 오류 대신 undefined를 돌려주므로 마지막 두 줄은 undefined입니다."
+/>
+
+### 예제 7: new String과 원시 문자열
+
+```js file=./examples/wrapper-object.js
+
+```
+
+<PredictQuiz
+  question="예제 7의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'object / string / true / true / 1',
+    'object / string / false / false / 1',
+    'object / string / false / true / undefined',
+    'object / string / false / true / 1',
+  ]}
+  answer={3}
+  explanation="new String('hi')는 객체라 typeof가 object이고 원시 문자열 b는 string입니다. 타입이 달라 === 비교는 false이고, == 비교는 true입니다. a는 객체이므로 대입한 프로퍼티 custom이 남아 1을 읽습니다."
+/>
+
+### 예제 8: new Boolean(false)
+
+```js file=./examples/boolean-wrapper.js
+
+```
+
+<PredictQuiz
+  question="예제 8의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'boolean / falsy / false / false',
+    'object / truthy / true / false',
+    'object / falsy / false / false',
+    'object / truthy / true / true',
+  ]}
+  answer={1}
+  explanation="new Boolean(false)가 만든 flag는 객체라 typeof가 object이고, 객체는 truthy이므로 조건식은 truthy, Boolean(flag)는 true입니다. 안에 든 원시 값은 valueOf()로 꺼내며 false입니다."
+/>
+
+### 예제 9: new 없이 부르기와 Object()
+
+```js file=./examples/conversion.js
+
+```
+
+<PredictQuiz
+  question="예제 9의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'object / object / object / object / false',
+    'string / number / boolean / string / true',
+    'string / number / boolean / object / false',
+    'string / number / boolean / object / true',
+  ]}
+  answer={2}
+  explanation="String, Number, Boolean을 new 없이 부르면 변환한 원시 값을 돌려주므로 typeof는 string, number, boolean입니다. Object('hi')는 String 래퍼 객체를 돌려주므로 typeof는 object이고, 원시 문자열 hi와 === 비교는 false입니다."
+/>
+
+## 결과와 이유
+
+예제 1에서 `str.length`, `str[0]`, `str.toUpperCase()`는 모두 원시 문자열 `str`의 프로퍼티를 읽는 식이고, 명세에서는 ToObject로 만든 String 객체의 `[[Get]]`으로 처리됩니다. `toUpperCase()`가 돌려준 `HELLO`는 새 문자열이고, 5번 줄의 `str`은 `hello` 그대로입니다. 6번 줄의 `typeof str`은 `string`이라, 프로퍼티를 읽었다고 `str`이 객체가 된 것이 아닙니다.
+
+예제 2에서 `n.toFixed(2)`는 `Number.prototype`의 메서드이고 결과는 문자열 `3.14`입니다. `(255).toString(16)`은 `ff`이며, `255.toString(16)`처럼 괄호 없이 쓰면 SyntaxError입니다. `true.toString()`은 `Boolean.prototype`에서 찾은 메서드로 문자열 `true`를 돌려줍니다.
+
+예제 3의 2번 줄은 `toUpperCase`가 `String.prototype`의 자기 프로퍼티임을, 3번 줄은 `str.toUpperCase`로 읽은 함수가 그 함수와 같음을 보입니다. 4번 줄은 `Object.getPrototypeOf`가 `str`에 ToObject를 적용한 String 객체의 `[[Prototype]]`이 `String.prototype`이라는 것을(원시 값 자체에는 `[[Prototype]]`이 없습니다), 5번 줄은 `str`에 자기 프로퍼티 `toUpperCase`가 없다는 것을 보입니다. 메서드는 값마다 들어 있지 않고 프로토타입에 하나만 있습니다.
+
+예제 4의 2번 줄 `str.custom = 1`은 PutValue의 `[[Set]]`이 receiver가 원시 값이라 false를 돌려주므로 아무것도 만들지 않고, sloppy mode라서 오류도 없습니다. 3번 줄이 `undefined`인 이유입니다. 4번 줄의 `str.length = 1`도 `length`가 쓰기 불가라 무시되어 5번 줄은 `5`입니다. 6번 줄의 `str`은 그대로 `hello`입니다. 이 예제를 `.mjs` 파일이나 `"type": "module"` 환경에서 실행하면 모듈은 항상 strict mode라서 2번 줄에서 TypeError가 납니다. 클래식 스크립트나 CommonJS로 실행하면 이 페이지의 결과와 같습니다.
+
+예제 5는 첫 줄의 `'use strict';` 때문에 strict mode입니다. 4번 줄의 대입이 실패하면서 PutValue가 TypeError를 던지고 `catch`가 `TypeError`를 출력합니다. 프로퍼티는 만들어지지 않았으므로 8번 줄의 `str.custom`은 오류 없이 `undefined`입니다. 같은 대입이 sloppy mode에서는 조용히 무시되는 것이 예제 4와의 차이입니다.
+
+예제 6에서 `empty.length`와 `missing.length`는 ToObject가 TypeError를 던져 `catch`가 `TypeError`를 두 번 출력합니다. `empty?.length`와 `missing?.length`는 기준 값이 `null`, `undefined`라서 `undefined`를 돌려줍니다. 오류를 피하는 것은 `?.`가 읽기를 하지 않고 `undefined`를 돌려주기 때문이지, `null`에서 프로퍼티를 읽어서가 아닙니다.
+
+예제 7에서 `a`는 `new`로 만든 래퍼 객체라 `typeof a`가 `object`이고, `b`는 원시 문자열이라 `string`입니다. `a === b`는 타입이 달라 `false`, `a == b`는 `true`입니다. `a`는 객체이므로 7번 줄의 `a.custom = 1`이 자기 프로퍼티를 만들어 8번 줄이 `1`입니다. 예제 4에서 원시 문자열에 대입했을 때와 대비됩니다.
+
+예제 8에서 `flag`는 `new Boolean(false)`가 만든 객체입니다. 객체는 truthy이므로 3번 줄의 조건식은 `truthy`를, `Boolean(flag)`는 `true`를 돌려줍니다. 5번 줄의 `flag.valueOf()`는 안에 든 원시 값 `false`를 돌려줍니다. 조건에 쓰고 싶은 값이 `false`라면 `new Boolean(false)`가 아니라 원시 값 `false`를 써야 합니다.
+
+예제 9의 1~3번 줄은 `new` 없이 부른 `String`, `Number`, `Boolean`이 원시 값을 돌려줘서 `string`, `number`, `boolean`입니다. 4번 줄의 `Object('hi')`는 String 래퍼 객체이므로 `object`이고, 5번 줄의 `Object('hi') === 'hi'`는 객체와 원시 값이라 `false`입니다. `Object(null)`은 TypeError가 아니라 빈 객체를 돌려주므로, `Object()`를 ToObject와 같은 것으로 보면 안 됩니다.
+
+<Callout type="misconception" title="원시 값도 사실은 객체다">
+  원시 값은 객체가 아닙니다. `typeof 'hi'`는 `'string'`이고(예제 1), 프로퍼티를 읽을 수 있는 것은
+  읽는 연산이 ToObject로 래퍼 객체를 거쳐 찾도록 정의되어 있기 때문입니다. 원시 값에 프로퍼티를
+  대입해도 남지 않는 것(예제 4)이 객체와 다른 점입니다.
+</Callout>
+
+<Callout
+  type="misconception"
+  title="원시 값에 넣은 프로퍼티는 임시 래퍼 객체에 저장됐다가 사라진다"
+>
+  명세의 대입은 그렇게 동작하지 않습니다. PutValue가 `[[Set]]`을 부를 때 receiver는 원시 값
+  자체이고, receiver가 객체가 아니면 프로퍼티를 만들지 못하고 false를 돌려줍니다. 그래서 프로퍼티는
+  래퍼 객체를 포함한 어디에도 만들어지지 않습니다. 실패는 sloppy mode에서는 무시되고 strict
+  mode에서는 TypeError입니다(예제 4, 5). 읽을 때 `undefined`가 나오는 결과만으로 이유를 판단하면 안
+  됩니다.
+</Callout>
+
+<Callout type="misconception" title="new String('hi')와 'hi'는 같은 값이다">
+  `new String('hi')`는 객체이고 `'hi'`는 원시 문자열입니다. `typeof`가 다르고 `===`는 `false`이며,
+  객체에는 프로퍼티를 대입하면 남습니다(예제 7). `new` 없이 부른 `String('hi')`는 원시 문자열을
+  돌려주므로 같은 `String`이라도 호출 방식에 따라 결과가 다릅니다(예제 9).
+</Callout>
+
+<Callout type="misconception" title="new Boolean(false)는 거짓이다">
+  `new Boolean(false)`는 값이 `false`인 불리언이 아니라 객체입니다. 객체는 truthy이므로 조건식에서
+  참으로 평가됩니다(예제 8). 안의 원시 값은 `valueOf()`로 꺼내며 `false`입니다.
+</Callout>
+
+<Callout type="misconception" title="null에도 메서드를 부를 수 있다">
+  `null`과 `undefined`는 ToObject가 TypeError를 던지므로 프로퍼티를 읽거나 쓸 수 없습니다(예제 6).
+  오류 없이 `undefined`가 나오는 것은 `?.`가 기준 값이 `null`, `undefined`일 때 읽지 않고
+  `undefined`를 돌려주는 규칙 때문이며, `null`에 프로퍼티가 생긴 것이 아닙니다.
+</Callout>

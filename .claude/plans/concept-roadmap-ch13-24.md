@@ -29,7 +29,7 @@
 | 4 | 프로퍼티 어트리뷰트와 접근자 | 16 | `writable: false`에 대입하면 sloppy는 무시·strict는 TypeError, getter는 값처럼 읽힘 | 프로퍼티 디스크립터 표 | `property-attributes.md` | 완료 |
 | 5 | `new` 연산자 | 17 | 생성자에서 객체를 `return`하면 `this`는 버려짐, 원시 값 `return`은 무시 | `new` 단계 시뮬레이터 | `new-operator.md` | 완료 |
 | 6 | 프로토타입 체인 | 19 | 자기 프로퍼티가 없으면 프로토타입에서 찾음, `prototype`과 `[[Prototype]]`은 다름 | 체인 탐색 시뮬레이터 | `prototype-chain.md` | 완료 |
-| 7 | 원시 값의 메서드 호출 | 21 | `'abc'.length`가 되는 이유, 원시 값에 넣은 프로퍼티는 남지 않음 | 표 + 퀴즈 | - | 대기 |
+| 7 | 원시 값의 메서드 호출 | 21 | `'abc'.length`가 되는 이유, 원시 값에 넣은 프로퍼티는 남지 않음 | 표 + 퀴즈 | `primitive-methods.md` | 완료(콘텐츠 검토 대기) |
 | 8 | `this`는 호출 방식이 정한다 | 22 | 메서드를 꺼내 호출하면 `this`가 바뀜, `call`·`apply`·`bind`, 화살표 함수 | 호출 방식별 `this` 비교 | - | 대기 |
 | 9 | 실행 컨텍스트 스택 | 23 | 1·3번 동작이 어떤 구조로 처리되는지 | 스택 + 환경 레코드 시뮬레이터 | - | 대기 |
 | 10 | 클로저 | 24 | 함수가 끝나도 바깥 변수가 유지됨, 같은 환경을 공유하는 함수 | 환경 유지 시각화 | - | 대기 |
@@ -47,6 +47,7 @@
 
 - "전역 변수를 줄이는 방법: 즉시 실행 함수·모듈 패턴"(14장 후반) — 모듈 패턴에 클로저가 필요해 10번 뒤 제안(2번 계획 9절).
 - "for 문의 let: 반복마다 새 바인딩"(15장, CreatePerIterationEnvironment) — 클로저로만 관찰되어 10번 뒤 제안(2번 계획 9절).
+- "전역 객체: globalThis와 빌트인 전역 프로퍼티·함수"(21장 후반) — var·함수 선언이 전역 객체 프로퍼티가 되는 관계 포함. block-scope·scope-chain·hoisting이 '별도 개념'으로 미룬 내용이라 9번 실행 컨텍스트(전역 환경 레코드) 뒤 제안(7번 계획, 사용자 결정 2026-10-29).
 
 ## 진행 기록
 
@@ -64,3 +65,5 @@
 - 2026-10-29: 6번 `prototype-chain` 계획 승인·구현(사용자 결정: 상속된 setter·읽기 전용 대입, in·Object.hasOwn·for...in, Object.create·null 프로토타입, instanceof 포함, 예제는 Object.getPrototypeOf 중심이고 __proto__는 레거시 접근자로만 소개, `navigation.spec.ts` `객체` 검색 기대값 3→4). category `objects` 세 번째 개념. 추가 게시글 후보 없음.
 - 2026-10-29: 6번 `prototype-chain` 리뷰·외부 콘텐츠 검수 7건 반영 완료, 커밋.
 - 2026-10-29: 6번 `prototype-chain` 콘텐츠 검토 승인(사용자), `reviewedAt` 기록.
+- 2026-10-29: 7번 `primitive-methods` 계획 승인·구현(사용자 결정: 래퍼 객체 직접 만들기·`?.` 언급·Symbol·BigInt 표 한 줄 포함, 전역 객체는 추가 게시글 후보로 분리, 시각화는 표 + 퀴즈, `navigation.spec.ts` `객체` 검색 기대값 4→5). category `objects` 네 번째 개념.
+- 2026-10-29: 7번 `primitive-methods` 리뷰·외부 콘텐츠 검토 2회 반영 완료, 커밋.

@@ -628,3 +628,18 @@ describe('시뮬레이터 프리렌더 (prototype-chain)', () => {
     expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(1)
   })
 })
+
+// 일곱 번째 개념(primitive-methods)은 시뮬레이터 없이 표와 퀴즈로 구성된다. 둘 다 프리렌더 HTML에 있어야 한다.
+describe('프리렌더 (primitive-methods)', () => {
+  const html = read('concepts/primitive-methods/index.html')
+  const text = htmlToText(html)
+
+  it('퀴즈 정답이 <details>로 9개 이상 프리렌더된다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(9)
+  })
+
+  it('래퍼 객체 표의 행이 있다', () => {
+    expect(text).toContain("'hi'.length")
+    expect(text).toContain("new Symbol('id')")
+  })
+})
