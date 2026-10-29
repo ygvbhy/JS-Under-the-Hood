@@ -299,7 +299,7 @@
 
 ### 후속 작업
 
-- [ ] 사용자 콘텐츠 검토 후 `reviewedAt` 기록
+- [x] 사용자 콘텐츠 검토 후 `reviewedAt` 기록(2026-10-29)
 - [ ] 추가 게시글 후보 2건(즉시 실행 함수·모듈 패턴, for 문의 let 반복마다 새 바인딩) 사용자 결정 — 로드맵에 대기로 기록
 - [ ] `scope-chain/meta.ts`·`hoisting/meta.ts` `related`에 `block-scope` 역방향 연결(기존 개념 수정, 사용자 확인)
 

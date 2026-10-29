@@ -401,7 +401,7 @@
 
 ### 후속 작업
 
-- [ ] 사용자 콘텐츠 검토 후 `reviewedAt` 기록
+- [x] 사용자 콘텐츠 검토 후 `reviewedAt` 기록(2026-10-29)
 - [ ] `property-keys`의 `related`에 `property-attributes` 역방향 연결과 단순화 5의 "별도 개념"을 이 페이지 링크로 바꾸기(기존 개념 수정, 사용자 확인)
 
 ### 이해 확인

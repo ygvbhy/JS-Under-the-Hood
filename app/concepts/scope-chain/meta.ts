@@ -108,5 +108,5 @@ export const concept = {
       url: 'https://developer.mozilla.org/ko/docs/Web/JavaScript/Guide/Closures#어휘적_범위_지정lexical_scoping',
     },
   ],
-  reviewedAt: null,
+  reviewedAt: '2026-10-29',
 } satisfies ConceptMeta

@@ -126,5 +126,5 @@ export const concept = {
       url: 'https://developer.mozilla.org/ko/docs/Web/JavaScript/Reference/Operators/function',
     },
   ],
-  reviewedAt: null,
+  reviewedAt: '2026-10-29',
 } satisfies ConceptMeta

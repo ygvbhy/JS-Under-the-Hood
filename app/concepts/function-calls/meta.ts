@@ -121,5 +121,5 @@ export const concept = {
       url: 'https://developer.mozilla.org/ko/docs/Web/JavaScript/Reference/Functions/Default_parameters',
     },
   ],
-  reviewedAt: null,
+  reviewedAt: '2026-10-28',
 } satisfies ConceptMeta

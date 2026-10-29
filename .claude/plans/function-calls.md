@@ -331,7 +331,7 @@
 - Critical/High 0. Low 2건(`CallView.tsx` 결과 줄의 "return"·`undefined` 중복 표시, `concept.test.ts:187`의 `void _result`)은 보고만 했고, 사용자가 고치지 않은 상태로 승인했다.
 
 ### 후속 작업
-- [ ] 사용자 콘텐츠 검토 후 `meta.ts`의 `reviewedAt` 기록(6번 `property-keys`도 대기 중)
+- [x] 사용자 콘텐츠 검토 후 `meta.ts`의 `reviewedAt` 기록(2026-10-28)
 - [ ] 리뷰 Low 2건 정리 여부(선택)
 - [ ] 9절 추가 개선 후보(기존 개념의 `'함수 호출'`·`'함수 선언과 호출'` 선행 라벨에 slug 연결)
 - [ ] 로드맵 8번 "호이스팅: var와 함수 선언" 계획

@@ -173,5 +173,5 @@ export const concept = {
       url: 'https://developer.mozilla.org/ko/docs/Web/JavaScript/Reference/Functions/Method_definitions',
     },
   ],
-  reviewedAt: null,
+  reviewedAt: '2026-10-29',
 } satisfies ConceptMeta

@@ -26,9 +26,9 @@
 | 3 | `typeof`가 알려 주는 것 | 6·7 | `typeof null === 'object'`, 함수는 `'function'`, 선언하지 않은 식별자 | 표 + 퀴즈 | `typeof-operator.md` | 완료 |
 | 4 | 증감 연산자와 부수 효과 | 7 | `x++`와 `++x`의 값, 대입 식의 값 | 단계별 시뮬레이터 | `increment-decrement.md` | 완료 |
 | 5 | `switch`의 fall-through와 `break`·`continue` | 8 | `break` 누락 시 다음 `case`로 진행, `case`는 `===` 비교 | 실행 흐름 시뮬레이터 | `switch-break-continue.md` | 완료 |
-| 6 | 프로퍼티 키와 접근 | 10 | `obj[1]`과 `obj['1']`이 같은 프로퍼티, 점·대괄호 표기, 없는 프로퍼티는 `undefined`, 동적 추가·`delete` | 객체 박스 시뮬레이터 | `property-keys.md` | 완료(콘텐츠 검토 대기) |
-| 7 | 함수 호출: 매개변수와 반환 | 12 | 인수가 모자라면 `undefined`, 남으면 무시, `return` 없으면 `undefined` | 호출 영역 시뮬레이터 | `function-calls.md` | 완료(콘텐츠 검토 대기) |
-| 8 | 호이스팅: `var`와 함수 선언 | 4·12 | 선언 전 참조는 `undefined`, 함수 선언은 미리 호출 가능, 함수 표현식은 `TypeError` | 선언 처리 → 실행 시뮬레이터 | `hoisting.md` | 완료(콘텐츠 검토 대기) |
+| 6 | 프로퍼티 키와 접근 | 10 | `obj[1]`과 `obj['1']`이 같은 프로퍼티, 점·대괄호 표기, 없는 프로퍼티는 `undefined`, 동적 추가·`delete` | 객체 박스 시뮬레이터 | `property-keys.md` | 완료 |
+| 7 | 함수 호출: 매개변수와 반환 | 12 | 인수가 모자라면 `undefined`, 남으면 무시, `return` 없으면 `undefined` | 호출 영역 시뮬레이터 | `function-calls.md` | 완료 |
+| 8 | 호이스팅: `var`와 함수 선언 | 4·12 | 선언 전 참조는 `undefined`, 함수 선언은 미리 호출 가능, 함수 표현식은 `TypeError` | 선언 처리 → 실행 시뮬레이터 | `hoisting.md` | 완료 |
 
 ## 개념 간 메모 (각 계획에서 확인)
 
@@ -51,3 +51,5 @@
 - 2026-10-27: 4번 `increment-decrement`·5번 `switch-break-continue` 콘텐츠 검토 승인(사용자), `reviewedAt` 기록. 6번 `property-keys`는 검토 대기.
 - 2026-10-27: 7번 `function-calls` 구현·리뷰 완료, 커밋. `reviewedAt`은 사용자 콘텐츠 검토 후 기록.
 - 2026-10-27: 8번 `hoisting` 구현·리뷰 완료, 커밋(category `execution`, 홈에 실행 모델 그룹 첫 개념, 감수 검토 2건 반영). `reviewedAt`은 사용자 콘텐츠 검토 후 기록. 로드맵 8개 개념 구현 완료 — 다음 진도 확인 필요.
+- 2026-10-28: 6번 `property-keys`·7번 `function-calls` 콘텐츠 검토 승인(사용자), `reviewedAt` 기록. 8번 `hoisting`은 검토 대기.
+- 2026-10-29: 8번 `hoisting` 콘텐츠 검토 승인(사용자), `reviewedAt` 기록. 1~12장 로드맵 8개 개념 모두 검토 완료.
