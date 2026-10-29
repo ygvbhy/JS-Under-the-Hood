@@ -196,5 +196,5 @@ export const concept = {
       url: 'https://developer.mozilla.org/ko/docs/Web/JavaScript/Reference/Global_Objects/Object/proto',
     },
   ],
-  reviewedAt: null,
+  reviewedAt: '2026-10-29',
 } satisfies ConceptMeta

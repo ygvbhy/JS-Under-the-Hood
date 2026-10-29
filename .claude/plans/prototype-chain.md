@@ -358,7 +358,7 @@
 
 ### 후속 작업
 
-- [ ] 사용자 콘텐츠 검토 후 `meta.ts`의 `reviewedAt` 기록
+- [x] 사용자 콘텐츠 검토 후 `meta.ts`의 `reviewedAt` 기록(2026-10-29)
 - [ ] (선택) 리뷰 Low 2건
 - [ ] (선택) 9절 기존 개념 역방향 연결(property-keys·property-attributes·new-operator의 "별도 개념(프로토타입)" 문구와 `related`)
 
