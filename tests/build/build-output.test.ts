@@ -601,3 +601,30 @@ describe('시뮬레이터 프리렌더 (new-operator)', () => {
     expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(1)
   })
 })
+
+// 열일곱 번째 개념(prototype-chain)의 시뮬레이터와 퀴즈도 프리렌더 HTML에 정적으로 들어 있어야 한다.
+describe('시뮬레이터 프리렌더 (prototype-chain)', () => {
+  const html = read('concepts/prototype-chain/index.html')
+  const text = htmlToText(html)
+
+  it('단계 1(실행 전) 텍스트가 HTML에 있다', () => {
+    expect(text).toContain('단계 1: 실행 전')
+  })
+
+  it('시뮬레이터 region과 시나리오 선택 라디오 4개 이상이 있다', () => {
+    expect(html).toMatch(/role="region"[^>]*aria-label="프로토타입 체인 시뮬레이터"/)
+    for (const label of [
+      '프로토타입 체인',
+      'prototype 프로퍼티와 [[Prototype]]',
+      '대입과 섀도잉',
+      'instanceof',
+    ]) {
+      expect(text).toContain(label)
+    }
+    expect(html.match(/type="radio"/g)?.length).toBeGreaterThanOrEqual(4)
+  })
+
+  it('퀴즈 정답이 <details>로 프리렌더된다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(1)
+  })
+})

@@ -24,6 +24,8 @@ import {
   PROPERTY_ATTRIBUTES_SIMULATOR_NAME,
   NEW_OPERATOR_PATH,
   NEW_OPERATOR_SIMULATOR_NAME,
+  PROTOTYPE_CHAIN_PATH,
+  PROTOTYPE_CHAIN_SIMULATOR_NAME,
   SWITCH_PATH,
   SWITCH_SIMULATOR_NAME,
   TYPE_COERCION_PATH,
@@ -450,6 +452,40 @@ test('new 연산자 개념 페이지: 시뮬레이터를 끝까지 진행해도 
     '객체를 return하면',
     '원시 값을 return하면',
     'new 없이 호출하면',
+  ]) {
+    await region.getByRole('radio', { name: scenario, exact: true }).check()
+    const next = region.getByRole('button', { name: '다음' })
+    while (await next.isEnabled()) {
+      await next.click()
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - window.innerWidth,
+      )
+      expect(overflow).toBeLessThanOrEqual(0)
+    }
+  }
+})
+
+test(`${PROTOTYPE_CHAIN_PATH}: 가로 스크롤이 없다`, async ({ page }) => {
+  await page.goto(PROTOTYPE_CHAIN_PATH)
+  await waitForHydration(page)
+  const { scrollWidth, innerWidth } = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    innerWidth: window.innerWidth,
+  }))
+  expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
+})
+
+test('프로토타입 체인 개념 페이지: 시뮬레이터를 끝까지 진행해도 가로 스크롤이 없다', async ({
+  page,
+}) => {
+  await page.goto(PROTOTYPE_CHAIN_PATH)
+  await waitForHydration(page)
+  const region = page.getByRole('region', { name: PROTOTYPE_CHAIN_SIMULATOR_NAME })
+  for (const scenario of [
+    '프로토타입 체인',
+    'prototype 프로퍼티와 [[Prototype]]',
+    '대입과 섀도잉',
+    'instanceof',
   ]) {
     await region.getByRole('radio', { name: scenario, exact: true }).check()
     const next = region.getByRole('button', { name: '다음' })

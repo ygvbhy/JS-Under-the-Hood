@@ -1,0 +1,416 @@
+import { Simulator } from './Simulator'
+import { scenarios } from './scenarios'
+
+## 동작 원리
+
+`item.title`처럼 프로퍼티를 읽을 때 `item`에 그 프로퍼티가 없으면 어떻게 될까요? 자바스크립트는 곧바로 `undefined`를 돌려주지 않고, 객체가 가진 `[[Prototype]]`이 가리키는 객체에서 이어서 찾습니다. 이 페이지는 그 탐색(프로토타입 체인), 함수의 `prototype` 프로퍼티와 객체의 `[[Prototype]]`이 다르다는 것, 대입이 프로토타입을 바꾸지 않고 자기 프로퍼티를 만드는 것(섀도잉), 그리고 `in`·`Object.hasOwn`·`for...in`·`instanceof`가 체인을 어떻게 보는지를 설명합니다. 프로퍼티와 키는 [프로퍼티 키](/concepts/property-keys), `writable`과 접근자 프로퍼티는 [프로퍼티 어트리뷰트와 접근자](/concepts/property-attributes), `new`는 [new 연산자](/concepts/new-operator)에서 본 것을 전제합니다.
+
+### 객체에는 [[Prototype]]이 있다
+
+ECMAScript 명세에서 일반 객체(ordinary object)는 `[[Prototype]]`이라는 내부 슬롯을 가지며, 그 값은 객체이거나 `null`입니다. 이름을 `[[ ]]`로 감싼 것은 명세가 동작을 정의하려고 붙인 이름이라는 뜻이며, 코드에서 직접 접근할 수 없습니다. 코드에서는 `Object.getPrototypeOf(obj)`로 읽습니다.
+
+객체 리터럴로 만든 객체의 `[[Prototype]]`은 `Object.prototype`입니다. 그리고 `Object.prototype`의 `[[Prototype]]`은 `null`입니다(예제 1). `book.toString`처럼 직접 쓰지 않은 메서드를 쓸 수 있는 것은 그 프로퍼티가 `book`이 아니라 `Object.prototype`에 있기 때문입니다.
+
+`__proto__`라는 프로퍼티 이름도 있습니다. 이것은 `Object.prototype`에 있는 접근자 프로퍼티이며, 명세는 이를 "Normative Optional, Legacy"로 분류합니다. `[[Prototype]]` 슬롯 자체가 아니라 그 값을 읽고 쓰는 접근자입니다. 이 페이지의 예제는 `__proto__`를 쓰지 않습니다. 객체 리터럴의 `__proto__:` 문법과 `Object.setPrototypeOf`는 별도 개념입니다.
+
+### 프로퍼티를 읽을 때: 프로토타입 체인
+
+`obj.key`를 읽으면 명세의 `[[Get]]`이 아래 순서로 진행됩니다.
+
+1. `obj`에 `key`라는 자기 프로퍼티가 있으면 그 값을 돌려줍니다.
+2. 없으면 `obj`의 `[[Prototype]]`을 확인합니다. `null`이면 `undefined`를 돌려줍니다.
+3. 객체이면 그 객체에서 1번부터 같은 순서로 이어서 찾습니다.
+
+이렇게 `[[Prototype]]`이 이어진 객체들의 줄을 프로토타입 체인이라고 합니다. 체인은 `null`에서 끝납니다. 프로퍼티가 데이터 프로퍼티이면 그 값이, 접근자 프로퍼티이면 getter를 호출한 결과가 읽은 값이 됩니다. 예제 2에서 `item.price`는 `item`, `mid`, `base`, `Object.prototype`을 차례로 확인하고도 찾지 못해 `undefined`입니다.
+
+[스코프 체인](/concepts/scope-chain)과 이름이 비슷하지만 찾는 대상이 다릅니다. 스코프 체인은 변수 이름을, 프로토타입 체인은 객체의 프로퍼티를 찾습니다.
+
+### 함수의 prototype 프로퍼티와 [[Prototype]]
+
+두 이름은 비슷하지만 서로 다른 것입니다.
+
+- `[[Prototype]]`은 객체가 가진 내부 슬롯이고 프로퍼티를 읽을 때 따라가는 연결입니다.
+- `prototype`은 함수 객체에 있는 평범한 프로퍼티입니다. `new F()`로 객체를 만들 때 그 시점의 `F.prototype` 값이 새 객체의 `[[Prototype]]`이 됩니다. 그 값이 객체가 아니면 대신 `Object.prototype`이 쓰입니다.
+
+함수 `F`가 `F.prototype`을 `[[Prototype]]`으로 가지는 것이 아닙니다. 함수 자신의 `[[Prototype]]`은 `Function.prototype`이고(예제 3), 함수가 만들어질 때 기본으로 받는 `prototype` 객체의 `[[Prototype]]`은 `Object.prototype`입니다.
+
+`function` 선언으로 만든 함수는 만들어질 때 `prototype` 프로퍼티와 그 값인 객체를 함께 받습니다. 이 객체에는 `constructor` 프로퍼티가 있고 그 값은 함수 자신입니다. `prototype` 프로퍼티는 쓰기 가능, 열거 불가, 설정 불가(`configurable: false`)이고, `constructor`는 열거 불가입니다. 그래서 `new Book()`으로 만든 객체의 `constructor`는 `Book`이지만 그것은 자기 프로퍼티가 아니라 `Book.prototype`에서 읽힌 값입니다. 메서드 축약 문법으로 만든 일반 메서드와 화살표 함수에는 `prototype` 프로퍼티가 없습니다(제너레이터 메서드는 예외이며 별도 개념입니다). `Book.count = 1`처럼 함수 자신에 붙인 프로퍼티는 `new Book()`으로 만든 객체의 체인에 없으므로 `new Book().count`로 읽히지 않습니다.
+
+### 체인은 읽을 때마다 따라간다
+
+프로토타입 체인은 값을 복사해 두는 것이 아니라 읽을 때마다 새로 탐색합니다. 그래서 객체를 만든 뒤에 프로토타입에 프로퍼티를 추가해도 기존 객체에서 읽힙니다(예제 4). 반면 상속된 프로퍼티는 그 객체의 자기 프로퍼티가 아닙니다. `JSON.stringify`는 열거 가능한 자기 프로퍼티만 담으므로 상속된 프로퍼티는 결과에 나오지 않습니다.
+
+### 대입은 자기 프로퍼티를 만든다: 섀도잉
+
+`item.color = 'blue'` 대입은 명세의 `[[Set]]`이 처리합니다. `[[Set]]`도 먼저 `item`의 자기 프로퍼티를 확인하고, `item`에 `color`가 없으면 체인을 따라 올라가 처음 만나는 `color` 프로퍼티를 확인합니다. 결과는 그 프로퍼티의 종류가 정합니다.
+
+- 체인 어디에도 `color`가 없거나, 처음 만난 `color`가 쓰기 가능한 데이터 프로퍼티이면, 대입한 객체(`item`)에 자기 프로퍼티 `color`를 만듭니다. 프로토타입에 있던 값은 그대로입니다(예제 5).
+- 이후 `item.color`는 체인의 첫 번째 칸인 `item`에서 찾으므로, 프로토타입의 같은 이름 프로퍼티가 가려집니다. 이것을 섀도잉이라고 합니다.
+
+`delete item.color`는 `item`의 자기 프로퍼티만 지웁니다. 자기 프로퍼티가 없는 상태에서 상속된 프로퍼티에 `delete`를 써도 `true`를 돌려줄 뿐 프로퍼티는 여전히 읽힙니다.
+
+### 상속된 읽기 전용 프로퍼티와 setter
+
+대입이 항상 자기 프로퍼티를 만드는 것은 아닙니다. 체인에서 처음 만난 프로퍼티가 대입을 막거나 가로챌 수 있습니다.
+
+- 상속된 데이터 프로퍼티가 `writable: false`이면 대입은 실패하고 자기 프로퍼티는 생기지 않습니다. 실패는 sloppy mode에서는 조용히 무시되고(예제 6), strict mode에서는 TypeError입니다.
+- 상속된 접근자 프로퍼티에 setter가 있으면 대입은 setter를 호출하고, 자기 프로퍼티는 생기지 않습니다(예제 7).
+- 상속된 접근자 프로퍼티에 getter만 있고 setter가 없으면 대입은 실패합니다. sloppy mode에서는 무시되어 읽으면 getter 값이 그대로이고, strict mode에서는 TypeError입니다.
+
+이 밖에 체인에 막는 프로퍼티가 없어도, 대입받는 객체 자체가 확장 불가(`Object.preventExtensions`·`Object.freeze` 등)이면 새 자기 프로퍼티를 만들 수 없어 대입이 실패합니다. 이것은 체인이 아니라 그 객체의 상태 때문이며, [프로퍼티 어트리뷰트와 접근자](/concepts/property-attributes)에서 다룹니다.
+
+`Object.defineProperty`는 대입 연산이 아니라 프로퍼티를 직접 정의하는 함수이므로 상속된 `writable: false`가 막지 않습니다. 예제 6의 7번 줄이 그렇습니다. sloppy mode와 strict mode가 실패를 다루는 방식의 차이는 [프로퍼티 어트리뷰트와 접근자](/concepts/property-attributes)에서 본 것과 같습니다.
+
+### 프로퍼티가 있는지 확인하기: in, Object.hasOwn, for...in
+
+세 방법은 체인을 보는 범위가 다릅니다.
+
+<div className="my-6 overflow-x-auto">
+  <table className="w-full border-collapse text-left">
+    <thead>
+      <tr>
+        <th className="border-border border px-3 py-2">방법</th>
+        <th className="border-border border px-3 py-2">보는 범위</th>
+        <th className="border-border border px-3 py-2">예제</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{"'key' in obj"}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          자기 프로퍼티와 체인 전체. 열거 가능 여부는 따지지 않습니다.
+        </td>
+        <td className="border-border border px-3 py-2">
+          예제 8의 4~6번 줄이 모두 <code>true</code>
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>Object.hasOwn(obj, 'key')</code>
+        </td>
+        <td className="border-border border px-3 py-2">자기 프로퍼티만</td>
+        <td className="border-border border px-3 py-2">
+          예제 8의 7번 줄은 <code>true</code>, 8번 줄은 <code>false</code>
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>for (const key in obj)</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          자기 프로퍼티와 체인에 있는 열거 가능한 문자열 키(Symbol 키는 제외). 같은 이름은 한 번만
+          나옵니다.
+        </td>
+        <td className="border-border border px-3 py-2">
+          예제 9: <code>title</code>, <code>kind</code>, <code>lang</code>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+`for...in`에서 같은 이름은 먼저 만난 객체의 것만 한 번 나옵니다. 자기 프로퍼티가 열거 불가이면 같은 이름의 상속된 열거 가능 프로퍼티도 나오지 않습니다. 명세는 조건을 만족하는 경우에만 순서를 정합니다. 이 페이지의 예제처럼 일반 객체이고 열거하는 동안 체인과 프로퍼티가 바뀌지 않으면 자기 프로퍼티(명세의 [[OwnPropertyKeys]] 순서) 다음 프로토타입 순서입니다.
+
+값이 `undefined`인 자기 프로퍼티가 있어도 `in`은 `true`이고, `obj.x !== undefined` 검사는 `false`입니다. 프로퍼티가 있는지는 값이 아니라 `in`이나 `Object.hasOwn`으로 확인해야 합니다.
+
+### Object.create와 null 프로토타입
+
+`Object.create(proto)`는 `[[Prototype]]`이 `proto`인 새 객체를 만듭니다. `proto`는 객체이거나 `null`이어야 하고, 그 밖의 값(`1`, `undefined` 등)이면 TypeError입니다. 예제 2, 5의 `Object.create(base)`가 그 예이고, 객체 리터럴 `{}`는 `Object.create(Object.prototype)`과 같은 `[[Prototype]]`을 가집니다(예제 1의 2번 줄, 예제 10의 마지막 줄).
+
+`Object.create(null)`로 만든 객체는 `[[Prototype]]`이 `null`이라 체인이 자기 자신에서 바로 끝납니다. `Object.prototype`에 있는 `toString`이나 `hasOwnProperty`, `__proto__` 접근자가 이 객체에서는 읽히지 않고, `'toString' in dict`도 `false`입니다(예제 10).
+
+### instanceof는 체인에서 prototype을 찾는다
+
+`a instanceof F`는 일반 함수 `F`에 대해 아래처럼 동작합니다. 명세에서는 이 비교를 `OrdinaryHasInstance`가 합니다.
+
+1. `a`가 객체가 아니면(예: `1`) 바로 `false`입니다.
+2. `F.prototype`을 읽습니다. 객체가 아니면 TypeError입니다.
+3. `a`의 `[[Prototype]]`부터 시작해 체인을 따라가며 각 객체가 `F.prototype`과 같은 객체인지 비교합니다. 같은 객체를 만나면 `true`, `null`에 닿으면 `false`입니다.
+
+이 비교는 `F`로 `a`를 만들었는지(생성자를 호출했는지)를 보지 않습니다. 비교하는 것은 지금 `F.prototype`이 `a`의 체인에 있는지뿐입니다. 그래서 `F.prototype`을 다른 객체로 교체하면 교체 전에 만든 객체는 `false`가 되고(예제 11의 8번 줄), 생성자를 호출하지 않고 `Object.create(F.prototype)`으로 만든 객체도 `true`입니다(12번 줄). `Book.prototype = { … }`로 교체한 뒤 만든 객체의 `constructor`는 `Book`이 아니라 `Object`입니다. 교체한 객체에는 `constructor` 프로퍼티가 없어서 체인의 `Object.prototype`에서 읽히기 때문입니다.
+
+## 예제
+
+열한 예제의 출력을 먼저 예측해 보세요. 예제 2, 3, 5, 11은 뒤에 있는 시뮬레이터로 한 단계씩 확인할 수 있습니다. 예제의 `console.log`는 값을 출력하는 호스트 API이며 ECMAScript 언어의 일부가 아닙니다. 여러 줄 출력은 퀴즈에서 ' / '로 이어 적었습니다. 예제는 `this` 없이 쓰며, 상속된 메서드를 호출할 때의 `this`는 별도 개념입니다.
+
+### 예제 1: 객체 리터럴의 프로토타입
+
+객체 리터럴로 만든 객체의 `[[Prototype]]`과 그 끝을 확인합니다.
+
+```js file=./examples/literal.js
+
+```
+
+<PredictQuiz
+  question="예제 1의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'true / undefined / true / null / undefined',
+    'true / function / false / null / undefined',
+    'true / function / true / null / undefined',
+    'true / function / false / undefined / undefined',
+  ]}
+  answer={1}
+  explanation="book의 [[Prototype]]은 Object.prototype이라 2번 줄은 true입니다. toString은 book에 없지만 Object.prototype에서 읽히므로 3번 줄은 function, 자기 프로퍼티는 아니므로 4번 줄은 false입니다. Object.prototype의 [[Prototype]]은 undefined가 아니라 null이고(5번 줄), 어디에도 없는 price는 undefined입니다(6번 줄)."
+/>
+
+### 예제 2: 세 객체로 이어진 체인
+
+`Object.create`로 세 객체를 이어 놓고 프로퍼티를 읽습니다.
+
+```js file=./examples/chain.js
+
+```
+
+<PredictQuiz
+  question="예제 2의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'JS / ko / book / undefined',
+    'JS / undefined / undefined / undefined',
+    'JS / ko / undefined / undefined',
+    'JS / ko / book / null',
+  ]}
+  answer={0}
+  explanation="item의 체인은 item, mid, base, Object.prototype 순서입니다. title은 item 자신에게, lang은 mid에, kind는 base에 있어 각각 JS, ko, book입니다. price는 어느 객체에도 없고 체인이 null에서 끝나므로 null이 아니라 undefined입니다."
+/>
+
+### 예제 3: prototype 프로퍼티와 [[Prototype]]
+
+생성자 함수의 `prototype` 프로퍼티와 `new`로 만든 객체의 `[[Prototype]]`을 비교합니다.
+
+```js file=./examples/prototype-property.js
+
+```
+
+<PredictQuiz
+  question="예제 3의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'true / true / false / book / book / true',
+    'true / true / false / book / undefined / true',
+    'true / false / true / book / undefined / true',
+    'true / false / true / book / book / true',
+  ]}
+  answer={2}
+  explanation="new Book('JS')가 만든 a의 [[Prototype]]은 Book.prototype이라 6번 줄은 true입니다. Book 자신의 [[Prototype]]은 Book.prototype이 아니라 Function.prototype이므로 7번 줄은 false, 8번 줄은 true입니다. a.kind는 체인의 Book.prototype에서 읽혀 book이지만, prototype은 함수 Book의 프로퍼티일 뿐 a의 체인에는 없어서 a.prototype은 undefined입니다. 마지막으로 Book.prototype의 constructor는 Book입니다."
+/>
+
+### 예제 4: 나중에 추가한 프로토타입 프로퍼티
+
+두 객체를 만든 뒤에 `Book.prototype`에 프로퍼티를 추가합니다.
+
+```js file=./examples/shared.js
+
+```
+
+<PredictQuiz
+  question="예제 4의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'undefined / undefined / book / {"title":"JS"}',
+    'undefined / book / book / {"title":"JS"}',
+    'undefined / book / book / {"title":"JS","kind":"book"}',
+    'undefined / undefined / undefined / {"title":"JS"}',
+  ]}
+  answer={1}
+  explanation="a를 만든 뒤에 Book.prototype.kind를 추가해도 체인은 읽을 때마다 따라가므로, 6번 줄에서는 없던 kind가 8번 줄과 9번 줄에서는 a와 b 모두에서 book으로 읽힙니다. kind는 a의 자기 프로퍼티가 아니라서 JSON.stringify는 title만 담습니다."
+/>
+
+### 예제 5: 대입과 섀도잉
+
+프로토타입에 있는 프로퍼티와 같은 이름에 대입하고, 지워 봅니다.
+
+```js file=./examples/shadowing.js
+
+```
+
+<PredictQuiz
+  question="예제 5의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'red / blue / red / true / red',
+    'red / blue / blue / true / blue',
+    'red / blue / red / false / red',
+    'red / blue / red / true / undefined',
+  ]}
+  answer={0}
+  explanation="item에는 color가 없고 base의 color는 쓰기 가능한 데이터 프로퍼티이므로, 4번 줄의 대입은 item에 자기 프로퍼티를 만듭니다. 그래서 5번 줄은 blue, base.color는 그대로 red이고(6번 줄), hasOwn은 true입니다(7번 줄). 8번 줄의 delete는 item의 자기 프로퍼티만 지우므로 9번 줄은 체인의 base에서 다시 red를 읽습니다."
+/>
+
+### 예제 6: 상속된 읽기 전용 프로퍼티
+
+`writable: false`인 프로퍼티를 상속받은 객체에 대입합니다.
+
+```js file=./examples/inherited-readonly.js
+
+```
+
+<PredictQuiz
+  question="예제 6의 출력은 무엇일까요? sloppy mode(클래식 스크립트)에서 실행합니다. (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={['2 / true / 2 / 2', '2 / true / 2 / 1', '1 / false / 2 / 1', '1 / false / 1 / 1']}
+  answer={2}
+  explanation="base의 id는 writable이 false인 데이터 프로퍼티라서 4번 줄의 대입은 실패하고 item에는 자기 프로퍼티가 생기지 않습니다. sloppy mode에서는 이 실패가 조용히 무시되므로 5번 줄은 1, 6번 줄은 false입니다. 7번 줄의 Object.defineProperty는 대입이 아니라 item에 자기 프로퍼티를 직접 정의하므로 막히지 않아 8번 줄은 2이고, base.id는 그대로 1입니다. 파일 첫 줄에 'use strict';를 쓰면 4번 줄에서 TypeError가 납니다."
+/>
+
+### 예제 7: 상속된 setter
+
+setter만 있는 접근자 프로퍼티를 상속받은 객체에 대입합니다.
+
+```js file=./examples/inherited-setter.js
+
+```
+
+<PredictQuiz
+  question="예제 7의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={['JS / true / JS', 'JS / false / JS', 'JS / true / undefined', 'JS / false / undefined']}
+  answer={3}
+  explanation="item에는 name이 없으므로 대입은 체인의 base에서 접근자 프로퍼티를 만나고, 그 setter가 호출되어 saved가 JS가 됩니다(9번 줄). 이때 item에 자기 프로퍼티는 생기지 않아 hasOwn은 false입니다(10번 줄). name은 getter가 없는 접근자 프로퍼티라서 읽으면 undefined입니다(11번 줄)."
+/>
+
+### 예제 8: in과 Object.hasOwn
+
+같은 프로퍼티를 `in`과 `Object.hasOwn`으로 확인합니다.
+
+```js file=./examples/in-hasown.js
+
+```
+
+<PredictQuiz
+  question="예제 8의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'true / false / false / true / false',
+    'true / true / true / true / false',
+    'true / true / false / true / false',
+    'true / true / true / true / true',
+  ]}
+  answer={1}
+  explanation="in은 자기 프로퍼티뿐 아니라 체인 전체를 보므로 자기 프로퍼티 title, base의 kind, Object.prototype의 toString이 모두 true입니다(4~6번 줄). Object.hasOwn은 자기 프로퍼티만 보므로 title은 true(7번 줄), 상속된 kind는 false입니다(8번 줄)."
+/>
+
+### 예제 9: for...in
+
+자기 프로퍼티와 상속된 프로퍼티가 섞인 객체를 `for...in`으로 돕니다.
+
+```js file=./examples/for-in.js
+
+```
+
+<PredictQuiz
+  question="예제 9의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'title / kind / lang',
+    'kind / lang / title',
+    'title / kind / kind / lang',
+    'title / kind / lang / hidden',
+  ]}
+  answer={0}
+  explanation="for...in은 자기 프로퍼티를 먼저 돌고 그다음 프로토타입을 돕니다. item의 자기 프로퍼티는 title, kind이고, base의 kind는 이미 나온 이름이라 건너뛰므로 한 번만 나옵니다. 이어서 base의 lang이 나옵니다. hidden은 enumerable이 false라서 나오지 않습니다."
+/>
+
+### 예제 10: null 프로토타입
+
+`Object.create(null)`로 만든 객체의 체인을 확인합니다.
+
+```js file=./examples/null-prototype.js
+
+```
+
+<PredictQuiz
+  question="예제 10의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'undefined / false / undefined / true / true',
+    'null / true / function / true / true',
+    'null / false / undefined / true / true',
+    'null / false / function / true / true',
+  ]}
+  answer={2}
+  explanation="dict의 [[Prototype]]은 undefined가 아니라 null이라 3번 줄은 null입니다. 체인이 dict에서 바로 끝나므로 Object.prototype의 toString도 hasOwnProperty도 이 객체에서는 읽히지 않아 4번 줄은 false, 5번 줄은 undefined입니다. 자기 프로퍼티 title은 hasOwn이 true이고, Object.create(Object.prototype)으로 만든 객체의 [[Prototype]]은 Object.prototype이라 마지막 줄도 true입니다."
+/>
+
+### 예제 11: instanceof와 prototype 교체
+
+`instanceof`의 결과가 `prototype`을 교체하면 어떻게 달라지는지 봅니다.
+
+```js file=./examples/instanceof.js
+
+```
+
+<PredictQuiz
+  question="예제 11의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'true / true / true / true / true / {}',
+    'true / true / false / true / false / {}',
+    'true / true / false / true / true / {"title":"JS"}',
+    'true / true / false / true / true / {}',
+  ]}
+  answer={3}
+  explanation="a의 체인은 처음 Book.prototype, Object.prototype 순서라서 5번 줄과 6번 줄은 true입니다. 7번 줄이 Book.prototype을 새 객체로 교체해도 a의 [[Prototype]]은 처음 객체 그대로이므로, 8번 줄의 a 체인에는 지금의 Book.prototype이 없어서 false입니다. 교체 뒤에 만든 b의 [[Prototype]]은 새 객체라 true입니다. c는 생성자를 호출하지 않았지만 [[Prototype]]이 Book.prototype이므로 true이고, 자기 프로퍼티가 없어서 JSON.stringify는 {}입니다."
+/>
+
+### 시뮬레이터로 확인하기
+
+네 가지 시나리오(프로토타입 체인, prototype 프로퍼티와 [[Prototype]], 대입과 섀도잉, instanceof)를 한 단계씩 실행하며 체인을 따라 찾는 경로, 객체 카드의 `[[Prototype]]` 연결, 대입이 만든 자기 프로퍼티, `instanceof`의 비교 경로를 확인해 보세요. 각각 예제 2, 3, 5, 11에 해당합니다.
+
+<Simulator scenarios={scenarios} />
+
+## 결과와 이유
+
+예제 1에서 `book`의 `[[Prototype]]`은 `Object.prototype`이라 2번 줄이 `true`입니다. `book.toString`은 `book`에 없으므로 `Object.prototype`에서 읽혀 [typeof 연산자](/concepts/typeof-operator)가 `function`을 돌려주고(3번 줄), 자기 프로퍼티는 아니므로 `Object.hasOwn`은 `false`입니다(4번 줄). `Object.prototype`의 `[[Prototype]]`은 `null`이고(5번 줄), 체인 어디에도 없는 `price`는 `undefined`입니다(6번 줄).
+
+예제 2에서 `item.title`은 `item`의 자기 프로퍼티이고, `item.lang`은 `item`에 없어 `mid`에서, `item.kind`는 `mid`에도 없어 `base`에서 찾힙니다. `item.price`는 `item`, `mid`, `base`, `Object.prototype`을 차례로 확인하고 `null`에 닿아 `undefined`입니다. 값이 어디에서 왔는지는 체인에서 처음 그 이름을 찾은 객체가 정합니다.
+
+예제 3의 `function Book` 선언은 코드를 실행하기 전에 처리되어([호이스팅](/concepts/hoisting)) 함수 객체와 그 `prototype` 객체가 처음부터 있습니다. 4번 줄은 `Book`의 `prototype` 프로퍼티가 가리키는 객체에 `kind`를 추가합니다. 5번 줄의 `new`는 새 객체 `a`를 만들고 그 `[[Prototype]]`을 `Book.prototype`으로 정합니다. 그래서 6번 줄은 `true`이고, 7번 줄은 `Book` 자신의 `[[Prototype]]`이 `Function.prototype`이라서 `false`, 8번 줄은 `true`입니다. `a.kind`는 `a`에 없어 `Book.prototype`에서 읽히고(9번 줄), `a.prototype`은 `a`의 체인에 `prototype` 프로퍼티가 없어 `undefined`입니다(10번 줄). 11번 줄의 `Book.prototype.constructor`는 `Book`입니다. `new`의 내부 단계는 [new 연산자](/concepts/new-operator)에서 다룹니다.
+
+예제 4의 6번 줄에서 `a.kind`는 아직 체인 어디에도 없어 `undefined`입니다. 7번 줄에서 `Book.prototype`에 `kind`를 추가하면, 이미 만들어 둔 `a`와 `b`의 체인에 있는 그 객체에 프로퍼티가 생긴 것이므로 8번 줄과 9번 줄이 모두 `book`입니다. 10번 줄의 `JSON.stringify(a)`는 열거 가능한 자기 프로퍼티만 담으므로 `{"title":"JS"}`입니다.
+
+예제 5의 3번 줄은 `item`에 `color`가 없어 `base`에서 `red`를 읽습니다. 4번 줄의 대입은 체인에서 처음 만난 `color`(`base`의 것)가 쓰기 가능한 데이터 프로퍼티이므로 `item`에 자기 프로퍼티를 만듭니다. 5번 줄은 `item`에서 찾아 `blue`이고, 6번 줄의 `base.color`는 그대로 `red`입니다. 7번 줄 `Object.hasOwn(item, 'color')`는 `true`입니다. 8번 줄의 `delete`로 `item`의 자기 프로퍼티가 사라지면 9번 줄은 다시 `base`에서 `red`를 읽습니다.
+
+예제 6의 4번 줄에서 처음 만난 `id`가 `writable: false`이므로 대입은 실패합니다. sloppy mode에서는 무시되어 `item.id`는 `base`의 `1`이고(5번 줄) 자기 프로퍼티는 없습니다(6번 줄). 7번 줄의 `Object.defineProperty`는 `item`에 자기 프로퍼티를 직접 정의하므로 8번 줄은 `2`, `base.id`는 `1`입니다. 첫 줄에 `'use strict';`를 쓰면 4번 줄이 TypeError를 던집니다. 이 예제를 ES 모듈로 실행해도 모듈은 항상 strict mode라서 4번 줄에서 TypeError가 납니다.
+
+예제 7의 8번 줄 대입은 체인의 `base`에서 setter가 있는 접근자 프로퍼티를 만나 setter를 호출하고, 그 안에서 `saved`가 `JS`가 됩니다. `item`에는 자기 프로퍼티가 생기지 않아 10번 줄은 `false`이고, getter가 없어 11번 줄의 `item.name`은 `undefined`입니다.
+
+예제 8의 `in`은 체인 전체를 확인하므로 `title`(자기 프로퍼티), `kind`(`base`), `toString`(`Object.prototype`)이 모두 `true`입니다. `Object.hasOwn`은 자기 프로퍼티만 확인하므로 `title`은 `true`, `kind`는 `false`입니다.
+
+예제 9에서 `for...in`은 `item`의 자기 프로퍼티 `title`, `kind`를 먼저 돌고, 프로토타입 `base`로 올라가 `lang`을 냅니다. `base`의 `kind`는 이미 처리한 이름이라 다시 나오지 않습니다. `hidden`은 열거 불가라서 나오지 않습니다.
+
+예제 10에서 `Object.create(null)`로 만든 `dict`는 `[[Prototype]]`이 `null`이라 3번 줄이 `null`입니다. 체인이 `dict`에서 끝나므로 `'toString' in dict`는 `false`(4번 줄), `dict.hasOwnProperty`는 `undefined`라서 `typeof`가 `undefined`입니다(5번 줄). 자기 프로퍼티 `title`은 `Object.hasOwn`으로 확인하면 `true`입니다(6번 줄). 7~8번 줄은 `Object.create(Object.prototype)`이 만든 객체의 `[[Prototype]]`이 `Object.prototype`임을 보입니다.
+
+예제 11의 5번 줄은 `a`의 `[[Prototype]]`(처음 `Book.prototype`)이 `Book.prototype`과 같아 `true`이고, 6번 줄은 그 객체와 `Object.prototype`을 차례로 비교해 `Object.prototype`에서 일치하므로 `true`입니다. 7번 줄이 `Book.prototype`을 새 객체로 교체한 뒤에도 `a`의 `[[Prototype]]`은 처음 객체 그대로입니다. 8번 줄의 비교는 지금의 `Book.prototype`을 `a`의 체인에서 찾는데 처음 객체, `Object.prototype`, `null` 어디에도 없어 `false`입니다. 9~10번 줄의 `b`는 교체 뒤에 만들어져 `[[Prototype]]`이 새 객체이므로 `true`입니다. 11~12번 줄의 `c`는 생성자를 호출하지 않았지만 `[[Prototype]]`이 `Book.prototype`이라 `true`이고, 자기 프로퍼티가 없어서 13번 줄은 `{}`입니다.
+
+<Callout type="misconception" title="상속된 프로퍼티는 자식 객체에 복사된다">
+  예제 4에서 `a`를 만든 뒤에 `Book.prototype`에 추가한 `kind`가 `a`에서 읽혔고,
+  `JSON.stringify(a)`에는 나오지 않았습니다. 상속된 프로퍼티는 `a`에 들어 있는 것이 아니라 읽을
+  때마다 `[[Prototype]]`을 따라 찾는 것입니다. 그래서 프로토타입에 나중에 추가한 프로퍼티도 기존
+  객체에서 읽히고, 자기 프로퍼티가 아니라서 `Object.hasOwn`은 `false`입니다.
+</Callout>
+
+<Callout type="misconception" title="F.prototype은 F의 프로토타입이다">
+  `F.prototype`은 `new F()`로 만들 객체의 `[[Prototype]]`이 될 값을 담은 평범한 프로퍼티입니다. `F`
+  자신의 `[[Prototype]]`은 `Function.prototype`입니다. 예제 3의 7번 줄은 `false`, 8번 줄은
+  `true`였고, `a.prototype`은 `undefined`였습니다.
+</Callout>
+
+<Callout type="misconception" title="대입하면 프로토타입의 값이 바뀐다">
+  예제 5에서 `item.color = 'blue'`는 `item`에 자기 프로퍼티를 만들었을 뿐 `base.color`는 `red`
+  그대로였습니다. 대입은 대입한 객체에 프로퍼티를 만들고, 체인에서 처음 만난 프로퍼티가 쓰기
+  불가(`writable`이 `false`)이거나 setter가 있으면 그조차 일어나지 않습니다(예제 6, 7). 프로토타입의
+  값을 바꾸려면 프로토타입 객체에 직접 대입해야 합니다(예제 4).
+</Callout>
+
+<Callout type="misconception" title="obj.x !== undefined나 in으로 자기 프로퍼티인지 알 수 있다">
+  `obj.x`는 체인 전체에서 읽은 값이고, 자기 프로퍼티의 값이 `undefined`일 수도 있어서 값을
+  `undefined`와 비교하는 검사로는 있는지 알 수 없습니다. `in`도 체인 전체를 보므로 상속된 프로퍼티에
+  `true`를 돌려줍니다(예제 8의 `'kind' in item`). 자기 프로퍼티인지는 `Object.hasOwn`으로
+  확인합니다.
+</Callout>
+
+<Callout type="misconception" title="instanceof는 그 생성자로 만들었는지 확인한다">
+  `instanceof`는 `F.prototype`이 왼쪽 값의 체인에 있는지만 비교합니다. 예제 11에서 생성자를 호출하지
+  않고 `Object.create(Book.prototype)`으로 만든 `c`가 `true`였고, `Book.prototype`을 교체한 뒤에는
+  `Book`으로 만든 `a`가 `false`였습니다.
+</Callout>
+
+<Callout type="misconception" title="__proto__는 [[Prototype]] 그 자체다">
+  `__proto__`는 `Object.prototype`에 있는 레거시 접근자 프로퍼티(명세의 "Normative Optional,
+  Legacy")이고 `[[Prototype]]` 슬롯 자체가 아닙니다. `Object.create(null)`로 만든 객체에는 이
+  접근자가 체인에 없으므로 `__proto__`가 `undefined`입니다. 코드에서 `[[Prototype]]`을 읽을 때는
+  `Object.getPrototypeOf`를 씁니다.
+</Callout>

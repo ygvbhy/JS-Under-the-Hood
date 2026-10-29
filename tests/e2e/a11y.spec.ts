@@ -26,6 +26,8 @@ import {
   PROPERTY_ATTRIBUTES_SIMULATOR_NAME,
   NEW_OPERATOR_PATH,
   NEW_OPERATOR_SIMULATOR_NAME,
+  PROTOTYPE_CHAIN_PATH,
+  PROTOTYPE_CHAIN_SIMULATOR_NAME,
   SWITCH_PATH,
   SWITCH_SIMULATOR_NAME,
   TYPE_COERCION_PATH,
@@ -478,6 +480,49 @@ for (const colorScheme of ['light', 'dark'] as const) {
         region.getByText('단계 7: 결과 결정: return한 객체 B가 결과', { exact: true }),
       ).toBeVisible()
       await expect(region.getByText('결과로 쓰이지 않음', { exact: true })).toBeVisible()
+    })
+
+    test('개념 페이지: 프로토타입 체인', async ({ page }) => {
+      await page.goto(PROTOTYPE_CHAIN_PATH)
+      await waitForHydration(page)
+      await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
+      await expectNoSeriousViolations(page)
+    })
+
+    test('개념 페이지: 프로토타입 체인 시뮬레이터를 진행한 뒤', async ({ page }) => {
+      test.slow() // 4개 시나리오의 모든 단계에서 axe를 돌린다
+      await page.goto(PROTOTYPE_CHAIN_PATH)
+      await waitForHydration(page)
+      const region = page.getByRole('region', { name: PROTOTYPE_CHAIN_SIMULATOR_NAME })
+      for (const scenario of [
+        '프로토타입 체인',
+        'prototype 프로퍼티와 [[Prototype]]',
+        '대입과 섀도잉',
+        'instanceof',
+      ]) {
+        await region.getByRole('radio', { name: scenario, exact: true }).check()
+        const next = region.getByRole('button', { name: '다음' })
+        // 시나리오의 단계 수는 모두 20 이하이므로 마지막 단계까지 모든 단계를 검사한다.
+        for (let i = 0; i < 20 && (await next.isEnabled()); i++) {
+          await next.click()
+          await expectNoSeriousViolations(page)
+        }
+        await expect(next).toBeDisabled()
+      }
+    })
+
+    test('개념 페이지: 프로토타입 체인 시뮬레이터 10단계에서 체인 끝을 보인다', async ({
+      page,
+    }) => {
+      await page.goto(PROTOTYPE_CHAIN_PATH)
+      await waitForHydration(page)
+      const region = page.getByRole('region', { name: PROTOTYPE_CHAIN_SIMULATOR_NAME })
+      const next = region.getByRole('button', { name: '다음' })
+
+      await region.getByRole('radio', { name: '프로토타입 체인', exact: true }).check()
+      for (let i = 0; i < 9; i++) await next.click()
+      await expect(region.getByText('단계 10: item.price 읽기', { exact: true })).toBeVisible()
+      await expect(region.getByText('null — 체인 끝').first()).toBeVisible()
     })
 
     test('개념 페이지: 동등 비교 시뮬레이터를 진행한 뒤', async ({ page }) => {
