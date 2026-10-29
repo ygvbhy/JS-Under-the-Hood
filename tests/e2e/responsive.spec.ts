@@ -29,6 +29,8 @@ import {
   PRIMITIVE_METHODS_PATH,
   THIS_BINDING_PATH,
   THIS_BINDING_SIMULATOR_NAME,
+  EXECUTION_CONTEXT_PATH,
+  EXECUTION_CONTEXT_SIMULATOR_NAME,
   SWITCH_PATH,
   SWITCH_SIMULATOR_NAME,
   TYPE_COERCION_PATH,
@@ -521,6 +523,40 @@ test('this 개념 페이지: 시뮬레이터를 끝까지 진행해도 가로 �
     '콜백으로 넘기면',
     'bind한 함수를 다시 부르면',
     '괄호와 쉼표',
+  ]) {
+    await region.getByRole('radio', { name: scenario, exact: true }).check()
+    const next = region.getByRole('button', { name: '다음' })
+    while (await next.isEnabled()) {
+      await next.click()
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - window.innerWidth,
+      )
+      expect(overflow).toBeLessThanOrEqual(0)
+    }
+  }
+})
+
+test(`${EXECUTION_CONTEXT_PATH}: 가로 스크롤이 없다`, async ({ page }) => {
+  await page.goto(EXECUTION_CONTEXT_PATH)
+  await waitForHydration(page)
+  const { scrollWidth, innerWidth } = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    innerWidth: window.innerWidth,
+  }))
+  expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
+})
+
+test('실행 컨텍스트 개념 페이지: 시뮬레이터를 끝까지 진행해도 가로 스크롤이 없다', async ({
+  page,
+}) => {
+  await page.goto(EXECUTION_CONTEXT_PATH)
+  await waitForHydration(page)
+  const region = page.getByRole('region', { name: EXECUTION_CONTEXT_SIMULATOR_NAME })
+  for (const scenario of [
+    '호출 스택',
+    '이름 찾기와 정의한 곳',
+    '블록의 환경 교체와 복원',
+    'this 바인딩의 위치',
   ]) {
     await region.getByRole('radio', { name: scenario, exact: true }).check()
     const next = region.getByRole('button', { name: '다음' })
