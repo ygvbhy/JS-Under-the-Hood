@@ -27,6 +27,8 @@ import {
   PROTOTYPE_CHAIN_PATH,
   PROTOTYPE_CHAIN_SIMULATOR_NAME,
   PRIMITIVE_METHODS_PATH,
+  THIS_BINDING_PATH,
+  THIS_BINDING_SIMULATOR_NAME,
   SWITCH_PATH,
   SWITCH_SIMULATOR_NAME,
   TYPE_COERCION_PATH,
@@ -487,6 +489,38 @@ test('프로토타입 체인 개념 페이지: 시뮬레이터를 끝까지 진�
     'prototype 프로퍼티와 [[Prototype]]',
     '대입과 섀도잉',
     'instanceof',
+  ]) {
+    await region.getByRole('radio', { name: scenario, exact: true }).check()
+    const next = region.getByRole('button', { name: '다음' })
+    while (await next.isEnabled()) {
+      await next.click()
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - window.innerWidth,
+      )
+      expect(overflow).toBeLessThanOrEqual(0)
+    }
+  }
+})
+
+test(`${THIS_BINDING_PATH}: 가로 스크롤이 없다`, async ({ page }) => {
+  await page.goto(THIS_BINDING_PATH)
+  await waitForHydration(page)
+  const { scrollWidth, innerWidth } = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    innerWidth: window.innerWidth,
+  }))
+  expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
+})
+
+test('this 개념 페이지: 시뮬레이터를 끝까지 진행해도 가로 스크롤이 없다', async ({ page }) => {
+  await page.goto(THIS_BINDING_PATH)
+  await waitForHydration(page)
+  const region = page.getByRole('region', { name: THIS_BINDING_SIMULATOR_NAME })
+  for (const scenario of [
+    '메서드를 꺼내 호출하면',
+    '콜백으로 넘기면',
+    'bind한 함수를 다시 부르면',
+    '괄호와 쉼표',
   ]) {
     await region.getByRole('radio', { name: scenario, exact: true }).check()
     const next = region.getByRole('button', { name: '다음' })

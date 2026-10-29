@@ -643,3 +643,30 @@ describe('프리렌더 (primitive-methods)', () => {
     expect(text).toContain("new Symbol('id')")
   })
 })
+
+// 여덟 번째 개념(this-binding)의 시뮬레이터와 퀴즈도 프리렌더 HTML에 정적으로 들어 있어야 한다.
+describe('시뮬레이터 프리렌더 (this-binding)', () => {
+  const html = read('concepts/this-binding/index.html')
+  const text = htmlToText(html)
+
+  it('단계 1(실행 전) 텍스트가 HTML에 있다', () => {
+    expect(text).toContain('단계 1: 실행 전')
+  })
+
+  it('시뮬레이터 region과 시나리오 선택 라디오 4개 이상이 있다', () => {
+    expect(html).toMatch(/role="region"[^>]*aria-label="this 결정 시뮬레이터"/)
+    for (const label of [
+      '메서드를 꺼내 호출하면',
+      '콜백으로 넘기면',
+      'bind한 함수를 다시 부르면',
+      '괄호와 쉼표',
+    ]) {
+      expect(text).toContain(label)
+    }
+    expect(html.match(/type="radio"/g)?.length).toBeGreaterThanOrEqual(4)
+  })
+
+  it('퀴즈 정답이 <details>로 프리렌더된다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(1)
+  })
+})

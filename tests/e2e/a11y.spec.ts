@@ -29,6 +29,8 @@ import {
   PROTOTYPE_CHAIN_PATH,
   PROTOTYPE_CHAIN_SIMULATOR_NAME,
   PRIMITIVE_METHODS_PATH,
+  THIS_BINDING_PATH,
+  THIS_BINDING_SIMULATOR_NAME,
   SWITCH_PATH,
   SWITCH_SIMULATOR_NAME,
   TYPE_COERCION_PATH,
@@ -531,6 +533,51 @@ for (const colorScheme of ['light', 'dark'] as const) {
       for (let i = 0; i < 9; i++) await next.click()
       await expect(region.getByText('단계 10: item.price 읽기', { exact: true })).toBeVisible()
       await expect(region.getByText('null — 체인 끝').first()).toBeVisible()
+    })
+
+    test('개념 페이지: this', async ({ page }) => {
+      await page.goto(THIS_BINDING_PATH)
+      await waitForHydration(page)
+      await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
+      await expectNoSeriousViolations(page)
+    })
+
+    test('개념 페이지: this 시뮬레이터를 진행한 뒤', async ({ page }) => {
+      test.slow() // 4개 시나리오의 모든 단계에서 axe를 돌린다
+      await page.goto(THIS_BINDING_PATH)
+      await waitForHydration(page)
+      const region = page.getByRole('region', { name: THIS_BINDING_SIMULATOR_NAME })
+      for (const scenario of [
+        '메서드를 꺼내 호출하면',
+        '콜백으로 넘기면',
+        'bind한 함수를 다시 부르면',
+        '괄호와 쉼표',
+      ]) {
+        await region.getByRole('radio', { name: scenario, exact: true }).check()
+        const next = region.getByRole('button', { name: '다음' })
+        // 시나리오의 단계 수는 모두 20 이하이므로 마지막 단계까지 모든 단계를 검사한다.
+        for (let i = 0; i < 20 && (await next.isEnabled()); i++) {
+          await next.click()
+          await expectNoSeriousViolations(page)
+        }
+        await expect(next).toBeDisabled()
+      }
+    })
+
+    test('개념 페이지: this 시뮬레이터 whoAmI() 단계에서 전역 객체를 보인다', async ({ page }) => {
+      await page.goto(THIS_BINDING_PATH)
+      await waitForHydration(page)
+      const region = page.getByRole('region', { name: THIS_BINDING_SIMULATOR_NAME })
+      const next = region.getByRole('button', { name: '다음' })
+
+      await region.getByRole('radio', { name: '메서드를 꺼내 호출하면', exact: true }).check()
+      for (let i = 0; i < 4; i++) await next.click()
+      await expect(
+        region.getByText('단계 5: whoAmI(): this는 전역 객체', { exact: true }),
+      ).toBeVisible()
+      await expect(
+        region.getByRole('region', { name: 'this 결정' }).getByText('전역 객체').first(),
+      ).toBeVisible()
     })
 
     test('개념 페이지: 동등 비교 시뮬레이터를 진행한 뒤', async ({ page }) => {
