@@ -1,0 +1,344 @@
+import { Simulator } from './Simulator'
+import { scenarios } from './scenarios'
+
+## 동작 원리
+
+`new Book('JS')`처럼 함수 앞에 `new`를 붙여 호출하면 새 객체가 만들어지고, 그 객체를 `this`로 하여 함수 본문이 실행됩니다. 이 페이지는 `new`가 어떤 순서로 무엇을 하는지, 생성자가 `return`하면 결과가 어떻게 달라지는지, `new` 없이 호출하면 무슨 일이 생기는지, `new`를 쓸 수 없는 함수는 무엇인지를 설명합니다. 함수 호출과 매개변수는 [함수 호출](/concepts/function-calls), 프로퍼티는 [프로퍼티 키](/concepts/property-keys)에서 본 것을 전제합니다.
+
+### 함수는 [[Call]]을, 생성자는 [[Construct]]도 가진다
+
+ECMAScript 명세는 동작을 설명할 때 `[[ ]]`로 감싼 이름을 씁니다. 함수 객체는 호출될 때 실행되는 내부 메서드 `[[Call]]`을 가집니다. 그중 생성자(constructor)인 함수는 `[[Construct]]`도 가집니다. `F(...)`로 부르면 `F`의 `[[Call]]`이, `new F(...)`로 부르면 `F`의 `[[Construct]]`가 실행됩니다. 이 이름들은 명세가 동작을 정의하려고 붙인 것이며, 자바스크립트 코드에서 직접 접근할 수 없습니다. [typeof 연산자](/concepts/typeof-operator)가 `'function'`을 돌려주는 기준이 `[[Call]]`을 가졌는지이고, `[[Construct]]`는 그것과 별개입니다. 그래서 `typeof`만으로는 어떤 함수에 `new`를 쓸 수 있는지 알 수 없습니다(예제 8).
+
+`function` 키워드로 만든 일반 함수(함수 선언과 함수 표현식)는 생성자입니다. 같은 `function` 키워드를 쓰더라도 제너레이터(`function*`)와 `async function`은 생성자가 아닙니다. 이 페이지는 생성자인 일반 함수를 생성자 함수라 부릅니다.
+
+### new가 하는 일: 다섯 단계
+
+`new F(인수)`는 아래 순서로 진행됩니다. 명세가 `new` 식의 평가와 `[[Construct]]`로 정의한 순서를 가르치기 쉽게 다섯 묶음으로 나눈 것입니다.
+
+1. 인수 평가와 확인: `F`와 인수를 평가합니다. 그다음 `F`가 생성자가 아니면 TypeError를 던집니다. 인수가 먼저 평가되므로, 생성자가 아닌 함수에 `new`를 써도 인수 식은 실행됩니다.
+2. 새 객체 생성: 새 객체를 만듭니다. 이 객체의 프로토타입도 이때 정해지지만, 프로토타입은 별도 개념입니다.
+3. this 연결: 본문을 실행하는 동안 `this`가 그 새 객체가 되도록 하고, 매개변수에 인수를 넣습니다.
+4. 본문 실행: 함수 본문을 실행합니다. 본문이 오류를 던지면 `new` 식도 그 오류를 던집니다.
+5. 결과 결정: 아래 규칙으로 `new` 식의 값을 정합니다.
+
+### 결과는 return 값이 정한다
+
+본문이 끝나면 다음 규칙으로 `new` 식의 값이 정해집니다.
+
+- 본문이 객체(Object)를 `return`하면 그 객체가 결과입니다. 2단계에서 만든 객체는 결과로 쓰이지 않습니다(예제 2).
+- 그렇지 않으면, 곧 `return`이 없거나 원시 값을 `return`하면 3단계에서 `this`가 된 객체가 결과입니다. `return;`, `return undefined`, `return 100`, `return null`이 모두 여기에 속합니다(예제 3, 4).
+
+여기서 "객체"는 명세의 Object 타입입니다. 함수와 배열도 객체이므로 함수나 배열을 `return`하면 그 값이 결과입니다. `null`은 Object 타입이 아닙니다. `typeof null`이 `'object'`인 것은 `typeof` 연산자의 규칙이고 `null`이 객체라는 뜻이 아닙니다(예제 4, [typeof 연산자](/concepts/typeof-operator) 참고).
+
+`new` 식이 돌려주는 값이 매번 새 객체인 것은 아닙니다. 위 규칙대로라면 생성자가 `return`하는 객체가 이미 있던 객체여도 그 객체가 결과입니다. 두 번 호출한 결과가 서로 다른 객체인지는 `===`로 비교해 확인합니다(예제 1, [원시 값과 객체](/concepts/primitives-and-objects)).
+
+### new 없이 호출하면
+
+`Book('JS')`처럼 `new` 없이 부르면 `[[Call]]`이 실행되어 새 객체가 만들어지지 않습니다. 이때 `this`는 이 호출 형태(프로퍼티 참조가 아닌 호출)에서 `undefined`로 시작합니다. 이후는 호출된 함수의 코드가 strict mode인지에 따라 갈립니다.
+
+- strict mode가 아닌 코드(흔히 sloppy mode라 부르며, 명세 용어는 non-strict code입니다)로 작성된 함수에서는 `this`가 `undefined`이면 전역 객체로 바뀝니다. 그래서 `this.title = title`은 전역 객체에 프로퍼티를 만들고, 호출의 결과는 `return` 값이며 `return`이 없으면 `undefined`입니다(예제 5).
+- strict mode에서는 `this`가 `undefined` 그대로여서 `this.title = title`이 TypeError를 던집니다. 그 줄에서 멈추므로 전역 프로퍼티도 생기지 않습니다(예제 6).
+
+예제 5는 `'use strict';`가 없는 클래식 스크립트를 전제합니다. ES 모듈은 항상 strict mode이므로 같은 코드가 TypeError로 끝납니다. `this`가 정해지는 다른 방식(메서드 호출, `call`·`apply`·`bind`, 화살표 함수)은 별도 개념에서 다룹니다.
+
+### new.target
+
+함수 본문 안에서 `new.target`은 그 호출이 `new`로 시작되었는지 알려 줍니다. `new`로 호출되면 `new`가 받은 함수이고, 일반 호출이면 `undefined`입니다. 이를 이용해 `new` 없이 불려도 `new`로 다시 호출하도록 만들 수 있습니다(예제 7). 일반 호출의 결과는 `return` 값 그대로이므로, 예제 7에서는 `return new Book(title)`의 `new Book(title)`이 만든 객체가 일반 호출의 결과가 됩니다.
+
+### 생성자가 아닌 함수
+
+모든 함수가 `[[Construct]]`를 가지는 것은 아닙니다. 생성자가 아닌 함수(non-constructor)에 `new`를 쓰면 1단계의 확인에서 TypeError입니다.
+
+- 메서드 축약 문법(`order() {}`)으로 만든 메서드는 `[[Construct]]`가 없습니다. 명세에서 함수 선언은 생성자로 만드는 단계를 거치지만 메서드 정의는 그 단계를 거치지 않습니다. 같은 객체 안이라도 `order: function () {}`처럼 함수 표현식을 값으로 둔 프로퍼티는 생성자입니다. 차이는 함수가 들어 있는 위치가 아니라 함수를 만든 방식입니다.
+- 제너레이터(`function*`)와 `async function`도 생성자가 아닙니다. 두 함수는 별도 개념에서 다룹니다.
+- 내장 함수는 명세가 생성자로 기술한 것만 `[[Construct]]`를 가집니다. `Math.max`는 아닙니다.
+- 화살표 함수도 생성자가 아니지만, 화살표 함수는 별도 개념에서 다룹니다.
+- 함수가 아닌 값(예: 숫자)에 `new`를 써도 TypeError입니다. 생성자인 것은 객체이면서 `[[Construct]]`를 가진 값뿐입니다.
+
+예제 8에서 두 함수 모두 `typeof`가 `'function'`이지만 `new`는 TypeError입니다.
+
+### 내장 생성자: Object와 String
+
+`Object`, `String` 같은 내장 함수 중에는 생성자인 것이 있습니다. `new`를 붙였을 때와 뺐을 때의 동작은 각 함수의 명세가 정하며, 함수마다 다릅니다.
+
+<div className="my-6 overflow-x-auto">
+  <table className="w-full border-collapse text-left">
+    <thead>
+      <tr>
+        <th className="border-border border px-3 py-2">호출</th>
+        <th className="border-border border px-3 py-2">결과</th>
+        <th className="border-border border px-3 py-2">예제 9의 출력</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>new Object()</code>
+        </td>
+        <td className="border-border border px-3 py-2">빈 객체</td>
+        <td className="border-border border px-3 py-2">
+          <code>{'{}'}</code>
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>Object()</code>
+        </td>
+        <td className="border-border border px-3 py-2">빈 객체</td>
+        <td className="border-border border px-3 py-2">
+          <code>{'{}'}</code>
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>new String('hi')</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          객체(<code>typeof</code>가 <code>'object'</code>)
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>object</code>
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>String('hi')</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          문자열(<code>typeof</code>가 <code>'string'</code>)
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>string</code>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+`Object`는 인수 없이 부르면 `new`가 있든 없든 빈 객체를 돌려주고, `String`은 `new`가 있으면 객체를, 없으면 문자열을 돌려줍니다. 이 차이를 다른 내장 생성자에 그대로 적용하면 안 됩니다. `new String`이 만드는 객체(래퍼 객체)는 별도 개념에서 다룹니다.
+
+## 예제
+
+아홉 예제의 출력을 먼저 예측해 보세요. 예제 1, 2, 3, 5는 뒤에 있는 시뮬레이터로 한 단계씩 확인할 수 있습니다. 예제의 `console.log`는 값을 출력하는 호스트 API이며 ECMAScript 언어의 일부가 아닙니다. 여러 줄 출력은 퀴즈에서 ' / '로 이어 적었습니다. 예제 6과 8은 오류를 눈으로 확인하려고 `try…catch`와 `e.name`을 씁니다. 오류 처리는 별도 개념에서 다루며, 오류 메시지의 문구는 엔진마다 다르므로 인용하지 않습니다.
+
+### 예제 1: new로 객체 두 개 만들기
+
+같은 생성자 함수를 `new`로 두 번 호출하고 결과를 비교합니다.
+
+```js file=./examples/basic.js
+
+```
+
+<PredictQuiz
+  question="예제 1의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '{"title":"JS","price":30} / {"title":"CSS","price":20} / true',
+    '{"title":"JS","price":30} / {"title":"CSS","price":20} / false',
+    '{"title":"CSS","price":20} / {"title":"CSS","price":20} / true',
+    'undefined / undefined / true',
+  ]}
+  answer={1}
+  explanation="각 new 호출은 본문을 실행하기 전에 새 객체를 만들어 this로 연결하고, 본문에 return이 없으므로 그 객체가 결과가 됩니다. 5번 줄과 6번 줄은 서로 다른 객체를 만들었으므로 7번 줄과 8번 줄은 각자의 값을 출력하고, 9번 줄의 ===는 서로 다른 객체이므로 false입니다."
+/>
+
+### 예제 2: 객체를 return하면
+
+생성자 본문이 다른 객체를 `return`합니다.
+
+```js file=./examples/return-object.js
+
+```
+
+<PredictQuiz
+  question="예제 2의 출력은 무엇일까요?"
+  choices={['{"title":"JS"}', '{"title":"other"}', '{}', 'undefined']}
+  answer={1}
+  explanation="본문이 객체를 return하면 그 객체가 new 식의 결과입니다. 2번 줄에서 this에 title을 넣은 객체는 결과로 쓰이지 않고, 3번 줄에서 return한 객체가 book이 됩니다."
+/>
+
+### 예제 3: 원시 값을 return하면
+
+생성자 본문이 숫자를 `return`합니다.
+
+```js file=./examples/return-primitive.js
+
+```
+
+<PredictQuiz
+  question="예제 3의 출력은 무엇일까요?"
+  choices={['100', '{"title":"JS"}', '{"title":100}', 'undefined']}
+  answer={1}
+  explanation="100은 객체가 아니므로 new 식의 결과를 바꾸지 못합니다. 규칙에 따라 this로 연결되었던 객체가 결과가 되어 book은 title이 JS인 객체입니다."
+/>
+
+### 예제 4: null을 return하면
+
+`typeof null`이 `'object'`인 것과 `return null`의 결과를 함께 봅니다.
+
+```js file=./examples/return-null.js
+
+```
+
+<PredictQuiz
+  question="예제 4의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={['null / object', '{"title":"JS"} / null', '{"title":"JS"} / object', 'null / null']}
+  answer={2}
+  explanation='null은 Object 타입이 아니므로 return null은 결과를 바꾸지 못하고, this로 연결되었던 객체가 결과입니다. 그래서 6번 줄은 {"title":"JS"}를 출력합니다. 7번 줄의 typeof null은 typeof 연산자의 규칙에 따라 object입니다.'
+/>
+
+### 예제 5: new 없이 호출하기 (sloppy mode)
+
+`new` 없이 호출하고 결과와 전역 이름 `title`을 읽습니다. 이 파일은 `'use strict';`가 없는 sloppy mode입니다.
+
+```js file=./examples/without-new-sloppy.js
+
+```
+
+<PredictQuiz
+  question="예제 5의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'title이 JS인 객체 / JS',
+    'undefined / JS',
+    'undefined / TypeError',
+    'title이 JS인 객체 / undefined',
+  ]}
+  answer={1}
+  explanation="new 없이 부르면 새 객체가 만들어지지 않고, 본문에 return이 없으므로 결과는 undefined입니다. sloppy mode에서는 this가 전역 객체이므로 2번 줄이 전역 객체에 title 프로퍼티를 만들고, 6번 줄이 그 프로퍼티를 읽어 JS를 출력합니다."
+/>
+
+### 예제 6: new 없이 호출하기 (strict mode)
+
+예제 5와 같은 호출을 첫 줄에 `'use strict';`를 두고 `try…catch`로 감쌉니다.
+
+```js file=./examples/without-new-strict.js
+
+```
+
+<PredictQuiz
+  question="예제 6의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'TypeError / string',
+    'undefined / undefined',
+    'TypeError / undefined',
+    '{"title":"JS"} / undefined',
+  ]}
+  answer={2}
+  explanation="strict mode에서 일반 호출의 this는 undefined이므로 3번 줄의 this.title = title이 TypeError를 던지고 catch가 8번 줄에서 TypeError를 출력합니다. 대입이 실행되지 못했으니 전역 프로퍼티 title도 생기지 않아 10번 줄의 typeof title은 undefined입니다."
+/>
+
+### 예제 7: new.target으로 new 여부 확인하기
+
+`new` 없이 불려도 `new`로 다시 호출하는 생성자 함수입니다.
+
+```js file=./examples/new-target.js
+
+```
+
+<PredictQuiz
+  question="예제 7의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '{"title":"JS"} / undefined',
+    '{"title":"JS"} / {"title":"CSS"}',
+    '{"title":"JS"} / TypeError',
+    '{"title":"JS"} / {}',
+  ]}
+  answer={1}
+  explanation="7번 줄은 new로 호출되어 new.target이 Book이므로 title이 JS인 객체가 결과입니다. 8번 줄은 일반 호출이라 new.target이 undefined이고, 3번 줄에서 new Book(title)로 다시 호출한 결과 객체를 return합니다. 일반 호출의 결과는 return 값 그대로이므로 b는 title이 CSS인 객체입니다."
+/>
+
+### 예제 8: 생성자가 아닌 함수에 new 쓰기
+
+메서드 축약 문법으로 만든 메서드와 내장 함수 `Math.max`에 `new`를 씁니다.
+
+```js file=./examples/non-constructor.js
+
+```
+
+<PredictQuiz
+  question="예제 8의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'TypeError / TypeError / function / function',
+    'TypeError / TypeError / object / object',
+    'undefined / undefined / function / function',
+    'TypeError / TypeError / undefined / undefined',
+  ]}
+  answer={0}
+  explanation="메서드 축약 문법으로 만든 함수와 Math.max는 생성자가 아니라서 new를 쓰면 TypeError이고, catch가 7번 줄과 12번 줄에서 TypeError를 출력합니다. 둘 다 호출할 수 있는 함수이므로 typeof는 function입니다."
+/>
+
+### 예제 9: 내장 생성자와 new
+
+`Object`와 `String`을 `new`를 붙여서, 붙이지 않고 호출합니다.
+
+```js file=./examples/built-in.js
+
+```
+
+<PredictQuiz
+  question="예제 9의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '{} / {} / object / object',
+    '{} / {} / object / string',
+    '{} / undefined / object / string',
+    '{} / {} / string / string',
+  ]}
+  answer={1}
+  explanation="Object는 인수 없이 부르면 new가 있든 없든 빈 객체를 돌려줍니다. String은 new가 있으면 String 객체를, 없으면 문자열을 돌려주므로 7번 줄은 object, 8번 줄은 string입니다."
+/>
+
+### 시뮬레이터로 확인하기
+
+네 가지 시나리오(객체 두 개 만들기, 객체를 return하면, 원시 값을 return하면, new 없이 호출하면)를 한 단계씩 실행하며 다섯 단계가 어떤 순서로 진행되는지, `this`가 어느 객체인지, 결과 결정 단계에서 어떤 객체가 결과가 되는지 확인해 보세요. 각각 예제 1, 2, 3, 5에 해당합니다.
+
+<Simulator scenarios={scenarios} />
+
+## 결과와 이유
+
+예제 1의 5번 줄과 6번 줄은 각각 새 객체를 만들어 `this`로 연결하고 본문을 실행합니다. 본문에 `return`이 없으므로 그 객체가 결과가 되어 7번 줄과 8번 줄에 각자의 값이 나옵니다. 두 결과는 서로 다른 객체라서 9번 줄의 `a === b`는 `false`입니다.
+
+예제 2에서 2번 줄은 새 객체의 `title`을 `'JS'`로 정하지만, 3번 줄이 다른 객체를 `return`하므로 그 객체가 결과가 됩니다. 그래서 6번 줄은 `{"title":"other"}`를 출력하고, `title`이 `'JS'`인 객체는 결과로 쓰이지 않습니다.
+
+예제 3에서 `return 100`의 `100`은 객체가 아니므로 무시됩니다. `this`로 연결되었던 객체가 결과라서 `{"title":"JS"}`가 나옵니다.
+
+예제 4는 `return null`도 예제 3과 같은 경로를 탑니다. `null`은 Object 타입이 아니라서 `this` 객체가 결과이고 6번 줄은 `{"title":"JS"}`입니다. 7번 줄의 `typeof null`이 `object`인 것은 `typeof` 연산자의 규칙이며 `return null`의 결과와 관계가 없습니다.
+
+예제 5의 4번 줄은 `new` 없는 일반 호출이라 `[[Call]]`이 실행되고 새 객체가 생기지 않습니다. sloppy mode에서 `this`가 전역 객체가 되므로 2번 줄의 대입이 전역 객체에 `title` 프로퍼티를 만듭니다. 본문에 `return`이 없어 `book`은 `undefined`이고(5번 줄), 6번 줄은 전역 객체의 `title`을 읽어 `JS`를 출력합니다.
+
+예제 6은 같은 호출이 strict mode라서 `this`가 `undefined`이고, 3번 줄의 `this.title = title`이 TypeError를 던집니다. `catch`가 8번 줄에서 `TypeError`를 출력하고, 전역 프로퍼티가 생기지 않아 10번 줄의 `typeof title`은 `undefined`입니다. 예제 5와 6의 `Book` 본문은 같고, strict mode인지만 다릅니다. [프로퍼티 어트리뷰트와 접근자](/concepts/property-attributes)에서 본 sloppy mode와 strict mode의 차이와 같은 종류입니다.
+
+예제 7에서 7번 줄은 `new`로 호출되어 `new.target`이 `Book`이므로 5번 줄에서 `title`이 정해집니다. 8번 줄은 일반 호출이라 `new.target`이 `undefined`이고, 3번 줄은 `new Book(title)`이 만든 객체를 `return`합니다. 일반 호출의 결과는 `return` 값 그대로이므로 그 객체가 `b`가 됩니다. 그래서 9번 줄과 10번 줄이 `{"title":"JS"}`, `{"title":"CSS"}`를 출력합니다.
+
+예제 8에서 5번 줄과 10번 줄의 `new`는 1단계 확인에서 생성자가 아닌 함수를 만나 TypeError를 던지고, `catch`가 7번 줄과 12번 줄에서 `TypeError`를 출력합니다. 14번 줄과 15번 줄의 `typeof`는 둘 다 호출할 수 있는 함수이므로 `function`입니다.
+
+예제 9에서 1번 줄과 2번 줄의 `Object`는 `new`와 관계없이 빈 객체를 만들어 `{}`가 두 번 나옵니다. `String`은 5번 줄의 `new`가 있으면 객체를, 6번 줄처럼 없으면 문자열을 돌려주므로 7번 줄은 `object`, 8번 줄은 `string`입니다.
+
+<Callout type="misconception" title="new는 항상 this를 돌려준다">
+  `new`가 만든 `this` 객체가 결과가 되는 것은 본문이 객체를 `return`하지 않을 때입니다. 예제 2에서는
+  본문이 다른 객체를 `return`했고, 결과는 `this`로 연결되었던 객체가 아니라 그 객체였습니다. 결과를
+  정하는 것은 항상 `return` 값이 객체인지 아닌지입니다.
+</Callout>
+
+<Callout type="misconception" title="typeof null이 'object'니까 return null은 객체를 돌려준다">
+  `null`은 Object 타입이 아닙니다. `typeof null`이 `'object'`인 것은 `typeof` 연산자의 규칙입니다.
+  예제 4에서 `null`을 `return`해도 결과는 `this`로 연결되었던 객체였습니다.
+</Callout>
+
+<Callout type="misconception" title="new를 빼도 결과만 다를 뿐 부작용은 없다">
+  `new` 없이 호출하면 새 객체가 만들어지지 않을 뿐 아니라, 본문은 그대로 실행됩니다. 예제 5의 sloppy
+  mode에서는 `this`가 전역 객체라서 본문의 `this.title = title`이 전역 프로퍼티를 만들었습니다.
+  strict mode인 예제 6에서는 같은 줄이 TypeError를 던졌습니다.
+</Callout>
+
+<Callout type="misconception" title="함수라면 모두 new로 호출할 수 있다">
+  `typeof`가 `'function'`이어도 `[[Construct]]`가 없으면 `new`는 TypeError입니다. 예제 8의 메서드
+  축약 문법으로 만든 메서드와 `Math.max`가 그렇습니다. `[[Construct]]`는 코드에서 직접 볼 수
+  없으므로, 생성자인지는 함수를 만든 방식과 명세가 정한 바로 알 수 있습니다.
+</Callout>
+
+<Callout type="misconception" title="내장 생성자는 new를 빼면 항상 원시 값을 돌려준다">
+  내장 함수마다 명세가 `new` 유무에 따른 동작을 따로 정합니다. 예제 9에서 `String`은 `new`를 빼면
+  문자열이지만, `Object`는 `new`를 빼도 객체입니다. 이 페이지에서 다루지 않는 내장 생성자 중에는
+  `Map`처럼 `new` 없이 호출하면 TypeError인 것도, `Date`처럼 `new` 없이 호출하면 문자열을 돌려주는
+  것도 있습니다. 한 내장 생성자의 동작을 다른 내장 생성자에 적용하지 말고 각각의 명세를 확인해야
+  합니다.
+</Callout>

@@ -27,7 +27,7 @@
 | 2 | 블록 스코프: `var`와 `let`·`const` | 14·15 | 블록 안 `var`가 블록 밖에서도 보임, 선언 없는 대입의 암묵적 전역 | 스코프 상자 | `block-scope.md` | 완료(콘텐츠 검토 대기) |
 | 3 | TDZ: `let`은 호이스팅되지 않을까? | 15 | 선언 처리는 되지만 선언문 실행 전 참조는 ReferenceError | 선언 처리 → 실행 + "초기화 전" 상태 | `tdz.md` | 완료(콘텐츠 검토 대기) |
 | 4 | 프로퍼티 어트리뷰트와 접근자 | 16 | `writable: false`에 대입하면 sloppy는 무시·strict는 TypeError, getter는 값처럼 읽힘 | 프로퍼티 디스크립터 표 | `property-attributes.md` | 완료(콘텐츠 검토 대기) |
-| 5 | `new`가 하는 일 | 17 | 생성자에서 객체를 `return`하면 `this`는 버려짐, 원시 값 `return`은 무시 | `new` 단계 시뮬레이터 | - | 대기 |
+| 5 | `new` 연산자 | 17 | 생성자에서 객체를 `return`하면 `this`는 버려짐, 원시 값 `return`은 무시 | `new` 단계 시뮬레이터 | `new-operator.md` | 완료(콘텐츠 검토 대기) |
 | 6 | 프로토타입 체인 | 19 | 자기 프로퍼티가 없으면 프로토타입에서 찾음, `prototype`과 `[[Prototype]]`은 다름 | 체인 탐색 시뮬레이터 | - | 대기 |
 | 7 | 원시 값의 메서드 호출 | 21 | `'abc'.length`가 되는 이유, 원시 값에 넣은 프로퍼티는 남지 않음 | 표 + 퀴즈 | - | 대기 |
 | 8 | `this`는 호출 방식이 정한다 | 22 | 메서드를 꺼내 호출하면 `this`가 바뀜, `call`·`apply`·`bind`, 화살표 함수 | 호출 방식별 `this` 비교 | - | 대기 |
@@ -58,3 +58,5 @@
 - 2026-10-28: 3번 `tdz` 리뷰 완료, 커밋·배포. `reviewedAt`은 사용자 콘텐츠 검토 후 기록.
 - 2026-10-28: 4번 `property-attributes` 계획 승인·구현(사용자 결정: 객체 변경 방지 preventExtensions·seal·freeze를 이 페이지에 포함). category `objects`의 첫 개념이라 홈에 '객체와 프로토타입' 그룹이 생김. 추가 게시글 후보 없음.
 - 2026-10-28: 4번 `property-attributes` 리뷰·외부 글 리뷰 6건 반영 완료, 커밋·배포. `reviewedAt`은 사용자 콘텐츠 검토 후 기록.
+- 2026-10-28: 5번 `new-operator` 계획 승인·구현(사용자 결정: new 없이 호출·new.target·생성자가 아닌 함수·Object/String 내장 생성자 포함, `navigation.spec.ts` `객체` 검색 기대값 2→3). category `objects` 두 번째 개념. 추가 게시글 후보 없음.
+- 2026-10-29: 5번 `new-operator` 리뷰·외부 콘텐츠 검토 9건(2회) 반영 완료, 커밋.
