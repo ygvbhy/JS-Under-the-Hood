@@ -310,7 +310,7 @@
 
 ### 후속 작업
 
-- [ ] 사용자 콘텐츠 검토 후 `meta.ts`의 `reviewedAt` 기록
+- [x] 사용자 콘텐츠 검토 후 `meta.ts`의 `reviewedAt` 기록(2026-10-29)
 - [ ] (선택) 9절 기존 개념 역방향 연결(function-calls·new-operator·prototype-chain·primitive-methods의 "별도 개념(this)" 문구와 `related`)
 - [ ] 추가 게시글 후보 "전역 객체" — 9번 실행 컨텍스트 뒤 제안(globalThis와 global this value 구분 포함)
 
