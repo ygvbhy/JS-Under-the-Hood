@@ -33,6 +33,8 @@ import {
   EXECUTION_CONTEXT_SIMULATOR_NAME,
   CLOSURE_PATH,
   CLOSURE_SIMULATOR_NAME,
+  FOR_LET_PATH,
+  FOR_LET_SIMULATOR_NAME,
   SWITCH_PATH,
   SWITCH_SIMULATOR_NAME,
   TYPE_COERCION_PATH,
@@ -604,6 +606,39 @@ test('클로저 개념 페이지: 시뮬레이터를 끝까지 진행해도 가�
   }
 })
 
+test(`${FOR_LET_PATH}: 가로 스크롤이 없다`, async ({ page }) => {
+  await page.goto(FOR_LET_PATH)
+  await waitForHydration(page)
+  const { scrollWidth, innerWidth } = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    innerWidth: window.innerWidth,
+  }))
+  expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
+})
+
+test('for 문의 let 개념 페이지: 시뮬레이터를 끝까지 진행해도 가로 스크롤이 없다', async ({
+  page,
+}) => {
+  await page.goto(FOR_LET_PATH)
+  await waitForHydration(page)
+  const region = page.getByRole('region', { name: FOR_LET_SIMULATOR_NAME })
+  for (const scenario of [
+    'var: 함수들이 같은 i를 가리킴',
+    'let: 반복마다 새 레코드',
+    '새 바인딩은 본문 뒤, 증가식 앞',
+  ]) {
+    await region.getByRole('radio', { name: scenario, exact: true }).check()
+    const next = region.getByRole('button', { name: '다음' })
+    while (await next.isEnabled()) {
+      await next.click()
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - window.innerWidth,
+      )
+      expect(overflow).toBeLessThanOrEqual(0)
+    }
+  }
+})
+
 test(`${PRIMITIVE_METHODS_PATH}: 가로 스크롤이 없다`, async ({ page }) => {
   await page.goto(PRIMITIVE_METHODS_PATH)
   await waitForHydration(page)
@@ -634,7 +669,7 @@ for (const path of [CLOSURE_PATH, HOISTING_PATH]) {
 test('홈 학습 순서 보기: 가로 스크롤이 없다', async ({ page }) => {
   await page.goto('/?view=order')
   await waitForHydration(page)
-  await expect(page.getByRole('article')).toHaveCount(21)
+  await expect(page.getByRole('article')).toHaveCount(22)
   const { scrollWidth, innerWidth } = await page.evaluate(() => ({
     scrollWidth: document.documentElement.scrollWidth,
     innerWidth: window.innerWidth,

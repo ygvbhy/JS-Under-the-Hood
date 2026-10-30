@@ -35,6 +35,8 @@ import {
   EXECUTION_CONTEXT_SIMULATOR_NAME,
   CLOSURE_PATH,
   CLOSURE_SIMULATOR_NAME,
+  FOR_LET_PATH,
+  FOR_LET_SIMULATOR_NAME,
   SWITCH_PATH,
   SWITCH_SIMULATOR_NAME,
   TYPE_COERCION_PATH,
@@ -682,6 +684,48 @@ for (const colorScheme of ['light', 'dark'] as const) {
           exact: true,
         }),
       ).toBeVisible()
+      await expect(region.getByText('남아 있음', { exact: true }).first()).toBeVisible()
+    })
+
+    test('개념 페이지: for 문의 let', async ({ page }) => {
+      await page.goto(FOR_LET_PATH)
+      await waitForHydration(page)
+      await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
+      await expectNoSeriousViolations(page)
+    })
+
+    test('개념 페이지: for 문의 let 시뮬레이터를 진행한 뒤', async ({ page }) => {
+      test.slow() // 3개 시나리오의 모든 단계에서 axe를 돌린다
+      await page.goto(FOR_LET_PATH)
+      await waitForHydration(page)
+      const region = page.getByRole('region', { name: FOR_LET_SIMULATOR_NAME })
+      for (const scenario of [
+        'var: 함수들이 같은 i를 가리킴',
+        'let: 반복마다 새 레코드',
+        '새 바인딩은 본문 뒤, 증가식 앞',
+      ]) {
+        await region.getByRole('radio', { name: scenario, exact: true }).check()
+        const next = region.getByRole('button', { name: '다음' })
+        // 시나리오의 단계 수는 모두 19 이하이므로 마지막 단계까지 모든 단계를 검사한다.
+        for (let i = 0; i < 22 && (await next.isEnabled()); i++) {
+          await next.click()
+          await expectNoSeriousViolations(page)
+        }
+        await expect(next).toBeDisabled()
+      }
+    })
+
+    test('개념 페이지: for 문의 let 시뮬레이터 새 반복 레코드 단계에서 이전 레코드가 남아 있음을 보인다', async ({
+      page,
+    }) => {
+      await page.goto(FOR_LET_PATH)
+      await waitForHydration(page)
+      const region = page.getByRole('region', { name: FOR_LET_SIMULATOR_NAME })
+      const next = region.getByRole('button', { name: '다음' })
+
+      await region.getByRole('radio', { name: 'let: 반복마다 새 레코드', exact: true }).check()
+      for (let i = 0; i < 7; i++) await next.click()
+      await expect(region.getByText('단계 8: 새 반복 레코드', { exact: true })).toBeVisible()
       await expect(region.getByText('남아 있음', { exact: true }).first()).toBeVisible()
     })
 
