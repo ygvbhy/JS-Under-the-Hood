@@ -95,7 +95,7 @@ export const concept = {
   simplifications: [
     '실행 컨텍스트의 구성 요소 중 LexicalEnvironment와 VariableEnvironment만 그립니다. code evaluation state, Function, Realm, ScriptOrModule, PrivateEnvironment는 생략합니다.',
     '환경 레코드 카드는 명세의 Environment Record를 단순화한 것입니다. 바인딩의 변경 가능 여부(const), 함수 환경 레코드의 [[FunctionObject]]·[[NewTarget]] 등은 생략하고 this만 보입니다.',
-    'strict mode 함수는 LexicalEnvironment와 VariableEnvironment가 같은 레코드 하나를 가리킵니다. 이 페이지의 예제는 sloppy mode라 둘로 그립니다. 매개변수에 기본값이 있으면 레코드가 하나 더 생기지만 다루지 않습니다.',
+    'strict mode 함수는 LexicalEnvironment와 VariableEnvironment가 같은 레코드 하나를 가리킵니다. 이 페이지의 예제는 sloppy mode라 둘로 그립니다. 매개변수 목록에 기본값 같은 식이 있으면 레코드가 하나 더 생기지만 다루지 않습니다.',
     '함수가 끝나 어떤 실행 컨텍스트도 가리키지 않는 환경 레코드는 그림에서 지웁니다. 함수 객체가 그 레코드를 계속 가리키면 남는데, 이것은 클로저 개념에서 다룹니다.',
     '전역 객체 자체(globalThis와 빌트인 프로퍼티)는 별도 개념입니다. 객체 환경 레코드 칸에는 예제가 선언한 이름만 보입니다.',
     '예제 3은 클래식 스크립트 결과입니다. .mjs·"type": "module"(모듈)로 실행하면 최상위가 모듈 코드이고, CommonJS(.cjs)는 Node가 파일을 함수로 감싸 최상위가 함수 코드라서, 어느 쪽이든 var·함수 선언이 전역 객체의 프로퍼티가 되지 않습니다.',

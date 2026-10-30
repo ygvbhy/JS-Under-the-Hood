@@ -55,7 +55,7 @@ import { scenarios } from './scenarios'
 
 sloppy mode 함수는 여기에 레코드를 하나 더 만듭니다. 함수 본문 최상위의 `let`·`const`는 함수 환경 레코드가 아니라 별도의 선언적 환경 레코드에 담기고, 이 레코드의 `[[OuterEnv]]`가 함수 환경 레코드입니다. 그리고 `LexicalEnvironment`는 이 선언적 환경 레코드를 가리킵니다. 그러므로 sloppy 함수 안의 실행 컨텍스트에서는 `VariableEnvironment`가 함수 환경 레코드를, `LexicalEnvironment`가 그 안쪽의 선언적 환경 레코드를 가리킵니다. 함수 본문 안에서 선언한 함수 선언의 함수 객체도 이 선언적 환경 레코드를 `[[Environment]]`로 가집니다. 이 레코드가 분리된 이유를 명세는 NOTE로 설명합니다. sloppy 모드의 직접 `eval`이 `var` 선언과 본문 최상위 `let` 선언의 이름 충돌을 판단할 수 있게 하려는 것입니다. 실제로 sloppy 함수에서 `let x`가 있는 채로 직접 `eval('var x = 2')`를 하면 `SyntaxError`가 나고, strict 함수에서는 오류가 나지 않습니다. 이 페이지는 `eval`을 이 설명 말고는 다루지 않습니다.
 
-strict mode 함수는 이 레코드를 따로 만들지 않습니다. `LexicalEnvironment`와 `VariableEnvironment`가 같은 함수 환경 레코드 하나를 가리키고, 본문 최상위의 `let`·`const`도 거기에 담깁니다. 이 페이지의 예제는 sloppy 함수이고, 시뮬레이터도 레코드 둘로 그립니다. 매개변수에 기본값이 있으면 레코드가 하나 더 생기지만 다루지 않습니다.
+strict mode 함수는 이 레코드를 따로 만들지 않습니다. `LexicalEnvironment`와 `VariableEnvironment`가 같은 함수 환경 레코드 하나를 가리키고, 본문 최상위의 `let`·`const`도 거기에 담깁니다. 이 페이지의 예제는 sloppy 함수이고, 시뮬레이터도 레코드 둘로 그립니다. 매개변수 목록에 기본값 같은 식이 있으면 레코드가 하나 더 생기지만 다루지 않습니다.
 
 예제 5의 `outer('p')`를 부르면 함수 환경 레코드에 매개변수 `p`, `var v`, 함수 선언 `inner`가 담기고, 그 안쪽 선언적 환경 레코드에 `let l`이 담깁니다. `inner`는 이 안쪽 선언적 환경 레코드를 `[[Environment]]`로 가진 함수 객체이므로, `inner`를 부르면 그 함수 환경 레코드의 바깥은 `outer`의 선언적 환경 레코드이고 그 바깥이 `outer`의 함수 환경 레코드입니다. `inner`의 본문이 `p`, `v`, `l`을 읽으면 이 연결을 따라 `p`와 `v`는 `outer`의 함수 환경 레코드에서, `l`은 선언적 환경 레코드에서 찾아 `pvl`이 됩니다.
 
