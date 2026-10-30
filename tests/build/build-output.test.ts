@@ -697,3 +697,30 @@ describe('시뮬레이터 프리렌더 (execution-context)', () => {
     expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(1)
   })
 })
+
+// 열 번째 개념(closure)의 시뮬레이터와 퀴즈도 프리렌더 HTML에 정적으로 들어 있어야 한다.
+describe('시뮬레이터 프리렌더 (closure)', () => {
+  const html = read('concepts/closure/index.html')
+  const text = htmlToText(html)
+
+  it('단계 1(실행 전) 텍스트가 HTML에 있다', () => {
+    expect(text).toContain('단계 1: 실행 전')
+  })
+
+  it('시뮬레이터 region과 시나리오 선택 라디오 4개 이상이 있다', () => {
+    expect(html).toMatch(/role="region"[^>]*aria-label="클로저 시뮬레이터"/)
+    for (const label of [
+      '바깥 함수가 끝난 뒤에도 남는 환경',
+      '호출마다 새 환경',
+      '같은 호출의 함수들은 환경을 공유',
+      '값이 아니라 바인딩',
+    ]) {
+      expect(text).toContain(label)
+    }
+    expect(html.match(/type="radio"/g)?.length).toBeGreaterThanOrEqual(4)
+  })
+
+  it('퀴즈 정답이 <details>로 프리렌더된다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(1)
+  })
+})

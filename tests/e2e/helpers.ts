@@ -37,6 +37,8 @@ export const THIS_BINDING_PATH = '/concepts/this-binding'
 export const THIS_BINDING_SIMULATOR_NAME = 'this 결정 시뮬레이터'
 export const EXECUTION_CONTEXT_PATH = '/concepts/execution-context'
 export const EXECUTION_CONTEXT_SIMULATOR_NAME = '실행 컨텍스트 시뮬레이터'
+export const CLOSURE_PATH = '/concepts/closure'
+export const CLOSURE_SIMULATOR_NAME = '클로저 시뮬레이터'
 
 // 404 문서 자체를 받을 때 브라우저가 남기는 리소스 로드 로그. 앱 오류가 아니므로 무시한다.
 const IGNORED_404_LOG = /Failed to load resource: the server responded with a status of 404/
