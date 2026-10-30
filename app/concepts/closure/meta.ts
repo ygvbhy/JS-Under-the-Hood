@@ -147,5 +147,5 @@ export const concept = {
       url: 'https://developer.mozilla.org/ko/docs/Web/JavaScript/Guide/Functions',
     },
   ],
-  reviewedAt: null,
+  reviewedAt: '2026-10-30',
 } satisfies ConceptMeta
