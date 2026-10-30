@@ -137,37 +137,37 @@ export default function Home() {
           </p>
         </div>
 
-        {view === 'order' ? (
-          <section aria-labelledby="group-order" className="mt-8">
-            <h3 id="group-order" className="text-xl font-semibold">
-              학습 순서
-            </h3>
-            <ol className="mt-3 grid list-none gap-4 p-0">
-              {sortByOrder(results).map((concept) => (
-                <li key={concept.slug}>
-                  <ConceptCard concept={concept} position={rankBySlug.get(concept.slug)} />
-                </li>
-              ))}
-            </ol>
-          </section>
-        ) : (
-          groups.map((group) => (
-            <section
-              key={group.category}
-              aria-labelledby={`group-${group.category}`}
-              className="mt-8"
-            >
-              <h3 id={`group-${group.category}`} className="text-xl font-semibold">
-                {group.label}
-              </h3>
-              <div className="mt-3 grid gap-4">
-                {group.concepts.map((concept) => (
-                  <ConceptCard key={concept.slug} concept={concept} />
-                ))}
-              </div>
-            </section>
-          ))
-        )}
+        {view === 'order'
+          ? results.length > 0 && (
+              <section aria-labelledby="group-order" className="mt-8">
+                <h3 id="group-order" className="text-xl font-semibold">
+                  학습 순서
+                </h3>
+                <ol className="mt-3 grid list-none gap-4 p-0">
+                  {sortByOrder(results).map((concept) => (
+                    <li key={concept.slug}>
+                      <ConceptCard concept={concept} position={rankBySlug.get(concept.slug)} />
+                    </li>
+                  ))}
+                </ol>
+              </section>
+            )
+          : groups.map((group) => (
+              <section
+                key={group.category}
+                aria-labelledby={`group-${group.category}`}
+                className="mt-8"
+              >
+                <h3 id={`group-${group.category}`} className="text-xl font-semibold">
+                  {group.label}
+                </h3>
+                <div className="mt-3 grid gap-4">
+                  {group.concepts.map((concept) => (
+                    <ConceptCard key={concept.slug} concept={concept} />
+                  ))}
+                </div>
+              </section>
+            ))}
       </section>
     </div>
   )

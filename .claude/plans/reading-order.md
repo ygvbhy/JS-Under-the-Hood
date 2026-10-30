@@ -163,6 +163,10 @@
 - 이전/다음 링크 옆에 홈 학습 순서 보기로 가는 링크
 - 기존 개념 역방향 연결(사용자 결정: 나중에)
 
+## 변경 이력
+
+- 2026-10-30 (사용자 요청): 리뷰 Low ① 수정 — 순서 보기에서 검색 결과가 0건이면 학습 순서 섹션(h3·`<ol>`)을 그리지 않음, e2e 1개 추가 — 영향 단계 4·5
+
 ## 구현 진행
 
 - baseline (2026-10-30, `d0684b1`): lint 0 / format 통과 / typecheck 0 / test 2240 통과. test:build 161·e2e 305(skip 3)는 같은 코드의 직전 실행 결과 사용(이후 문서·`reviewedAt`만 바뀜)
@@ -174,6 +178,7 @@
 - [x] 5. e2e — navigation 3개(홈 전환·검색·뒤로 가기, `/?view=order` 직접 진입, 개념 페이지 하단 처음·마지막·중간), a11y(홈 순서 보기 axe 라이트·다크, 키보드 Space·Enter 전환), responsive(375px 홈 순서 보기, closure·hoisting 하단 nav). 서브에이전트 첫 실행에서 자기 단언 2건 실패(순위 span과 제목 사이 공백 가정) → 따로 비교하도록 수정
 - 전체 검증(메인 새 실행): lint·format·typecheck 통과, test 2293, test:build 182, e2e 325 passed(skip 3 기존, 이전 305 → +20)
 - 리뷰 1차(critical-code-review, 메인 직접): Critical·High 없음. Low 4(보고만): ① 순서 보기에서 검색 결과가 0건이면 h3 "학습 순서"와 빈 `<ol>`이 남음(분류별 보기는 아무것도 그리지 않음) ② 전환 버튼이 하이드레이션 뒤에 나타나 아래 내용이 한 줄 정도 밀림(하이드레이션 규칙상 의도) ③ `list-none`인 `<ol>`은 Safari VoiceOver에서 목록으로 안내되지 않을 수 있음(순위는 카드의 "n번째" 텍스트로 보임) ④ 카드 h4 안 "n번째"와 제목 사이에 텍스트 공백이 없어(간격은 flex gap) 텍스트 추출 시 붙어 나옴
+- 리뷰 Low ① 수정(2026-10-30, 사용자 요청, 메인 직접 — 조건 한 줄): `home.tsx` 순서 보기를 `results.length > 0 &&`로 감쌈(prettier가 삼항식 들여쓰기를 다시 맞춰 diff가 큼), navigation e2e "학습 순서 보기에서 결과가 없으면 학습 순서 목록을 그리지 않는다"(`/?view=order&q=zzz`: 버튼 눌림·결과 없음 문구·h3 0·main 안 `ol` 0). 검증: lint·format·typecheck 통과, test 2293, test:build 182, e2e 1차 273 passed — 실행 중 Playwright 웹 서버(4173)가 종료되어 모바일 54건 `ERR_CONNECTION_REFUSED`(같은 시각 4175 미리보기 serve도 종료, 코드 무관) → 재실행 327 passed(skip 3 기존, +2 = 새 테스트 데스크톱·모바일)
 
 ## 구현 결과
 
@@ -190,9 +195,9 @@
 
 ### 후속 작업
 
-- [ ] (선택) 리뷰 Low ① 순서 보기에서 검색 결과가 0건이면 목록 섹션을 그리지 않기
+- [x] (선택) 리뷰 Low ① 순서 보기에서 검색 결과가 0건이면 목록 섹션을 그리지 않기(2026-10-30 수정)
 - [ ] (추가 개선 후보) 소개 페이지 학습 순서 안내, 이전/다음 옆 홈 순서 보기 링크
-- [ ] execution-context `reviewedAt` 갱신 여부 사용자 확인(2026-10-30 본문 수정, content-guide 규칙)
+- [x] execution-context `reviewedAt` 갱신 여부 사용자 확인 — 사용자 결정(2026-10-30): 바꾸지 않음
 
 ### 이해 확인
 

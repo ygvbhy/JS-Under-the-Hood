@@ -123,6 +123,20 @@ test.describe('내비게이션', () => {
     expect(errors.messages).toEqual([])
   })
 
+  test('학습 순서 보기에서 결과가 없으면 학습 순서 목록을 그리지 않는다', async ({ page }) => {
+    const errors = collectConsoleErrors(page)
+    await page.goto('/?view=order&q=zzz')
+    await waitForHydration(page)
+
+    await expect(
+      page.getByRole('group', { name: '보기 방식' }).getByRole('button', { name: '학습 순서' }),
+    ).toHaveAttribute('aria-pressed', 'true')
+    await expect(page.getByText('‘zzz’에 맞는 개념이 없습니다.')).toBeVisible()
+    await expect(page.getByRole('heading', { level: 3, name: '학습 순서' })).toHaveCount(0)
+    await expect(page.getByRole('main').locator('ol')).toHaveCount(0)
+    expect(errors.messages).toEqual([])
+  })
+
   test('개념 페이지 하단: 처음·마지막 개념은 한쪽 링크만 있고 중간 개념은 다음으로 이동한다', async ({
     page,
   }) => {
