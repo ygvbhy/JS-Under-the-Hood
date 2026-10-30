@@ -1,10 +1,13 @@
 import { Link } from 'react-router'
 import type { ConceptMeta } from '~/lib/concepts'
 
-export function ConceptCard({ concept }: { concept: ConceptMeta }) {
+export function ConceptCard({ concept, position }: { concept: ConceptMeta; position?: number }) {
   return (
     <article className="border-border bg-surface rounded-lg border p-4">
       <h4 className="flex flex-wrap items-center gap-x-3 gap-y-1 text-lg leading-snug font-semibold">
+        {position !== undefined && (
+          <span className="text-muted text-sm font-medium">{position}번째</span>
+        )}
         <Link to={`/concepts/${concept.slug}`} className="text-accent underline underline-offset-4">
           {concept.title}
         </Link>

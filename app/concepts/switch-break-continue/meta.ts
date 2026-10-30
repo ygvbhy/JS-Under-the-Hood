@@ -6,6 +6,7 @@ export const concept = {
   summary:
     'switch는 ===로 일치하는 case부터 아래로 이어서 실행하고 break를 만나야 멈춥니다. break는 가장 가까운 반복문이나 switch를 끝내고, continue는 가장 가까운 반복문의 다음 반복으로 넘어갑니다. 실행 위치가 어디로 옮겨 가는지 단계별로 따라갑니다.',
   category: 'fundamentals',
+  order: 80,
   tags: [
     'switch',
     'case',

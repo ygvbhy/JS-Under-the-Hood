@@ -6,6 +6,7 @@ export const concept = {
   summary:
     '객체에 없는 프로퍼티는 [[Prototype]]이 가리키는 객체에서 이어 찾고 null에서 끝납니다. prototype 프로퍼티와 [[Prototype]]은 다릅니다. 대입은 보통 그 객체에 자기 프로퍼티를 만들지만, 상속된 읽기 전용 프로퍼티나 setter가 있으면 달라집니다.',
   category: 'objects',
+  order: 170,
   tags: [
     '프로토타입',
     'prototype',

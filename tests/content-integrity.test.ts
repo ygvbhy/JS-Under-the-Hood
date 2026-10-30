@@ -36,6 +36,15 @@ describe('개념 폴더', () => {
     expect(concepts.map((c) => c.slug).sort()).toEqual([...slugs].sort())
   })
 
+  it('order에 중복이 없다', () => {
+    const owners = new Map<number, string>()
+    for (const { folder, concept } of entries) {
+      const other = owners.get(concept.order)
+      expect(other, `order ${concept.order}가 ${other}와 ${folder}에서 중복됩니다`).toBeUndefined()
+      owners.set(concept.order, folder)
+    }
+  })
+
   it.each(folders)('%s 폴더에 meta.ts, content.mdx, route.tsx가 있다', (folder) => {
     for (const file of ['meta.ts', 'content.mdx', 'route.tsx']) {
       expect(existsSync(join(conceptsDir, folder, file)), `${folder}/${file} 누락`).toBe(true)
@@ -71,6 +80,23 @@ describe.each(entries)('$folder', ({ folder, concept }) => {
       if (p.slug === undefined) continue
       expect(p.slug, `선행 개념 "${p.label}"은 자기 자신일 수 없습니다`).not.toBe(concept.slug)
       expect(slugs.has(p.slug), `선행 개념 slug "${p.slug}"가 존재하지 않습니다`).toBe(true)
+    }
+  })
+
+  it('order가 양의 정수다', () => {
+    expect(Number.isInteger(concept.order), `order는 정수여야 합니다: ${concept.order}`).toBe(true)
+    expect(concept.order, `order는 양수여야 합니다: ${concept.order}`).toBeGreaterThan(0)
+  })
+
+  it('order가 slug 있는 선수 개념의 order보다 크다', () => {
+    for (const p of concept.prerequisites) {
+      if (p.slug === undefined) continue
+      const pre = concepts.find((c) => c.slug === p.slug)
+      if (!pre) continue // 존재 검사는 선행 개념 테스트가 맡는다
+      expect(
+        concept.order,
+        `선수 개념 "${p.slug}"(order ${pre.order})보다 order(${concept.order})가 커야 합니다`,
+      ).toBeGreaterThan(pre.order)
     }
   })
 

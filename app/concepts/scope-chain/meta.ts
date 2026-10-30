@@ -6,6 +6,7 @@ export const concept = {
   summary:
     '변수 이름을 만나면 지금 스코프부터 바깥 스코프로 차례로 찾아 올라갑니다. 함수의 바깥 스코프는 함수를 호출한 곳이 아니라 정의한 곳으로 정해지고, 안쪽 스코프에 같은 이름이 있으면 바깥 변수는 가려집니다.',
   category: 'execution',
+  order: 120,
   tags: [
     '스코프',
     'scope',

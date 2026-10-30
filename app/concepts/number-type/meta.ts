@@ -6,6 +6,7 @@ export const concept = {
   summary:
     '자바스크립트의 숫자는 정수와 실수를 가리지 않고 모두 64비트 부동소수점 값입니다. 십진 소수와 아주 큰 정수는 가장 가까운 값으로 반올림되어 저장되므로 0.1 + 0.2가 0.3과 다르고, 0으로 나누면 오류 대신 Infinity가 됩니다.',
   category: 'fundamentals',
+  order: 50,
   tags: [
     '숫자 타입',
     'number',

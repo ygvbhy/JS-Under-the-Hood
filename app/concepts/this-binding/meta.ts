@@ -6,6 +6,7 @@ export const concept = {
   summary:
     'this는 함수를 정의한 곳이 아니라 호출 방식이 정합니다. 메서드로 부르면 점(대괄호) 앞의 객체, 꺼내 부르면 sloppy는 전역 객체·strict는 undefined입니다. call·apply·bind로 정하고 화살표 함수는 바깥 this를 씁니다.',
   category: 'objects',
+  order: 190,
   tags: [
     'this',
     '메서드 호출',

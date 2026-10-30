@@ -6,6 +6,7 @@ export const concept = {
   summary:
     '함수를 호출하면 인수를 왼쪽부터 모두 평가한 뒤 매개변수에 차례로 넣고 본문을 실행합니다. 모자란 매개변수는 undefined(기본값이 있으면 기본값)가 되고 남는 인수는 매개변수에 들어가지 않으며, return이 없으면 호출 결과는 undefined입니다.',
   category: 'fundamentals',
+  order: 100,
   tags: [
     '함수',
     '함수 호출',

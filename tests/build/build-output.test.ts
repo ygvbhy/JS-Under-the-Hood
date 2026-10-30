@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { listConcepts } from '~/lib/concepts'
+import { listConcepts, sortByOrder } from '~/lib/concepts'
 import { OG_IMAGE_HEIGHT, OG_IMAGE_URL, OG_IMAGE_WIDTH } from '~/lib/seo'
 import { SITE_NAME, SITE_URL } from '~/lib/site'
 
@@ -722,5 +722,26 @@ describe('시뮬레이터 프리렌더 (closure)', () => {
 
   it('퀴즈 정답이 <details>로 프리렌더된다', () => {
     expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(1)
+  })
+})
+
+// 학습 순서 이전/다음: 관련 개념 링크와 섞이지 않도록 nav 영역만 잘라 검사한다.
+describe('학습 순서 pager', () => {
+  const ordered = sortByOrder(concepts)
+  const navHtml = (slug: string) => {
+    const html = read(`concepts/${slug}/index.html`)
+    const start = html.indexOf('<nav aria-label="학습 순서"')
+    expect(start).toBeGreaterThanOrEqual(0)
+    return html.slice(start, html.indexOf('</nav>', start))
+  }
+  const hrefs = (nav: string) => [...nav.matchAll(/href="([^"]+)"/g)].map((m) => m[1])
+
+  it.each(ordered.map((c, i) => [c.slug, i] as const))('%s', (slug, i) => {
+    const nav = navHtml(slug)
+    expect(nav).toContain(`학습 순서 <!-- -->${i + 1}<!-- --> / <!-- -->${ordered.length}`)
+    const expected = [ordered[i - 1], ordered[i + 1]]
+      .filter((c) => c !== undefined)
+      .map((c) => `/concepts/${c.slug}`)
+    expect(hrefs(nav)).toEqual(expected)
   })
 })

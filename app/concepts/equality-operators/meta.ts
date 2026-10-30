@@ -6,6 +6,7 @@ export const concept = {
   summary:
     "===는 타입이 다르면 바로 false이고, ==는 타입이 다르면 정해진 규칙에 따라 값을 바꾼 뒤 다시 비교합니다. 규칙을 알면 0 == ''가 true인데 '0' == ''는 false이고 NaN === NaN이 false인 이유를 설명할 수 있습니다.",
   category: 'fundamentals',
+  order: 40,
   tags: [
     '동등 비교',
     '일치 비교',

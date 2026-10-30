@@ -6,6 +6,7 @@ export const concept = {
   summary:
     "typeof는 값의 타입을 문자열로 돌려줍니다. 대부분 명세의 타입 이름과 같지만 null은 'object', 함수는 'function'이 되고, 선언하지 않은 식별자에는 오류 대신 'undefined'를 돌려줍니다.",
   category: 'fundamentals',
+  order: 60,
   tags: [
     'typeof',
     '타입 확인',

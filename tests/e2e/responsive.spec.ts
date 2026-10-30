@@ -613,3 +613,31 @@ test(`${PRIMITIVE_METHODS_PATH}: 가로 스크롤이 없다`, async ({ page }) =
   }))
   expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
 })
+
+// 문서 전체(scrollWidth)를 보므로 개념 페이지 하단의 학습 순서 이전/다음 영역도 함께 검사된다.
+// 제목이 긴 개념(closure, hoisting)에서 하단 내비게이션이 보이는 상태로 확인한다.
+for (const path of [CLOSURE_PATH, HOISTING_PATH]) {
+  test(`${path}: 하단 학습 순서 내비게이션이 있어도 가로 스크롤이 없다`, async ({ page }) => {
+    await page.goto(path)
+    await waitForHydration(page)
+    const pager = page.getByRole('navigation', { name: '학습 순서' })
+    await pager.scrollIntoViewIfNeeded()
+    await expect(pager).toBeVisible()
+    const { scrollWidth, innerWidth } = await page.evaluate(() => ({
+      scrollWidth: document.documentElement.scrollWidth,
+      innerWidth: window.innerWidth,
+    }))
+    expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
+  })
+}
+
+test('홈 학습 순서 보기: 가로 스크롤이 없다', async ({ page }) => {
+  await page.goto('/?view=order')
+  await waitForHydration(page)
+  await expect(page.getByRole('article')).toHaveCount(21)
+  const { scrollWidth, innerWidth } = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    innerWidth: window.innerWidth,
+  }))
+  expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
+})

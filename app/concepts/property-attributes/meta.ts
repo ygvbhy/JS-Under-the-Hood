@@ -6,6 +6,7 @@ export const concept = {
   summary:
     '프로퍼티에는 값 말고도 쓰기·나열·재정의 가능 여부를 정하는 어트리뷰트가 있습니다. writable이 false면 대입이 sloppy mode에서는 무시되고 strict mode에서는 TypeError입니다. getter는 읽을 때마다 호출되고, freeze는 얕게 적용됩니다.',
   category: 'objects',
+  order: 150,
   tags: [
     '프로퍼티 어트리뷰트',
     '디스크립터',

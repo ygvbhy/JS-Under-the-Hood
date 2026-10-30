@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { filterConcepts, getConcept, listConcepts, type ConceptMeta } from './concepts'
+import {
+  filterConcepts,
+  getAdjacentConcepts,
+  getConcept,
+  listConcepts,
+  sortByOrder,
+  type ConceptMeta,
+} from './concepts'
 
 function stub(overrides: Partial<ConceptMeta>): ConceptMeta {
   return {
@@ -7,6 +14,7 @@ function stub(overrides: Partial<ConceptMeta>): ConceptMeta {
     title: '제목',
     summary: '요약',
     category: 'fundamentals',
+    order: 10,
     tags: [],
     goals: ['목표'],
     prerequisites: [],
@@ -71,5 +79,49 @@ describe('listConcepts / getConcept', () => {
 
   it('없는 슬러그는 오류를 던진다', () => {
     expect(() => getConcept('no-such-concept')).toThrow('개념을 찾을 수 없습니다: no-such-concept')
+  })
+})
+
+describe('sortByOrder', () => {
+  it('order 오름차순으로 정렬한 새 배열을 돌려주고 입력 배열은 바꾸지 않는다', () => {
+    const a = stub({ slug: 'a', order: 30 })
+    const b = stub({ slug: 'b', order: 10 })
+    const c = stub({ slug: 'c', order: 20 })
+    const input = [a, b, c]
+    const sorted = sortByOrder(input)
+    expect(sorted.map((x) => x.slug)).toEqual(['b', 'c', 'a'])
+    expect(sorted).not.toBe(input)
+    expect(input.map((x) => x.slug)).toEqual(['a', 'b', 'c'])
+  })
+})
+
+describe('getAdjacentConcepts', () => {
+  it('첫 개념은 이전이 없고 position은 1이다', () => {
+    const adj = getAdjacentConcepts('primitives-and-objects')
+    expect(adj.prev).toBeNull()
+    expect(adj.next?.slug).toBe('short-circuit-evaluation')
+    expect(adj.position).toBe(1)
+    expect(adj.total).toBe(21)
+  })
+
+  it('마지막 개념은 다음이 없다', () => {
+    const adj = getAdjacentConcepts('closure')
+    expect(adj.prev?.slug).toBe('execution-context')
+    expect(adj.next).toBeNull()
+    expect(adj.position).toBe(21)
+    expect(adj.total).toBe(21)
+  })
+
+  it('중간 개념은 앞뒤 개념을 돌려준다', () => {
+    const adj = getAdjacentConcepts('hoisting')
+    expect(adj.prev?.slug).toBe('function-calls')
+    expect(adj.next?.slug).toBe('scope-chain')
+    expect(adj.position).toBe(11)
+  })
+
+  it('없는 슬러그는 오류를 던진다', () => {
+    expect(() => getAdjacentConcepts('no-such-concept')).toThrow(
+      '개념을 찾을 수 없습니다: no-such-concept',
+    )
   })
 })

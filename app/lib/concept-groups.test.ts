@@ -8,6 +8,7 @@ function fake(slug: string, category: ConceptCategory): ConceptMeta {
     title: slug,
     summary: '',
     category,
+    order: 10,
     tags: [],
     goals: [],
     prerequisites: [],

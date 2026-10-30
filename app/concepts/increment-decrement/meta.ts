@@ -6,6 +6,7 @@ export const concept = {
   summary:
     'x++와 ++x는 둘 다 변수의 값을 1 늘리지만 식의 값이 다릅니다. 후위는 늘리기 전 값, 전위는 늘린 뒤 값이 됩니다. 대입 식도 값을 가지며, 값이 바뀌는 시점을 알면 x = x++의 결과를 설명할 수 있습니다.',
   category: 'fundamentals',
+  order: 70,
   tags: [
     '증감 연산자',
     '증가 연산자',

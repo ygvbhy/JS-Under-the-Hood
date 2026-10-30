@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { CATEGORY_LABELS, type ConceptMeta } from '~/lib/concepts'
+import { ConceptPager } from './ConceptPager'
 import { PrerequisiteList } from './PrerequisiteList'
 import { References } from './References'
 import { RelatedConcepts } from './RelatedConcepts'
@@ -56,6 +57,7 @@ export function ConceptLayout({
       <SimplificationNote simplifications={concept.simplifications} />
       <RelatedConcepts slugs={concept.related} />
       <References references={concept.references} />
+      <ConceptPager slug={concept.slug} />
     </article>
   )
 }

@@ -6,6 +6,7 @@ export const concept = {
   summary:
     '함수는 만들어질 때의 환경 레코드를 [[Environment]]로 가리켜, 바깥 함수가 끝나도 그 변수를 읽고 바꿉니다. 호출마다 새 환경이 생기고 같은 호출의 함수들은 환경을 공유합니다.',
   category: 'execution',
+  order: 210,
   tags: [
     '클로저',
     'closure',

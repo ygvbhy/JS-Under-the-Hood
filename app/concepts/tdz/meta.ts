@@ -6,6 +6,7 @@ export const concept = {
   summary:
     'let·const 이름은 스코프에 들어갈 때 미리 만들어지지만 선언문을 실행하기 전까지는 초기화 전이라, 그 사이에 읽거나 대입하면 ReferenceError입니다. typeof도 예외가 아니며, var처럼 undefined가 나오지 않습니다.',
   category: 'execution',
+  order: 140,
   tags: [
     'TDZ',
     'temporal dead zone',

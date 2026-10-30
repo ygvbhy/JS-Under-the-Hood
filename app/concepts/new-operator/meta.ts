@@ -6,6 +6,7 @@ export const concept = {
   summary:
     'new는 새 객체를 만들어 this로 연결하고 본문을 실행한 뒤 그 객체를 돌려줍니다. 생성자가 객체를 return하면 그 객체가 결과이고 원시 값 return은 무시됩니다. new 없이 호출하면 새 객체가 생기지 않습니다.',
   category: 'objects',
+  order: 160,
   tags: [
     'new',
     '생성자 함수',

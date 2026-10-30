@@ -6,6 +6,7 @@ export const concept = {
   summary:
     '원시 값은 객체가 아니지만 프로퍼티를 읽으면 명세가 래퍼 객체를 거쳐 프로토타입의 메서드를 찾습니다. 원시 값에 대입한 프로퍼티는 생기지 않고, null·undefined는 래퍼가 없어 TypeError입니다.',
   category: 'objects',
+  order: 180,
   tags: [
     '원시 값',
     '래퍼 객체',

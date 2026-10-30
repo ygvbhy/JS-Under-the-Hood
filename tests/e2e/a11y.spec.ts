@@ -80,6 +80,13 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await expectNoSeriousViolations(page)
     })
 
+    test('홈: 학습 순서 보기', async ({ page }) => {
+      await page.goto('/?view=order')
+      await waitForHydration(page)
+      await expect(page.getByRole('heading', { level: 3, name: '학습 순서' })).toBeVisible()
+      await expectNoSeriousViolations(page)
+    })
+
     test('개념 페이지', async ({ page }) => {
       await page.goto(CONCEPT_PATH)
       await waitForHydration(page)
@@ -706,6 +713,37 @@ for (const colorScheme of ['light', 'dark'] as const) {
     })
   })
 }
+
+test.describe('홈: 보기 방식 키보드 조작', () => {
+  for (const key of ['Space', 'Enter']) {
+    test(`Tab으로 버튼에 도달해 ${key} 키로 전환한다`, async ({ page }) => {
+      await page.goto('/')
+      await waitForHydration(page)
+      const group = page.getByRole('group', { name: '보기 방식' })
+      const category = group.getByRole('button', { name: '분류별' })
+      const order = group.getByRole('button', { name: '학습 순서' })
+
+      await page.getByRole('searchbox', { name: '개념 검색' }).focus()
+      await page.keyboard.press('Tab')
+      await expect(category).toBeFocused()
+      await page.keyboard.press('Tab')
+      await expect(order).toBeFocused()
+      await expect(order).toHaveAttribute('aria-pressed', 'false')
+
+      await page.keyboard.press(key)
+      await expect(order).toHaveAttribute('aria-pressed', 'true')
+      await expect(category).toHaveAttribute('aria-pressed', 'false')
+      await expect(page).toHaveURL(/\?view=order$/)
+
+      await page.keyboard.press('Shift+Tab')
+      await expect(category).toBeFocused()
+      await page.keyboard.press(key)
+      await expect(category).toHaveAttribute('aria-pressed', 'true')
+      await expect(order).toHaveAttribute('aria-pressed', 'false')
+      expect(new URL(page.url()).searchParams.has('view')).toBe(false)
+    })
+  }
+})
 
 test.describe('axe (기본 색상 모드)', () => {
   test('소개', async ({ page }) => {

@@ -5,6 +5,7 @@ export type ConceptMeta = {
   title: string
   summary: string // 카드·meta description, ≤160자 (테스트)
   category: ConceptCategory
+  order: number // 학습 순서(양의 정수). 10 간격, slug 있는 선수 개념보다 커야 함 (테스트)
   tags: string[]
   goals: string[] // ≥1
   prerequisites: { label: string; slug?: string }[] // slug 있으면 존재 검사, 자기 자신 금지
@@ -37,6 +38,27 @@ const registry: ConceptMeta[] = Object.values(modules).map((m) => m.concept)
 
 export function listConcepts(): ConceptMeta[] {
   return [...registry].sort((a, b) => a.title.localeCompare(b.title, 'ko'))
+}
+
+export function sortByOrder(concepts: ConceptMeta[]): ConceptMeta[] {
+  return [...concepts].sort((a, b) => a.order - b.order)
+}
+
+export function getAdjacentConcepts(slug: string): {
+  prev: ConceptMeta | null
+  next: ConceptMeta | null
+  position: number
+  total: number
+} {
+  const sorted = sortByOrder(registry)
+  const index = sorted.findIndex((c) => c.slug === slug)
+  if (index === -1) throw new Error(`개념을 찾을 수 없습니다: ${slug}`)
+  return {
+    prev: sorted[index - 1] ?? null,
+    next: sorted[index + 1] ?? null,
+    position: index + 1,
+    total: sorted.length,
+  }
 }
 
 export function getConcept(slug: string): ConceptMeta {

@@ -69,6 +69,7 @@ const sample: ConceptMeta = {
   title: '예시 && 개념',
   summary: '예시 요약',
   category: 'fundamentals',
+  order: 10,
   tags: [],
   goals: ['목표'],
   prerequisites: [],

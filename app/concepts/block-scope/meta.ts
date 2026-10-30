@@ -6,6 +6,7 @@ export const concept = {
   summary:
     '블록 안에서 var로 선언한 변수는 블록 밖에서도 보이지만 let·const는 블록 안에서만 보입니다. strict mode가 아닐 때 선언 없이 대입하면 암묵적 전역이 생기고, let·const의 중복 선언과 const 재할당은 오류입니다.',
   category: 'execution',
+  order: 130,
   tags: [
     '블록 스코프',
     'block scope',

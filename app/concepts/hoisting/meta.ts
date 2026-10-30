@@ -6,6 +6,7 @@ export const concept = {
   summary:
     '자바스크립트는 코드를 실행하기 전에 선언을 먼저 처리합니다. 그래서 var 변수는 대입 전에 읽으면 undefined이고(같은 이름의 함수 선언이 없다면), 함수 선언은 선언문보다 먼저 호출할 수 있지만, var에 담은 함수 표현식을 미리 호출하면 TypeError입니다.',
   category: 'execution',
+  order: 110,
   tags: [
     '호이스팅',
     'hoisting',

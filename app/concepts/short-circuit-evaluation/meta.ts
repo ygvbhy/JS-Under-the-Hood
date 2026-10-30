@@ -6,6 +6,7 @@ export const concept = {
   summary:
     '&&, ||, ??는 왼쪽 값을 보고 오른쪽을 평가할지 정하고 피연산자의 값을 그대로 돌려줍니다. ?.는 왼쪽이 null이나 undefined면 나머지를 평가하지 않고 undefined를 돌려줍니다.',
   category: 'fundamentals',
+  order: 20,
   tags: [
     '단축 평가',
     'short-circuit',
