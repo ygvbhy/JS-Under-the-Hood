@@ -659,6 +659,22 @@ describe('프리렌더 (global-object)', () => {
   })
 })
 
+// 추가 게시글(iife-module-pattern)은 시뮬레이터 없이 표와 퀴즈로 구성된다. 둘 다 프리렌더 HTML에 있어야 한다.
+describe('프리렌더 (iife-module-pattern)', () => {
+  const html = read('concepts/iife-module-pattern/index.html')
+  const text = htmlToText(html)
+
+  it('퀴즈 정답이 <details>로 8개 이상 프리렌더된다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(8)
+  })
+
+  it('표와 본문 용어가 있다', () => {
+    expect(text).toContain('네임스페이스 객체')
+    expect(text).toContain('모듈 패턴')
+    expect(text).toContain('ES 모듈')
+  })
+})
+
 // 여덟 번째 개념(this-binding)의 시뮬레이터와 퀴즈도 프리렌더 HTML에 정적으로 들어 있어야 한다.
 describe('시뮬레이터 프리렌더 (this-binding)', () => {
   const html = read('concepts/this-binding/index.html')

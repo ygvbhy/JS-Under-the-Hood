@@ -38,6 +38,7 @@ import {
   FOR_LET_PATH,
   FOR_LET_SIMULATOR_NAME,
   GLOBAL_OBJECT_PATH,
+  IIFE_MODULE_PATTERN_PATH,
   SWITCH_PATH,
   SWITCH_SIMULATOR_NAME,
   TYPE_COERCION_PATH,
@@ -537,6 +538,13 @@ for (const colorScheme of ['light', 'dark'] as const) {
 
     test('개념 페이지: 전역 객체', async ({ page }) => {
       await page.goto(GLOBAL_OBJECT_PATH)
+      await waitForHydration(page)
+      await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
+      await expectNoSeriousViolations(page)
+    })
+
+    test('개념 페이지: 즉시 실행 함수와 모듈 패턴', async ({ page }) => {
+      await page.goto(IIFE_MODULE_PATTERN_PATH)
       await waitForHydration(page)
       await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
       await expectNoSeriousViolations(page)
