@@ -235,7 +235,7 @@
 - critical-code-review: Critical·High 0, Low 2(목표 2 문구, MDN en-US 링크)는 보고만. 외부 검수 지적은 모두 실행·명세로 확인 후 반영.
 
 ### 후속 작업
-- [ ] 사용자 콘텐츠 검토 후 `reviewedAt` 기록(현재 `null`)
+- [x] 사용자 콘텐츠 검토 후 `reviewedAt` 기록(2026-10-30 사용자 승인, `reviewedAt: '2026-10-30'`)
 - [ ] 반복문의 var 문제를 IIFE로 푸는 방법(9절 후보, 사용자 확인 대기)
 - [ ] closure·for-let의 "즉시 실행 함수…별도 개념" 문구를 이 페이지 링크로 바꾸기(역방향 연결 일괄 처리 때)
 

@@ -217,5 +217,5 @@ export const concept = {
       url: 'https://developer.mozilla.org/ko/docs/Web/JavaScript/Reference/Global_Objects/encodeURIComponent',
     },
   ],
-  reviewedAt: null,
+  reviewedAt: '2026-10-30',
 } satisfies ConceptMeta

@@ -154,5 +154,5 @@ export const concept = {
       url: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes/Public_class_fields',
     },
   ],
-  reviewedAt: null,
+  reviewedAt: '2026-10-30',
 } satisfies ConceptMeta

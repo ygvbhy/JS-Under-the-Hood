@@ -83,3 +83,4 @@
 - 2026-10-30: 추가 게시글 `global-object` 리뷰·외부 콘텐츠 검토 2회(10건·4건) 반영 완료, 커밋. `reviewedAt`은 사용자 콘텐츠 검토 후 기록.
 - 2026-10-30: 추가 게시글 '즉시 실행 함수와 모듈 패턴'(`iife-module-pattern`, order 215, category `execution`) 계획 승인·구현(사용자 결정: IIFE 문법 상세·네임스페이스 객체·ES6 이후 대안(블록·부록 B)·모듈 공개 객체의 변경 포함, 표 + 퀴즈).
 - 2026-10-30: 추가 게시글 `iife-module-pattern` 리뷰·외부 콘텐츠 검토 2회(8건·3건) 반영 완료, 커밋. `reviewedAt`은 사용자 콘텐츠 검토 후 기록. 13~24장 로드맵의 추가 게시글 후보 모두 완료.
+- 2026-10-30: 사용자 콘텐츠 검토 승인 — 추가 게시글 `for-let`·`global-object`·`iife-module-pattern`의 `reviewedAt`을 2026-10-30으로 기록.
