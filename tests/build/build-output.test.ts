@@ -69,7 +69,7 @@ describe('개념 상세 HTML', () => {
       expect(text).toContain(heading)
     }
     // ConceptLayout이 메타데이터로 그리는 섹션 (선행 개념은 prerequisites가 있는 개념만)
-    const sections = ['학습 목표', '이 시각화에서 단순화한 부분', '참고 자료']
+    const sections = ['학습 목표', '이 글에서 단순화한 부분', '참고 자료']
     if (concept.prerequisites.length > 0) sections.push('선행 개념')
     for (const heading of sections) {
       expect(html).toMatch(new RegExp(`<h2[^>]*>${heading}</h2>`))
