@@ -41,6 +41,7 @@ export const CLOSURE_PATH = '/concepts/closure'
 export const CLOSURE_SIMULATOR_NAME = '클로저 시뮬레이터'
 export const FOR_LET_PATH = '/concepts/for-let'
 export const FOR_LET_SIMULATOR_NAME = 'for 문의 let 시뮬레이터'
+export const GLOBAL_OBJECT_PATH = '/concepts/global-object'
 
 // 404 문서 자체를 받을 때 브라우저가 남기는 리소스 로드 로그. 앱 오류가 아니므로 무시한다.
 const IGNORED_404_LOG = /Failed to load resource: the server responded with a status of 404/
