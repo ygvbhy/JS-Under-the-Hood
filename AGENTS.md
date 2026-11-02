@@ -101,6 +101,14 @@ vercel.json, serve.json          # 배포 설정, 로컬 정적 서빙 설정
 npm run lint && npm run format:check && npm run typecheck && npm test && npm run test:build && npm run e2e
 ```
 
+e2e 범위: 새 개념 폴더만 추가하고 공통 코드(`app/components/`, `app/simulator/`, `app/lib/`, `app/routes/`, `app/root.tsx`, `app/routes.ts`, `app/app.css`, 설정)를 바꾸지 않았으면 전체 `npm run e2e` 대신 새 페이지 관련 e2e만 실행한다. `navigation.spec.ts`는 개념 개수·마지막 개념·이전/다음을 고정하고 있어 새 개념마다 바뀌므로 함께 실행한다. `<slug>`와 `<a11y 케이스 이름>`(예: `화살표 함수와 메서드 축약`)은 새 개념에 맞춘다.
+
+```bash
+npx playwright test tests/e2e/navigation.spec.ts && npx playwright test -g "<slug>|<a11y 케이스 이름>|홈 학습 순서 보기"
+```
+
+공통 코드를 바꿨거나 영향 범위가 애매하면 전체 `npm run e2e`를 실행한다.
+
 최초 1회 `npx playwright install chromium`이 필요하다.
 
 ## 배포
