@@ -25,7 +25,7 @@
 | # | 개념 (가제) | 장 | 핵심 오해 포인트 (vm으로 확인한 결과) | 시각화 (안) | 상태 |
 | - | - | - | - | - | - |
 | 1 | 클래스는 함수다 | 25 | `typeof` 결과가 `'function'`. 선언 전에 쓰면 ReferenceError(TDZ). `new` 없이 부르면 TypeError. 본문은 항상 strict이고 메서드는 열거되지 않음 | 표 + 퀴즈 | 완료(`class-basics.md`) |
-| 2 | 클래스 상속과 super | 25 | 파생 클래스 생성자에서 `super()` 전에 `this`를 쓰면 ReferenceError. `super.method()`. `extends`는 인스턴스 쪽과 생성자 쪽 두 체인을 만듦 | 체인 그림 또는 생성 단계 시뮬레이터 | 대기 |
+| 2 | 클래스 상속과 super | 25 | 파생 클래스 생성자에서 `super()` 전에 `this`를 쓰면 ReferenceError. `super.method()`. `extends`는 인스턴스 쪽과 생성자 쪽 두 체인을 만듦 | 체인 그림 또는 생성 단계 시뮬레이터 | 완료(`class-inheritance.md`) |
 | 3 | 화살표 함수와 메서드 축약 | 26 | 화살표 함수와 메서드 축약은 생성자가 아님(`new`하면 TypeError, 화살표는 `prototype` 없음). 화살표 함수에는 자기 `arguments`·`this`가 없음 | 함수 종류별 비교표 + 퀴즈 | 대기 |
 | 4 | 배열은 객체다: 인덱스와 length | 27 | 인덱스는 프로퍼티 키. `[1, , 3]`은 `length`가 3이지만 `1 in a`는 false(희소 배열). `length`에 작은 값을 대입하면 요소가 지워짐 | 프로퍼티 표 | 대기 |
 | 5 | 배열 메서드의 함정 | 27 | `[10, 9, 1].sort()`는 `[1, 10, 9]`(기본 비교가 문자열 비교). 원본을 바꾸는 메서드와 새 배열을 만드는 메서드가 다름. `[NaN].indexOf(NaN)`은 -1이지만 `includes`는 true | 표 + 퀴즈 | 대기 |
@@ -60,3 +60,5 @@
 - 2026-10-30: 1번 '클래스는 함수다'(`class-basics`, order 230, category `objects`) 계획 작성(사용자 결정: 클래스 이름 바인딩·인스턴스 필드와 static·private 필드·메서드는 생성자가 아님 포함, 비교표 + 퀴즈).
 - 2026-10-30: 1번 `class-basics` 구현·리뷰·외부 콘텐츠 검토 2회(5건 중 4건·1건, 나머지 1건은 공통 부품 제목이라 별도 커밋) 반영 완료, 커밋.
 - 2026-10-30: 사용자 콘텐츠 검토 승인 — `class-basics`의 `reviewedAt`을 2026-10-30으로 기록.
+- 2026-10-30: 2번 '클래스 상속과 super'(`class-inheritance`, order 240, category `objects`) 계획 작성(사용자 결정: super는 정의된 곳이 정한다·필드 초기화 순서·파생 생성자의 return과 new.target·extends 대상 포함, 시뮬레이터).
+- 2026-11-02: 2번 `class-inheritance` 구현·리뷰·외부 콘텐츠 검토 2회(6건·4건) 반영 완료, 사용자 검토 승인(`reviewedAt` 2026-11-02), 커밋.

@@ -691,6 +691,33 @@ describe('프리렌더 (class-basics)', () => {
   })
 })
 
+// 25~37장 로드맵 2번(class-inheritance)의 시뮬레이터와 퀴즈도 프리렌더 HTML에 정적으로 들어 있어야 한다.
+describe('시뮬레이터 프리렌더 (class-inheritance)', () => {
+  const html = read('concepts/class-inheritance/index.html')
+  const text = htmlToText(html)
+
+  it('단계 1(실행 전) 텍스트가 HTML에 있다', () => {
+    expect(text).toContain('단계 1: 실행 전')
+  })
+
+  it('시뮬레이터 region과 시나리오 선택 라디오 4개 이상이 있다', () => {
+    expect(html).toMatch(/role="region"[^>]*aria-label="클래스 상속 시뮬레이터"/)
+    for (const label of [
+      '파생 클래스 객체 만들기',
+      'super() 전에 this',
+      'super.method() 호출',
+      '필드 초기화 순서',
+    ]) {
+      expect(text).toContain(label)
+    }
+    expect(html.match(/type="radio"/g)?.length).toBeGreaterThanOrEqual(4)
+  })
+
+  it('퀴즈 정답이 <details>로 프리렌더된다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(10)
+  })
+})
+
 // 여덟 번째 개념(this-binding)의 시뮬레이터와 퀴즈도 프리렌더 HTML에 정적으로 들어 있어야 한다.
 describe('시뮬레이터 프리렌더 (this-binding)', () => {
   const html = read('concepts/this-binding/index.html')

@@ -40,6 +40,8 @@ import {
   GLOBAL_OBJECT_PATH,
   IIFE_MODULE_PATTERN_PATH,
   CLASS_BASICS_PATH,
+  CLASS_INHERITANCE_PATH,
+  CLASS_INHERITANCE_SIMULATOR_NAME,
   SWITCH_PATH,
   SWITCH_SIMULATOR_NAME,
   TYPE_COERCION_PATH,
@@ -556,6 +558,58 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await waitForHydration(page)
       await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
       await expectNoSeriousViolations(page)
+    })
+
+    test('개념 페이지: 클래스 상속과 super', async ({ page }) => {
+      await page.goto(CLASS_INHERITANCE_PATH)
+      await waitForHydration(page)
+      await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
+      await expectNoSeriousViolations(page)
+    })
+
+    test('개념 페이지: 클래스 상속 시뮬레이터를 진행한 뒤', async ({ page }) => {
+      test.slow() // 4개 시나리오의 모든 단계에서 axe를 돌린다
+      await page.goto(CLASS_INHERITANCE_PATH)
+      await waitForHydration(page)
+      const region = page.getByRole('region', { name: CLASS_INHERITANCE_SIMULATOR_NAME })
+      for (const scenario of [
+        '파생 클래스 객체 만들기',
+        'super() 전에 this',
+        'super.method() 호출',
+        '필드 초기화 순서',
+      ]) {
+        await region.getByRole('radio', { name: scenario, exact: true }).check()
+        const next = region.getByRole('button', { name: '다음' })
+        // 시나리오의 단계 수는 모두 20 이하이므로 마지막 단계까지 모든 단계를 검사한다.
+        for (let i = 0; i < 20 && (await next.isEnabled()); i++) {
+          await next.click()
+          await expectNoSeriousViolations(page)
+        }
+        await expect(next).toBeDisabled()
+      }
+    })
+
+    test('개념 페이지: 클래스 상속 시뮬레이터 4단계에서 this가 초기화 전이고 7단계에서 초기화된다', async ({
+      page,
+    }) => {
+      await page.goto(CLASS_INHERITANCE_PATH)
+      await waitForHydration(page)
+      const region = page.getByRole('region', { name: CLASS_INHERITANCE_SIMULATOR_NAME })
+      const next = region.getByRole('button', { name: '다음' })
+
+      await region.getByRole('radio', { name: '파생 클래스 객체 만들기', exact: true }).check()
+      for (let i = 0; i < 3; i++) await next.click()
+      await expect(
+        region.getByText("단계 4: new Dog('Rex'): Dog 생성자 호출, this는 초기화 전", {
+          exact: true,
+        }),
+      ).toBeVisible()
+      await expect(region.getByText('초기화 전').first()).toBeVisible()
+
+      for (let i = 0; i < 3; i++) await next.click()
+      await expect(
+        region.getByText('단계 7: Animal 반환: Dog의 this가 객체 A로 초기화', { exact: true }),
+      ).toBeVisible()
     })
 
     test('개념 페이지: 프로토타입 체인 시뮬레이터 10단계에서 체인 끝을 보인다', async ({

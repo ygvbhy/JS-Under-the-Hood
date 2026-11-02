@@ -38,6 +38,8 @@ import {
   GLOBAL_OBJECT_PATH,
   IIFE_MODULE_PATTERN_PATH,
   CLASS_BASICS_PATH,
+  CLASS_INHERITANCE_PATH,
+  CLASS_INHERITANCE_SIMULATOR_NAME,
   SWITCH_PATH,
   SWITCH_SIMULATOR_NAME,
   TYPE_COERCION_PATH,
@@ -682,6 +684,40 @@ test(`${CLASS_BASICS_PATH}: 가로 스크롤이 없다`, async ({ page }) => {
   expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
 })
 
+test(`${CLASS_INHERITANCE_PATH}: 가로 스크롤이 없다`, async ({ page }) => {
+  await page.goto(CLASS_INHERITANCE_PATH)
+  await waitForHydration(page)
+  const { scrollWidth, innerWidth } = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    innerWidth: window.innerWidth,
+  }))
+  expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
+})
+
+test('클래스 상속과 super 개념 페이지: 시뮬레이터를 끝까지 진행해도 가로 스크롤이 없다', async ({
+  page,
+}) => {
+  await page.goto(CLASS_INHERITANCE_PATH)
+  await waitForHydration(page)
+  const region = page.getByRole('region', { name: CLASS_INHERITANCE_SIMULATOR_NAME })
+  for (const scenario of [
+    '파생 클래스 객체 만들기',
+    'super() 전에 this',
+    'super.method() 호출',
+    '필드 초기화 순서',
+  ]) {
+    await region.getByRole('radio', { name: scenario, exact: true }).check()
+    const next = region.getByRole('button', { name: '다음' })
+    while (await next.isEnabled()) {
+      await next.click()
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - window.innerWidth,
+      )
+      expect(overflow).toBeLessThanOrEqual(0)
+    }
+  }
+})
+
 // 문서 전체(scrollWidth)를 보므로 개념 페이지 하단의 학습 순서 이전/다음 영역도 함께 검사된다.
 // 제목이 긴 개념(closure, hoisting)에서 하단 내비게이션이 보이는 상태로 확인한다.
 for (const path of [CLOSURE_PATH, HOISTING_PATH]) {
@@ -702,7 +738,7 @@ for (const path of [CLOSURE_PATH, HOISTING_PATH]) {
 test('홈 학습 순서 보기: 가로 스크롤이 없다', async ({ page }) => {
   await page.goto('/?view=order')
   await waitForHydration(page)
-  await expect(page.getByRole('article')).toHaveCount(25)
+  await expect(page.getByRole('article')).toHaveCount(26)
   const { scrollWidth, innerWidth } = await page.evaluate(() => ({
     scrollWidth: document.documentElement.scrollWidth,
     innerWidth: window.innerWidth,
