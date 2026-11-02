@@ -46,6 +46,8 @@ import {
   ARRAY_METHOD_PITFALLS_PATH,
   REGEXP_LASTINDEX_PATH,
   REGEXP_LASTINDEX_SIMULATOR_NAME,
+  STRING_UTF16_PATH,
+  STRING_UTF16_VIEW_NAME,
   SWITCH_PATH,
   SWITCH_SIMULATOR_NAME,
   TYPE_COERCION_PATH,
@@ -819,10 +821,35 @@ test('정규 표현식의 g 플래그 개념 페이지: 시뮬레이터를 끝�
   }
 })
 
+test(`${STRING_UTF16_PATH}: 가로 스크롤이 없다`, async ({ page }) => {
+  await page.goto(STRING_UTF16_PATH)
+  await waitForHydration(page)
+  const { scrollWidth, innerWidth } = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    innerWidth: window.innerWidth,
+  }))
+  expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
+})
+
+test('문자열 길이와 UTF-16 개념 페이지: 코드 유닛 보기의 문자열을 바꿔도 가로 스크롤이 없다', async ({
+  page,
+}) => {
+  await page.goto(STRING_UTF16_PATH)
+  await waitForHydration(page)
+  const region = page.getByRole('region', { name: STRING_UTF16_VIEW_NAME })
+  for (const label of ['a😀b', '가나', 'é (한 코드 포인트)', 'é (e + 결합 부호)', '가족 이모지']) {
+    await region.getByRole('radio', { name: label, exact: true }).check()
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - window.innerWidth,
+    )
+    expect(overflow).toBeLessThanOrEqual(0)
+  }
+})
+
 test('홈 학습 순서 보기: 가로 스크롤이 없다', async ({ page }) => {
   await page.goto('/?view=order')
   await waitForHydration(page)
-  await expect(page.getByRole('article')).toHaveCount(30)
+  await expect(page.getByRole('article')).toHaveCount(31)
   const { scrollWidth, innerWidth } = await page.evaluate(() => ({
     scrollWidth: document.documentElement.scrollWidth,
     innerWidth: window.innerWidth,

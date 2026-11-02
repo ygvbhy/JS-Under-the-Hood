@@ -900,6 +900,26 @@ describe('시뮬레이터 프리렌더 (regexp-lastindex)', () => {
   })
 })
 
+// 25~37장 로드맵 7번(string-utf16)의 코드 유닛 보기와 퀴즈도 프리렌더 HTML에 정적으로 들어 있어야 한다.
+describe('프리렌더 (string-utf16)', () => {
+  const html = read('concepts/string-utf16/index.html')
+  const text = htmlToText(html)
+
+  it('코드 유닛 보기 region과 첫 프리셋의 표가 HTML에 있다', () => {
+    expect(html).toMatch(/role="region"[^>]*aria-label="코드 유닛 보기"/)
+    expect(text).toContain('U+1F600')
+    expect(text).toContain('d83d')
+  })
+
+  it('문자열 선택 라디오 5개 이상이 있다', () => {
+    expect(html.match(/type="radio"/g)?.length).toBeGreaterThanOrEqual(5)
+  })
+
+  it('퀴즈 정답이 <details>로 7개 이상 프리렌더된다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(7)
+  })
+})
+
 // 학습 순서 이전/다음: 관련 개념 링크와 섞이지 않도록 nav 영역만 잘라 검사한다.
 describe('학습 순서 pager', () => {
   const ordered = sortByOrder(concepts)

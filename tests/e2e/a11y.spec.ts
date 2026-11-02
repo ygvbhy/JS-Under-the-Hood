@@ -48,6 +48,8 @@ import {
   ARRAY_METHOD_PITFALLS_PATH,
   REGEXP_LASTINDEX_PATH,
   REGEXP_LASTINDEX_SIMULATOR_NAME,
+  STRING_UTF16_PATH,
+  STRING_UTF16_VIEW_NAME,
   SWITCH_PATH,
   SWITCH_SIMULATOR_NAME,
   TYPE_COERCION_PATH,
@@ -697,6 +699,38 @@ for (const colorScheme of ['light', 'dark'] as const) {
       ).toBeVisible()
       await expect(region.getByText('결과: false').first()).toBeVisible()
       await expect(region.getByText('(매치 없음)').first()).toBeVisible()
+    })
+
+    test('개념 페이지: 문자열 길이와 UTF-16', async ({ page }) => {
+      await page.goto(STRING_UTF16_PATH)
+      await waitForHydration(page)
+      await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
+      await expectNoSeriousViolations(page)
+    })
+
+    test('개념 페이지: 코드 유닛 보기의 모든 문자열', async ({ page }) => {
+      await page.goto(STRING_UTF16_PATH)
+      await waitForHydration(page)
+      const region = page.getByRole('region', { name: STRING_UTF16_VIEW_NAME })
+      for (const label of [
+        'a😀b',
+        '가나',
+        'é (한 코드 포인트)',
+        'é (e + 결합 부호)',
+        '가족 이모지',
+      ]) {
+        await region.getByRole('radio', { name: label, exact: true }).check()
+        await expectNoSeriousViolations(page)
+      }
+    })
+
+    test('개념 페이지: 코드 유닛 보기에서 가족 이모지를 고르면 length 8', async ({ page }) => {
+      await page.goto(STRING_UTF16_PATH)
+      await waitForHydration(page)
+      const region = page.getByRole('region', { name: STRING_UTF16_VIEW_NAME })
+      await region.getByRole('radio', { name: '가족 이모지', exact: true }).check()
+      await expect(region.getByText('length 8 · 코드 포인트 5개')).toBeVisible()
+      await expect(region.getByText('ZWJ(폭 없는 결합자)').first()).toBeVisible()
     })
 
     test('개념 페이지: 배열 length 시뮬레이터 5단계에서 length가 5이고 구멍이 보인다', async ({

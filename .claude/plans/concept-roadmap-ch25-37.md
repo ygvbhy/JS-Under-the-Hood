@@ -30,7 +30,7 @@
 | 4 | 배열은 객체다: 인덱스와 length | 27 | 인덱스는 프로퍼티 키. `[1, , 3]`은 `length`가 3이지만 `1 in a`는 false(희소 배열). `length`에 작은 값을 대입하면 요소가 지워짐 | 프로퍼티 표 | 완료(`array-index-length.md`) |
 | 5 | 배열 메서드의 함정 | 27 | `[10, 9, 1].sort()`는 `[1, 10, 9]`(기본 비교가 문자열 비교). 원본을 바꾸는 메서드와 새 배열을 만드는 메서드가 다름. `[NaN].indexOf(NaN)`은 -1이지만 `includes`는 true | 표 + 퀴즈 | 완료(`array-method-pitfalls.md`) |
 | 6 | 정규 표현식의 g 플래그와 lastIndex | 31 | 같은 `/a/g`로 `test('a')`를 반복하면 `true, false, true`. 원인은 `lastIndex` 상태 | lastIndex 단계 시뮬레이터 | 완료(`regexp-lastindex.md`) |
-| 7 | 문자열 길이와 UTF-16 | 32 | `'😀'.length`는 2지만 `[...'😀'].length`는 1(코드 유닛과 코드 포인트). 문자열은 불변이라 인덱스에 대입해도 바뀌지 않음 | 코드 유닛 표 | 대기 |
+| 7 | 문자열 길이와 UTF-16 | 32 | `'😀'.length`는 2지만 `[...'😀'].length`는 1(코드 유닛과 코드 포인트). 문자열은 불변이라 인덱스에 대입해도 바뀌지 않음 | 코드 유닛 표 | 완료(`string-utf16.md`) |
 | 8 | 심벌: 충돌하지 않는 프로퍼티 키 | 33 | `Symbol('x') === Symbol('x')`는 false, `Symbol.for`는 true. 심벌 키는 `Object.keys`·`JSON.stringify`·`for...in`에 나타나지 않음. well-known 심벌 | 표 + 퀴즈 | 대기 |
 | 9 | 이터러블과 for...of | 34 | 일반 객체에 `for...of`를 쓰면 TypeError. 이터레이션 프로토콜(`Symbol.iterator`, `next`). 스프레드와 배열 디스트럭처링도 이 프로토콜을 씀 | 이터레이터 `next` 단계 시뮬레이터 | 대기 |
 | 10 | 스프레드와 디스트럭처링 | 35·36 | 스프레드 복사는 얕은 복사. 디스트럭처링 기본값은 `undefined`일 때만 쓰이고 `null`이면 쓰이지 않음 | 표 + 퀴즈 | 대기 |
@@ -71,3 +71,5 @@
 - 2026-11-02: 5번 `array-method-pitfalls` 구현·리뷰(High 2 수정)·외부 콘텐츠 검토 2회(5건·3건) 반영 완료, 사용자 검토 승인(`reviewedAt` 2026-11-02), 커밋·배포.
 - 2026-11-02: 6번 '정규 표현식의 g 플래그와 lastIndex'(`regexp-lastindex`, order 280, category `objects`) 계획 작성(사용자 결정: 31장 메서드(test·exec·match)만, filter와 test의 함정·리터럴은 매번 새 객체·exec 반복과 빈 매치·y 플래그 포함, lastIndex 시뮬레이터).
 - 2026-11-02: 6번 `regexp-lastindex` 구현·리뷰·외부 콘텐츠 검토 2회(6건·4건) 반영 완료, 사용자 검토 승인(`reviewedAt` 2026-11-02), 커밋·배포.
+- 2026-11-02: 7번 '문자열 길이와 UTF-16'(`string-utf16`, order 290, category `fundamentals`) 계획 작성(사용자 결정: 결합 문자와 normalize·이모지 조합(ZWJ)·대소문자 변환과 길이·isWellFormed 포함, for...of는 별도 개념으로 언급만, 프리셋 코드 유닛 보기).
+- 2026-11-02: 7번 `string-utf16` 구현·리뷰·외부 콘텐츠 검토 1회(높음 1·중 1·낮음 3) 반영 완료, 사용자 검토 승인(`reviewedAt` 2026-11-02), 커밋·배포.

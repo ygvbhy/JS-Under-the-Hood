@@ -101,15 +101,15 @@ describe('getAdjacentConcepts', () => {
     expect(adj.prev).toBeNull()
     expect(adj.next?.slug).toBe('short-circuit-evaluation')
     expect(adj.position).toBe(1)
-    expect(adj.total).toBe(30)
+    expect(adj.total).toBe(31)
   })
 
   it('마지막 개념은 다음이 없다', () => {
-    const adj = getAdjacentConcepts('regexp-lastindex')
-    expect(adj.prev?.slug).toBe('array-method-pitfalls')
+    const adj = getAdjacentConcepts('string-utf16')
+    expect(adj.prev?.slug).toBe('regexp-lastindex')
     expect(adj.next).toBeNull()
-    expect(adj.position).toBe(30)
-    expect(adj.total).toBe(30)
+    expect(adj.position).toBe(31)
+    expect(adj.total).toBe(31)
   })
 
   it('중간 개념은 앞뒤 개념을 돌려준다', () => {
