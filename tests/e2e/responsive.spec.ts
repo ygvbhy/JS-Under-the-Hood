@@ -41,6 +41,8 @@ import {
   CLASS_INHERITANCE_PATH,
   CLASS_INHERITANCE_SIMULATOR_NAME,
   ARROW_FUNCTIONS_PATH,
+  ARRAY_INDEX_LENGTH_PATH,
+  ARRAY_INDEX_LENGTH_SIMULATOR_NAME,
   SWITCH_PATH,
   SWITCH_SIMULATOR_NAME,
   TYPE_COERCION_PATH,
@@ -746,10 +748,39 @@ test(`${ARROW_FUNCTIONS_PATH}: 가로 스크롤이 없다`, async ({ page }) => 
   expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
 })
 
+test(`${ARRAY_INDEX_LENGTH_PATH}: 가로 스크롤이 없다`, async ({ page }) => {
+  await page.goto(ARRAY_INDEX_LENGTH_PATH)
+  await waitForHydration(page)
+  const { scrollWidth, innerWidth } = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    innerWidth: window.innerWidth,
+  }))
+  expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
+})
+
+test('배열은 객체다 개념 페이지: 시뮬레이터를 끝까지 진행해도 가로 스크롤이 없다', async ({
+  page,
+}) => {
+  await page.goto(ARRAY_INDEX_LENGTH_PATH)
+  await waitForHydration(page)
+  const region = page.getByRole('region', { name: ARRAY_INDEX_LENGTH_SIMULATOR_NAME })
+  for (const scenario of ['인덱스와 length', 'length 줄이고 늘리기', '구멍과 undefined']) {
+    await region.getByRole('radio', { name: scenario, exact: true }).check()
+    const next = region.getByRole('button', { name: '다음' })
+    while (await next.isEnabled()) {
+      await next.click()
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - window.innerWidth,
+      )
+      expect(overflow).toBeLessThanOrEqual(0)
+    }
+  }
+})
+
 test('홈 학습 순서 보기: 가로 스크롤이 없다', async ({ page }) => {
   await page.goto('/?view=order')
   await waitForHydration(page)
-  await expect(page.getByRole('article')).toHaveCount(27)
+  await expect(page.getByRole('article')).toHaveCount(28)
   const { scrollWidth, innerWidth } = await page.evaluate(() => ({
     scrollWidth: document.documentElement.scrollWidth,
     innerWidth: window.innerWidth,
