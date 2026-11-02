@@ -1,0 +1,10 @@
+var item = { name: 'pen' };
+item.tag = 'lib-a';
+item.tag = 'lib-b';
+console.log(item.tag);
+var tagA = Symbol('tag');
+var tagB = Symbol('tag');
+item[tagA] = 'lib-a';
+item[tagB] = 'lib-b';
+console.log(item[tagA], item[tagB], Object.getOwnPropertySymbols(item).length);
+console.log(JSON.stringify(Object.keys(item)));

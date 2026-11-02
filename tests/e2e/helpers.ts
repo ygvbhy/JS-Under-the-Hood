@@ -54,6 +54,7 @@ export const REGEXP_LASTINDEX_PATH = '/concepts/regexp-lastindex'
 export const REGEXP_LASTINDEX_SIMULATOR_NAME = 'lastIndex 시뮬레이터'
 export const STRING_UTF16_PATH = '/concepts/string-utf16'
 export const STRING_UTF16_VIEW_NAME = '코드 유닛 보기'
+export const SYMBOL_PATH = '/concepts/symbol'
 
 // 404 문서 자체를 받을 때 브라우저가 남기는 리소스 로드 로그. 앱 오류가 아니므로 무시한다.
 const IGNORED_404_LOG = /Failed to load resource: the server responded with a status of 404/

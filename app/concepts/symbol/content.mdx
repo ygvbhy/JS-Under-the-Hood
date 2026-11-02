@@ -1,0 +1,319 @@
+import { columns, operations, setup } from './key-visibility'
+
+## 동작 원리
+
+`Symbol('id') === Symbol('id')`는 `false`입니다. 설명(description)이 똑같은 `'id'`인데도 서로 다른 값입니다. 심벌(Symbol)은 문자열이 아니면서 객체의 프로퍼티 키로 쓸 수 있는 원시 값이고, `Symbol()`을 부를 때마다 새 심벌이 만들어집니다. 그렇다면 이 값은 언제 같고, 프로퍼티 키로 쓰면 무엇이 달라질까요? 이 페이지는 이 질문을 명세가 정의한 동작으로 따라갑니다. 심벌이 만들어지고 비교되는 방식, `Symbol.for`와 전역 심벌 레지스트리(global symbol registry), 심벌을 키로 쓰는 방법, 연산마다 심벌 키가 결과에 나오는지 아닌지, 키의 나열 순서, 그리고 `Symbol.toStringTag`와 `Symbol.toPrimitive` 같은 well-known 심벌까지 예제 여덟 개로 확인하고 마지막에 연산 표로 정리합니다. `typeof`가 `'symbol'`을 돌려주는 것은 [typeof 연산자](/concepts/typeof-operator), 프로퍼티 키가 문자열 또는 심벌이라는 것은 [프로퍼티 키](/concepts/property-keys), 열거 가능 여부는 [프로퍼티 어트리뷰트와 접근자](/concepts/property-attributes), 원시 값에서 메서드를 읽을 때 거치는 래퍼는 [원시 값의 메서드](/concepts/primitive-methods), 암묵적 변환은 [암묵적 타입 변환](/concepts/type-coercion), 프로토타입 체인은 [프로토타입 체인](/concepts/prototype-chain), private 필드는 [클래스는 함수다](/concepts/class-basics)에서 본 것을 전제합니다. 이터러블과 `Symbol.iterator`의 동작, 스프레드 문법은 별도 개념입니다.
+
+### 심벌은 부를 때마다 새 값이다
+
+명세는 심벌 타입을 "문자열이 아니면서 객체 프로퍼티의 키로 쓸 수 있는 값"의 집합으로 정의하고, 각 심벌은 유일(unique)하고 바뀌지 않는다고 말합니다. `Symbol(description)`은 호출할 때마다 새 심벌을 만듭니다. 인수가 `undefined`가 아니면 문자열로 바꿔 심벌의 `[[Description]]`에 저장하는데, 이 설명은 사람이 알아보기 위한 이름표일 뿐 심벌이 같은지에는 관여하지 않습니다.
+
+`===`는 심벌을 동일성(identity)으로 비교합니다. 문자열은 같은 코드 유닛이 같은 순서로 있는지, 숫자는 수치를 비교하지만 심벌은 같은 심벌 자신인지만 봅니다. 예제 1의 3번 줄에서 `a`와 `b`는 둘 다 `Symbol('id')`로 만들었어도 서로 다른 호출의 결과라 `a === b`는 `false`이고, `a === a`는 `true`입니다.
+
+4번 줄의 `a.description`은 `Symbol.prototype`에 정의된 접근자(getter)가 `[[Description]]`을 돌려준 것입니다. 원시 값인 심벌에서 메서드나 접근자를 읽을 때는 [원시 값의 메서드](/concepts/primitive-methods)에서 본 것처럼 래퍼 객체를 거칩니다. `String(a)`는 `Symbol(` 뒤에 설명, 그리고 `)`를 이어 붙인 문자열 `Symbol(id)`를 돌려줍니다. 5번 줄처럼 설명 없이 `Symbol()`로 만들면 `[[Description]]`이 `undefined`라 `description`은 `undefined`이고, 문자열로는 `Symbol()`입니다. 설명으로 숫자를 넘기면 문자열로 바뀐 값이 저장됩니다(`Symbol(123).description`은 `'123'`).
+
+심벌은 `new`로 만들 수 없습니다. `new Symbol()`은 TypeError입니다. 심벌을 <code>{"sym + ''"}</code>처럼 문자열과 더하거나, 템플릿 리터럴에 넣거나, 단항 `+`를 붙이는 암묵적 변환도 TypeError입니다. 문자열이 필요하면 `String(sym)`처럼 명시적으로 바꿉니다. TypeError가 나는 것은 문자열이나 숫자로 바꾸는 변환입니다. 불리언으로는 바뀌어 `!!sym`은 `true`이고, <code>{"sym == 'Symbol(id)'"}</code>처럼 문자열과 `==`로 비교해도 TypeError 없이 `false`입니다. `new`로는 만들 수 없지만 `Object(sym)`으로 심벌을 감싼 래퍼 객체를 만들 수는 있습니다. 심벌을 문자열·숫자·불리언으로 바꾸는 규칙은 [암묵적 타입 변환](/concepts/type-coercion)에서 다룬 내용입니다.
+
+### Symbol.for와 전역 심벌 레지스트리
+
+심벌 값을 변수로 넘겨받을 수 있는 코드끼리는 그 값을 그대로 공유하면 됩니다. 하지만 서로 모르는 라이브러리처럼 심벌 값을 직접 주고받을 수 없는 코드가 같은 심벌을 쓰려면, 문자열 키 하나만 약속해 두고 그 키로 같은 심벌을 얻는 방법이 필요합니다. `Symbol.for(key)`가 그 역할을 하며, 이를 위해 전역 심벌 레지스트리를 사용합니다. 먼저 `key`를 문자열로 바꾼 뒤(`Symbol.for(1)`과 `Symbol.for('1')`은 같은 심벌입니다), 레지스트리에서 그 키로 등록된 심벌을 찾습니다. 있으면 그 심벌을 돌려주고, 없으면 설명이 그 키인 새 심벌을 만들어 등록한 뒤 돌려줍니다.
+
+예제 2의 1~2번 줄에서 `Symbol.for('app.id')`를 두 번 부르면 두 번째는 첫 번째 호출이 등록한 심벌을 돌려주므로, 3번 줄의 `x === y`는 `true`입니다. 하지만 `Symbol('app.id')`는 레지스트리를 거치지 않고 새 심벌을 만드는 호출이라 설명이 같아도 `x === Symbol('app.id')`는 `false`입니다. `Symbol.for`로 만든 심벌의 설명은 등록 키와 같아서, 4번 줄의 `Symbol.keyFor(x)`와 `x.description`은 둘 다 `'app.id'`입니다.
+
+`Symbol.keyFor(sym)`은 레지스트리에 등록된 심벌이면 그 키를, 등록되지 않은 심벌이면 `undefined`를 돌려줍니다. 5번 줄에서 `Symbol('app.id')`는 설명이 같아도 등록된 적이 없고, `Symbol.iterator` 같은 well-known 심벌도 레지스트리에 등록된 것이 아니라서 둘 다 `undefined`입니다. 심벌이 아닌 값을 넘기면(`Symbol.keyFor('x')`) TypeError입니다.
+
+### 심벌을 프로퍼티 키로 쓰기
+
+대괄호 표기 `obj[expr]`와 객체 리터럴의 계산된 프로퍼티 이름 `{ [expr]: value }`는 `expr`의 값을 ToPropertyKey로 프로퍼티 키로 바꿉니다. ToPropertyKey는 먼저 값을 원시 값으로 바꾸고(객체면 문자열 쪽 힌트로 ToPrimitive를 부릅니다), 그 결과가 심벌이면 문자열로 바꾸지 않고 그 심벌을 그대로 키로 쓰고, 그 밖의 값은 문자열로 바꿉니다. [프로퍼티 키](/concepts/property-keys)에서 본 "식의 값을 문자열로 바꾼다"는 문자열 키의 경우이고, 심벌 키는 이 예외입니다.
+
+예제 3의 2번 줄에서 `[id]: 1`은 심벌 `id`를 키로 하는 프로퍼티를 만듭니다. 3번 줄의 `user.id = 2`는 점 표기라 식의 값이 아니라 식별자 이름을 문자열로 쓰는 것이어서 문자열 키 `'id'`를 만들 뿐이고, 심벌 변수 `id`와는 관계가 없습니다. 그래서 4번 줄에서 `user[id]`는 `1`, `user.id`와 `user['id']`는 둘 다 `2`입니다. 같은 이름 `id`가 심벌 키 하나와 문자열 키 하나로 따로 존재합니다.
+
+`in` 연산자도 ToPropertyKey를 거치므로 5번 줄에서 `id in user`와 `'id' in user`가 모두 `true`입니다. 6번 줄의 `user['Symbol(id)']`는 심벌 `id`를 `String`으로 바꾼 모양의 문자열 키를 읽는 것이라 그런 프로퍼티가 없어 `undefined`입니다. `Object.getOwnPropertySymbols(user)[0] === id`는 객체에 저장된 키가 문자열이 아니라 바로 그 심벌이라는 것을 보여 줍니다.
+
+### 같은 설명이어도 충돌하지 않는다
+
+두 코드가 같은 객체에 같은 이름의 문자열 키를 쓰면 나중 대입이 앞의 값을 덮어씁니다. 예제 4의 2~4번 줄에서 `item.tag`에 `'lib-a'`를 넣었다가 `'lib-b'`를 넣으면 같은 프로퍼티의 값만 바뀌어 `lib-b`가 남습니다.
+
+반대로 각자 `Symbol('tag')`를 만들어 키로 쓰면 설명이 같아도 서로 다른 심벌이므로 서로 다른 프로퍼티 두 개가 생깁니다. 5~9번 줄에서 `tagA`와 `tagB`는 `item`의 별개 프로퍼티라 `item[tagA]`는 `lib-a`, `item[tagB]`는 `lib-b`이고, 심벌 키는 두 개입니다. 10번 줄의 `Object.keys(item)`은 문자열 키만 모으므로 심벌 키를 추가해도 결과가 `["name","tag"]` 그대로입니다. `Object.keys`, `for...in`, `JSON.stringify`처럼 문자열 키만 다루는 연산을 쓰는 기존 코드는 심벌 키를 추가해도 결과가 달라지지 않는다는 뜻입니다. 다만 아래에서 볼 `Object.assign`처럼 심벌 키도 다루는 연산은 추가한 심벌 키를 함께 처리합니다(예제 6). 이때 문자열 키 `'tag'`와 심벌 키는 이름이 같아 보여도 서로 다른 키입니다.
+
+### 심벌 키를 건너뛰는 연산, 보여 주는 연산
+
+심벌 키가 어떤 연산에서 결과에 나오지 않는 것은 키가 가려져 있어서가 아니라, 그 연산의 명세가 문자열 키만 골라 쓰기 때문입니다.
+
+- `for...in`이 쓰는 EnumerateObjectProperties는 명세가 "돌려주는 프로퍼티 키에 Symbol은 포함하지 않는다"고 정해 둔 연산입니다.
+- `Object.keys`와 `JSON.stringify`가 객체의 키를 모을 때 쓰는 EnumerableOwnProperties는 키가 문자열인 것만 열거 가능 여부를 보고 고릅니다.
+- `Object.getOwnPropertyNames`와 `Object.getOwnPropertySymbols`가 쓰는 GetOwnPropertyKeys는 자기 프로퍼티 키 중 요청한 타입(문자열 또는 심벌)만, 열거 가능 여부와 상관없이 돌려줍니다.
+
+예제 5의 5번 줄에서 `for...in`으로 모은 `names`와 `Object.keys(box)`는 모두 `["label"]`입니다. 6번 줄의 `JSON.stringify(box)`는 `{"label":"box"}`이고 `Object.getOwnPropertyNames(box)`도 `["label"]`입니다. 반면 7번 줄의 `Object.getOwnPropertySymbols(box)`는 심벌 키만 돌려주므로 8번 줄에서 `found`의 길이가 `1`이고, `found[0] === secret`이 `true`이며 `box[found[0]]`로 값 `42`를 읽을 수 있습니다.
+
+여기서 심벌 키 프로퍼티가 열거 불가라서 빠지는 것이 아니라는 점이 중요합니다. 9번 줄처럼 객체 리터럴로 만든 심벌 키 프로퍼티의 `enumerable`은 `true`입니다. 연산이 키의 타입을 보고 심벌을 고르지 않는 것입니다. 또한 심벌 변수를 모르더라도 `getOwnPropertySymbols`로 키를 얻어 값을 읽을 수 있으므로, 심벌 키는 비공개(private) 키가 아닙니다. 바깥에서 접근할 수 없는 상태가 필요하면 [클래스는 함수다](/concepts/class-basics)에서 본 private 필드를 씁니다. private 필드는 프로퍼티 키가 아니라서 이 페이지의 연산들과 다른 방식으로 동작합니다.
+
+### Object.assign과 JSON.stringify의 심벌 처리
+
+`Object.assign(target, source)`는 `source`의 `[[OwnPropertyKeys]]`가 돌려주는 모든 키를 하나씩 보면서, 그 프로퍼티의 `[[Enumerable]]`이 `true`이면 값을 읽어 `target`에 대입합니다. `[[OwnPropertyKeys]]`에는 심벌 키가 들어 있으므로 열거 가능한 심벌 키는 복사되고, 열거 불가인 키는 문자열 키든 심벌 키든 복사되지 않습니다. 예제 6의 2~3번 줄에서 `src`에는 열거 가능한 심벌 키 `tag`와 열거 불가인 심벌 키(설명 `'hidden'`)가 있습니다. 4번 줄의 `Object.assign` 뒤 5번 줄에서 `copy[tag]`는 `'T'`이고, 심벌 키 개수는 `src`가 `2`, `copy`가 `1`입니다. 객체 스프레드 `{ ...obj }`도 열거 가능한 심벌 키를 복사하지만 스프레드는 별도 개념입니다.
+
+`JSON.stringify`는 객체의 키를 EnumerableOwnProperties로 모으므로 심벌 키를 아예 보지 않습니다. 6번 줄의 `JSON.stringify(copy)`가 `{"a":1}`인 이유입니다. 값이 심벌인 경우는 다릅니다. SerializeJSONProperty는 값이 심벌이면 `undefined`를 돌려주는데, 객체를 직렬화하는 쪽은 `undefined`가 나온 프로퍼티를 결과에 넣지 않고, 배열을 직렬화하는 쪽은 그 자리에 `null`을 씁니다. 그래서 7번 줄의 `{ v: Symbol('x'), n: 1 }`은 `v`가 빠진 `{"n":1}`, `[Symbol('x'), 1]`은 `[null,1]`입니다. JSON 자체는 별도 개념이고, 여기서는 심벌을 처리하는 방식만 봅니다.
+
+### 키는 어떤 순서로 나열될까
+
+일반 객체의 `[[OwnPropertyKeys]]`(OrdinaryOwnPropertyKeys)는 키를 세 묶음으로 나눠 이 순서로 돌려줍니다. 먼저 배열 인덱스 형태의 문자열 키를 오름차순으로, 다음으로 그 밖의 문자열 키를 만든 순서대로, 마지막으로 심벌 키를 만든 순서대로 돌려줍니다. `Reflect.ownKeys(obj)`는 이 목록을 그대로 배열로 만들어 주는 함수이고, `Object.keys`는 같은 목록에서 열거 가능한 문자열 키만 고릅니다.
+
+예제 7의 2번 줄은 `b`, `2`, `[s]`, `a`, `1` 순서로 키를 적은 객체입니다. 3번 줄의 `Object.keys(obj)`는 배열 인덱스 형태의 키 `1`, `2`가 먼저이고 이어서 문자열 `b`, `a`가 적은 순서대로라 `["1","2","b","a"]`입니다. 4번 줄의 `Reflect.ownKeys(obj)`에는 심벌 `s`도 들어가는데, 리터럴 중간에 적었더라도 맨 뒤입니다. 심벌은 문자열로 암묵적으로 바뀌지 않으므로 `map(String)`으로 명시적으로 바꿔 이어 붙이면 `1, 2, b, a, Symbol(s)`입니다. `for...in`의 순서는 [프로토타입 체인](/concepts/prototype-chain)에서 본 대로 명세가 일부만 정하므로 예제에 쓰지 않습니다.
+
+### well-known 심벌
+
+well-known 심벌은 명세의 알고리즘이 직접 참조하는 내장 심벌입니다. 명세는 이 심벌들을 대개 알고리즘의 확장 지점(extension point)이 되는 프로퍼티의 키로 씁니다. 객체에 그 키로 프로퍼티를 두면 해당 알고리즘의 동작을 바꿀 수 있다는 뜻입니다. 코드에서는 `Symbol.toStringTag`, `Symbol.toPrimitive`, `Symbol.iterator`처럼 `Symbol`의 프로퍼티로 꺼냅니다. 이 프로퍼티들은 쓰기·열거·설정이 모두 불가능합니다. 레지스트리에 등록된 심벌이 아니라서 `Symbol.keyFor(Symbol.iterator)`는 `undefined`입니다(예제 2의 5번 줄).
+
+`Object.prototype.toString`은 객체에서 `Symbol.toStringTag` 프로퍼티를 읽어 그 값이 문자열이면 `[object 그 값]` 모양의 문자열을 만듭니다. 예제 8의 1번 줄에서 `point`에 `[Symbol.toStringTag]: 'Point'`를 넣었으므로 `Object.prototype.toString.call(point)`는 `[object Point]`입니다. `String(point)`는 객체를 원시 값으로 바꾸는 ToPrimitive를 문자열 쪽 힌트로 부릅니다. `point`에는 아래에서 볼 `Symbol.toPrimitive` 메서드가 없으므로 `toString` 메서드를 먼저 부르고, `point`가 상속받은 `Object.prototype.toString`이 같은 규칙으로 `[object Point]`를 만들어 줍니다.
+
+ToPrimitive는 객체에 `Symbol.toPrimitive` 메서드가 있으면 그것을 먼저 부르고, 어떤 결과를 바라는지 알리는 힌트(hint) 문자열 `'default'`, `'string'`, `'number'` 중 하나를 인수로 넘깁니다. 메서드가 돌려준 값이 객체가 아니면 그 값이 결과이고, 객체이면 TypeError입니다. 힌트는 연산이 정합니다. 단항 `+`는 ToNumber를 거쳐 `'number'`, 템플릿 리터럴은 ToString을 거쳐 `'string'`, 이항 `+`는 힌트 없이 ToPrimitive를 불러 `'default'`입니다. 이 내용은 [암묵적 타입 변환](/concepts/type-coercion)이 미뤄 둔 부분입니다. 예제 8의 3~7번 줄에서 `price`는 `[Symbol.toPrimitive](hint)` 메서드를 가집니다. 8번 줄의 `+price`는 힌트 `'number'`라 `100`, `` `${price}` ``는 `'string'`이라 `price:string`, `price + ''`는 `'default'`라 `price:default`입니다. 9번 줄은 `Symbol.iterator`가 `typeof`로 `'symbol'`이고 설명이 `'Symbol.iterator'`라는 것만 보입니다. 이터러블이 무엇인지는 별도 개념입니다.
+
+### 연산 표로 정리
+
+아래 표는 연산마다 세 종류의 키가 결과에 나오는지 정리한 것입니다. 모든 칸은 같은 준비 코드 <code>{setup}</code> 뒤에 짧은 코드를 붙여 새 실행 환경에서 실제로 실행한 결과와 대조해 두었습니다. 세 키는 열거 가능한 문자열 키 `label`, `defineProperty`로 만든 열거 불가 문자열 키 `code`, 열거 가능한 심벌 키 `secret`입니다.
+
+<div
+  className="focus-visible:outline-accent my-6 overflow-x-auto focus-visible:outline-2"
+  tabIndex={0}
+  role="region"
+  aria-label="연산마다 문자열 키와 심벌 키가 결과에 나오는지 비교한 표(좁은 화면에서는 가로로 스크롤할 수 있습니다)"
+>
+  <table className="w-full border-collapse text-left [&_code]:whitespace-nowrap">
+    <thead>
+      <tr>
+        <th scope="col" className="border-border border px-3 py-2">
+          연산
+        </th>
+        {columns.map((column) => (
+          <th key={column.key} scope="col" className="border-border border px-3 py-2">
+            {column.label}
+          </th>
+        ))}
+      </tr>
+    </thead>
+    <tbody>
+      {operations.map((row) => (
+        <tr key={row.operation}>
+          <th scope="row" className="border-border border px-3 py-2">
+            <code>{row.operation}</code>
+          </th>
+          {row.cells.map((cell, i) => (
+            <td key={columns[i].key} className="border-border border px-3 py-2">
+              {cell.text}
+            </td>
+          ))}
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
+
+`in` 연산자는 자기 프로퍼티뿐 아니라 프로토타입 체인도 찾습니다. 프로토타입에 심벌 키가 있으면 `in`은 `true`이지만 그 객체의 `Object.getOwnPropertySymbols`에는 나오지 않습니다. 또 열거 불가인 심벌 키도 `Object.getOwnPropertySymbols`에는 나옵니다. 이 연산은 열거 가능 여부를 보지 않고 키의 타입만 보기 때문입니다.
+
+## 예제
+
+예제의 `console.log`는 값을 출력하는 호스트 API이며 ECMAScript 언어의 일부가 아닙니다. 예제 코드는 `'use strict'`가 없는 sloppy mode 스크립트입니다. 객체와 배열은 `JSON.stringify`로 출력하고, 심벌은 `String`으로 바꿔 출력합니다. 여러 줄 출력은 퀴즈에서 ' / '로 이어 적었습니다.
+
+### 예제 1: 심벌은 부를 때마다 새 값이다
+
+```js file=./examples/unique.js
+
+```
+
+<PredictQuiz
+  question="예제 1의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'true true / symbol id Symbol(id) / undefined Symbol()',
+    'false true / symbol Symbol(id) Symbol(id) / undefined Symbol()',
+    'false true / symbol id Symbol(id) / undefined Symbol()',
+    'false true / symbol id Symbol(id) / Symbol() Symbol()',
+  ]}
+  answer={2}
+  explanation="Symbol('id')는 호출할 때마다 새 심벌을 만들고 ===는 동일성으로 비교하므로 a === b는 false, a === a는 true입니다. description은 설명 문자열 id이고, String(a)가 Symbol(id)를 만듭니다. 설명 없이 만든 심벌의 description은 undefined입니다."
+/>
+
+### 예제 2: Symbol.for와 전역 심벌 레지스트리
+
+```js file=./examples/registry.js
+
+```
+
+<PredictQuiz
+  question="예제 2의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'true true / app.id app.id / undefined undefined',
+    'true false / app.id app.id / app.id undefined',
+    'true false / app.id app.id / undefined undefined',
+    'true false / app.id app.id / undefined Symbol.iterator',
+  ]}
+  answer={2}
+  explanation="Symbol.for는 레지스트리에서 같은 키의 심벌을 찾아 돌려주므로 x === y는 true입니다. Symbol('app.id')는 레지스트리를 거치지 않는 새 심벌이라 x와 다릅니다. Symbol.keyFor는 등록되지 않은 일반 심벌과 well-known 심벌에 undefined를 돌려줍니다."
+/>
+
+### 예제 3: 심벌을 프로퍼티 키로 쓰기
+
+```js file=./examples/symbol-key.js
+
+```
+
+<PredictQuiz
+  question="예제 3의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '2 2 2 / true true / undefined true',
+    '1 2 2 / true false / undefined true',
+    '1 2 2 / true true / 1 true',
+    '1 2 2 / true true / undefined true',
+  ]}
+  answer={3}
+  explanation="대괄호의 심벌은 문자열로 바뀌지 않고 그대로 키가 되고, 점 표기 user.id는 문자열 키 id라서 서로 다른 프로퍼티입니다. in은 두 키를 각각 찾아 모두 true입니다. 'Symbol(id)'라는 문자열 키는 없으므로 undefined입니다."
+/>
+
+### 예제 4: 같은 설명이어도 충돌하지 않는다
+
+```js file=./examples/no-collision.js
+
+```
+
+<PredictQuiz
+  question="예제 4의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'lib-b / lib-b lib-b 1 / ["name","tag"]',
+    'lib-a / lib-a lib-b 2 / ["name","tag"]',
+    'lib-b / lib-a lib-b 2 / ["name","tag","tag","tag"]',
+    'lib-b / lib-a lib-b 2 / ["name","tag"]',
+  ]}
+  answer={3}
+  explanation="문자열 키 tag는 같은 프로퍼티라 나중 대입 lib-b가 덮어씁니다. Symbol('tag')를 두 번 만들면 서로 다른 심벌이라 프로퍼티가 둘이 되고, Object.keys는 문자열 키만 모아 name과 tag뿐입니다."
+/>
+
+### 예제 5: 심벌 키를 건너뛰는 연산, 보여 주는 연산
+
+```js file=./examples/not-private.js
+
+```
+
+<PredictQuiz
+  question="예제 5의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '["label"] ["label"] / {"label":"box"} ["label"] / 0 false undefined / false',
+    '["label"] ["label"] / {"label":"box","secret":42} ["label"] / 1 true 42 / true',
+    '["label"] ["label"] / {"label":"box"} ["label"] / 1 true 42 / false',
+    '["label"] ["label"] / {"label":"box"} ["label"] / 1 true 42 / true',
+  ]}
+  answer={3}
+  explanation="for...in, Object.keys, JSON.stringify, getOwnPropertyNames는 문자열 키만 다루므로 심벌 키가 나오지 않습니다. getOwnPropertySymbols는 심벌 키만 돌려주어 값 42를 읽을 수 있고, 리터럴로 만든 심벌 키의 enumerable은 true입니다."
+/>
+
+### 예제 6: Object.assign과 JSON.stringify
+
+```js file=./examples/assign-json.js
+
+```
+
+<PredictQuiz
+  question="예제 6의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'T 2 2 / {"a":1} / {"n":1} [null,1]',
+    'undefined 2 1 / {"a":1} / {"n":1} [null,1]',
+    'T 2 1 / {"a":1} / {"v":null,"n":1} [null,1]',
+    'T 2 1 / {"a":1} / {"n":1} [null,1]',
+  ]}
+  answer={3}
+  explanation="Object.assign은 심벌 키를 포함한 모든 자기 키 중 열거 가능한 것만 복사하므로 tag는 복사되고 열거 불가인 심벌 키는 복사되지 않습니다. JSON.stringify는 심벌 키를 보지 않고, 심벌 값은 객체에서는 프로퍼티를 빼고 배열에서는 null로 씁니다."
+/>
+
+### 예제 7: 키 나열 순서
+
+```js file=./examples/key-order.js
+
+```
+
+<PredictQuiz
+  question="예제 7의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '["b","2","a","1"] / b, 2, Symbol(s), a, 1',
+    '["1","2","b","a"] / Symbol(s), 1, 2, b, a',
+    '["1","2","a","b"] / 1, 2, a, b, Symbol(s)',
+    '["1","2","b","a"] / 1, 2, b, a, Symbol(s)',
+  ]}
+  answer={3}
+  explanation="자기 프로퍼티 키는 배열 인덱스 형태의 키를 오름차순으로, 그다음 다른 문자열 키를 만든 순서로, 마지막에 심벌 키를 만든 순서로 나열됩니다. Object.keys는 그 목록에서 열거 가능한 문자열 키만 고르고, Reflect.ownKeys는 심벌까지 그대로 보여 줍니다."
+/>
+
+### 예제 8: well-known 심벌
+
+```js file=./examples/well-known.js
+
+```
+
+<PredictQuiz
+  question="예제 8의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '[object Object] [object Object] / 100 price:string price:default / symbol Symbol.iterator',
+    '[object Point] [object Point] / 100 price:default price:default / symbol Symbol.iterator',
+    '[object Point] [object Point] / 100 price:string price:default / symbol iterator',
+    '[object Point] [object Point] / 100 price:string price:default / symbol Symbol.iterator',
+  ]}
+  answer={3}
+  explanation="Object.prototype.toString은 Symbol.toStringTag 값이 문자열이면 그 값을 태그로 씁니다. Symbol.toPrimitive 메서드는 연산이 정한 힌트를 받는데, 단항 +는 number, 템플릿 리터럴은 string, 이항 +는 default입니다. Symbol.iterator의 설명은 Symbol.iterator입니다."
+/>
+
+## 결과와 이유
+
+### 예제 1
+
+3번 줄은 `a`와 `b`가 서로 다른 `Symbol('id')` 호출이 만든 별개의 심벌이라 `===`가 `false`이고, 같은 심벌끼리 비교한 `a === a`는 `true`여서 `false true`입니다. 4번 줄은 `typeof a`가 `symbol`, `a.description`이 이름표 `id`, `String(a)`가 `Symbol(id)`라 `symbol id Symbol(id)`입니다. 5번 줄은 설명 없이 만든 심벌의 `description`이 `undefined`이고 `String`으로 바꾼 값이 `Symbol()`이라 `undefined Symbol()`입니다.
+
+### 예제 2
+
+3번 줄은 두 번째 `Symbol.for('app.id')`가 첫 번째 호출이 등록한 심벌을 돌려주어 `x === y`가 `true`이고, `Symbol('app.id')`는 레지스트리와 무관한 새 심벌이라 `false`입니다. 그래서 `true false`입니다. 4번 줄은 `Symbol.keyFor(x)`가 등록 키, `x.description`이 키와 같은 설명이라 `app.id app.id`입니다. 5번 줄은 등록되지 않은 일반 심벌과 well-known 심벌 `Symbol.iterator` 모두 `Symbol.keyFor`가 `undefined`를 돌려주어 `undefined undefined`입니다.
+
+### 예제 3
+
+4번 줄은 `user[id]`가 심벌 키의 값 `1`을 읽고, `user.id`와 `user['id']`가 3번 줄에서 만든 문자열 키 `'id'`의 값 `2`를 읽어 `1 2 2`입니다. 5번 줄은 `id in user`와 `'id' in user`가 서로 다른 두 키를 각각 찾아 `true true`입니다. 6번 줄은 `'Symbol(id)'`라는 문자열 키가 없어 `undefined`이고, 저장된 심벌 키가 `id` 자신이라 `getOwnPropertySymbols(user)[0] === id`가 `true`여서 `undefined true`입니다.
+
+### 예제 4
+
+4번 줄은 같은 문자열 키 `tag`에 `'lib-a'`를 넣은 뒤 `'lib-b'`가 덮어써 `lib-b`입니다. 9번 줄은 `tagA`와 `tagB`가 서로 다른 심벌이라 두 프로퍼티가 따로 남아 `item[tagA]`가 `lib-a`, `item[tagB]`가 `lib-b`이고 심벌 키 개수가 `2`여서 `lib-a lib-b 2`입니다. 10번 줄은 `Object.keys`가 문자열 키만 모으므로 `["name","tag"]`입니다.
+
+### 예제 5
+
+5번 줄은 `for...in`이 쓰는 EnumerateObjectProperties도, `Object.keys`가 쓰는 EnumerableOwnProperties도 심벌 키를 고르지 않아 둘 다 `["label"]`입니다. 6번 줄은 `JSON.stringify(box)`가 `{"label":"box"}`, `Object.getOwnPropertyNames(box)`가 `["label"]`입니다. 8번 줄은 7번 줄의 `Object.getOwnPropertySymbols(box)`가 심벌 키 하나를 돌려주어 `found.length`가 `1`, `found[0] === secret`이 `true`, 그 키로 읽은 값이 `42`라 `1 true 42`입니다. 9번 줄은 심벌 키 프로퍼티의 `enumerable`이 `true`라 `true`입니다. 연산 결과에서 빠진 이유는 열거 불가가 아니라 연산이 문자열 키만 고르기 때문이라는 점을 이 줄이 보여 줍니다.
+
+### 예제 6
+
+5번 줄은 `Object.assign`이 열거 가능한 심벌 키 `tag`를 복사해 `copy[tag]`가 `T`이고, `src`의 심벌 키는 둘, 설명이 `'hidden'`인 열거 불가 심벌 키가 복사되지 않은 `copy`의 심벌 키는 하나라 `T 2 1`입니다. 6번 줄은 `JSON.stringify`가 심벌 키를 보지 않아 `{"a":1}`입니다. 7번 줄은 심벌 값을 객체에서는 프로퍼티째 빼서 `{"n":1}`, 배열에서는 `null`로 써서 `[null,1]`이라 `{"n":1} [null,1]`입니다.
+
+### 예제 7
+
+3번 줄은 배열 인덱스 형태의 키 `1`, `2`가 오름차순으로 먼저 오고 그다음 문자열 키 `b`, `a`가 만든 순서대로 이어져 `["1","2","b","a"]`입니다. 4번 줄은 같은 목록에 심벌 키가 마지막으로 붙어, `String`으로 바꿔 이은 결과가 `1, 2, b, a, Symbol(s)`입니다. 리터럴에서 `[s]`를 중간에 적었어도 순서는 달라지지 않습니다.
+
+### 예제 8
+
+2번 줄은 `Object.prototype.toString`이 `Symbol.toStringTag` 값 `'Point'`를 태그로 써서 `[object Point]`이고, `String(point)`도 상속받은 같은 메서드를 거쳐 `[object Point]`라 `[object Point] [object Point]`입니다. 8번 줄은 단항 `+`가 힌트 `'number'`를 넘겨 `100`, 템플릿 리터럴이 `'string'`을 넘겨 `price:string`, `price + ''`가 `'default'`를 넘겨 `price:default`가 되어 `100 price:string price:default`입니다. 9번 줄은 `Symbol.iterator`가 심벌이라 `typeof`가 `symbol`이고 설명이 `Symbol.iterator`라 `symbol Symbol.iterator`입니다.
+
+### 흔한 오해
+
+<Callout type="misconception" title="description이 같으면 같은 심벌이다">
+
+`Symbol('id')`를 호출할 때마다 새 심벌이 만들어지고, `description`은 이름표일 뿐 같은지 정하는 데 쓰이지 않습니다. `===`는 심벌을 동일성으로 비교하므로 설명이 같아도 서로 다른 호출이 만든 심벌은 다릅니다(예제 1, 예제 4). 같은 심벌을 여러 곳에서 얻고 싶다면 `Symbol.for`로 레지스트리에서 같은 키의 심벌을 얻어야 하고, 이것도 `Symbol('app.id')`와는 다른 심벌입니다(예제 2).
+
+</Callout>
+
+<Callout type="misconception" title="심벌 키는 비공개 키다">
+
+심벌 키는 비공개 키가 아닙니다. `Object.getOwnPropertySymbols`와 `Reflect.ownKeys`는 심벌 변수를 몰라도 심벌 키를 돌려주고, 그 키로 값을 읽을 수 있습니다(예제 5, 예제 7). `Object.assign`도 열거 가능한 심벌 키를 복사합니다(예제 6). 심벌 키는 다른 키와 충돌하지 않는 키일 뿐입니다. 바깥에서 접근하지 못하는 상태가 필요하면 프로퍼티 키가 아닌 private 필드를 씁니다.
+
+</Callout>
+
+<Callout type="misconception" title="심벌 키는 열거할 수 없어서 Object.keys에 나오지 않는다">
+
+리터럴로 만든 심벌 키 프로퍼티의 `enumerable`은 `true`입니다(예제 5의 9번 줄). `Object.keys`가 심벌 키를 보여 주지 않는 것은 EnumerableOwnProperties가 문자열 키만 고르기 때문입니다. 반대로 열거 불가인 심벌 키도 `Object.getOwnPropertySymbols`에는 나오는데, 이 연산은 열거 가능 여부와 상관없이 키의 타입만 보기 때문입니다. `Object.assign`은 `[[Enumerable]]`을 직접 확인해서 열거 불가인 키를 복사하지 않습니다(예제 6).
+
+</Callout>
+
+<Callout type="misconception" title="user.id로 심벌 키를 읽을 수 있다">
+
+점 표기 `user.id`는 심벌 변수 `id`의 값이 아니라 문자열 키 `'id'`를 읽습니다. 심벌 키를 읽거나 쓰려면 대괄호 안에 심벌을 넣은 `user[id]`처럼 써야 합니다. 문자열 키 `'id'`와 심벌 키 `id`는 서로 다른 프로퍼티라서 한 객체에 함께 있을 수 있고(예제 3), `user['Symbol(id)']`처럼 심벌을 문자열로 바꾼 모양의 키도 심벌 키와 무관합니다.
+
+</Callout>

@@ -50,6 +50,7 @@ import {
   REGEXP_LASTINDEX_SIMULATOR_NAME,
   STRING_UTF16_PATH,
   STRING_UTF16_VIEW_NAME,
+  SYMBOL_PATH,
   SWITCH_PATH,
   SWITCH_SIMULATOR_NAME,
   TYPE_COERCION_PATH,
@@ -731,6 +732,13 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await region.getByRole('radio', { name: '가족 이모지', exact: true }).check()
       await expect(region.getByText('length 8 · 코드 포인트 5개')).toBeVisible()
       await expect(region.getByText('ZWJ(폭 없는 결합자)').first()).toBeVisible()
+    })
+
+    test('개념 페이지: 심벌', async ({ page }) => {
+      await page.goto(SYMBOL_PATH)
+      await waitForHydration(page)
+      await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
+      await expectNoSeriousViolations(page)
     })
 
     test('개념 페이지: 배열 length 시뮬레이터 5단계에서 length가 5이고 구멍이 보인다', async ({

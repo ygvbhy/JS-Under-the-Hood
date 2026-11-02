@@ -920,6 +920,21 @@ describe('프리렌더 (string-utf16)', () => {
   })
 })
 
+// 25~37장 로드맵 8번(symbol)의 비교 표와 퀴즈도 프리렌더 HTML에 정적으로 들어 있어야 한다.
+describe('프리렌더 (symbol)', () => {
+  const html = read('concepts/symbol/index.html')
+  const text = htmlToText(html)
+
+  it('연산별 키 비교 표 region이 HTML에 있다', () => {
+    expect(html).toContain('aria-label="연산마다 문자열 키와 심벌 키가 결과에 나오는지 비교한 표')
+    expect(text).toContain('Object.getOwnPropertySymbols')
+  })
+
+  it('퀴즈 정답이 <details>로 8개 이상 프리렌더된다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(8)
+  })
+})
+
 // 학습 순서 이전/다음: 관련 개념 링크와 섞이지 않도록 nav 영역만 잘라 검사한다.
 describe('학습 순서 pager', () => {
   const ordered = sortByOrder(concepts)
