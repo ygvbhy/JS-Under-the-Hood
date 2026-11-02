@@ -42,6 +42,7 @@ import {
   CLASS_BASICS_PATH,
   CLASS_INHERITANCE_PATH,
   CLASS_INHERITANCE_SIMULATOR_NAME,
+  ARROW_FUNCTIONS_PATH,
   SWITCH_PATH,
   SWITCH_SIMULATOR_NAME,
   TYPE_COERCION_PATH,
@@ -610,6 +611,13 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await expect(
         region.getByText('단계 7: Animal 반환: Dog의 this가 객체 A로 초기화', { exact: true }),
       ).toBeVisible()
+    })
+
+    test('개념 페이지: 화살표 함수와 메서드 축약', async ({ page }) => {
+      await page.goto(ARROW_FUNCTIONS_PATH)
+      await waitForHydration(page)
+      await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
+      await expectNoSeriousViolations(page)
     })
 
     test('개념 페이지: 프로토타입 체인 시뮬레이터 10단계에서 체인 끝을 보인다', async ({

@@ -718,6 +718,22 @@ describe('시뮬레이터 프리렌더 (class-inheritance)', () => {
   })
 })
 
+// 25~37장 로드맵 3번(arrow-functions)은 시뮬레이터 없이 비교표와 퀴즈로 구성된다. 둘 다 프리렌더 HTML에 있어야 한다.
+describe('프리렌더 (arrow-functions)', () => {
+  const html = read('concepts/arrow-functions/index.html')
+  const text = htmlToText(html)
+
+  it('퀴즈 정답이 <details>로 6개 이상 프리렌더된다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(6)
+  })
+
+  it('비교표와 본문 용어가 있다', () => {
+    expect(text).toContain('메서드 축약')
+    expect(text).toContain('중복 매개변수(sloppy)')
+    expect(text).toContain('자기 arguments')
+  })
+})
+
 // 여덟 번째 개념(this-binding)의 시뮬레이터와 퀴즈도 프리렌더 HTML에 정적으로 들어 있어야 한다.
 describe('시뮬레이터 프리렌더 (this-binding)', () => {
   const html = read('concepts/this-binding/index.html')

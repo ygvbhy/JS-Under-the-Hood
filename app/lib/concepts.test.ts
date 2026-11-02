@@ -101,15 +101,15 @@ describe('getAdjacentConcepts', () => {
     expect(adj.prev).toBeNull()
     expect(adj.next?.slug).toBe('short-circuit-evaluation')
     expect(adj.position).toBe(1)
-    expect(adj.total).toBe(26)
+    expect(adj.total).toBe(27)
   })
 
   it('마지막 개념은 다음이 없다', () => {
-    const adj = getAdjacentConcepts('class-inheritance')
-    expect(adj.prev?.slug).toBe('class-basics')
+    const adj = getAdjacentConcepts('arrow-functions')
+    expect(adj.prev?.slug).toBe('class-inheritance')
     expect(adj.next).toBeNull()
-    expect(adj.position).toBe(26)
-    expect(adj.total).toBe(26)
+    expect(adj.position).toBe(27)
+    expect(adj.total).toBe(27)
   })
 
   it('중간 개념은 앞뒤 개념을 돌려준다', () => {

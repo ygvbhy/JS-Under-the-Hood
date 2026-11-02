@@ -26,7 +26,7 @@
 | - | - | - | - | - | - |
 | 1 | 클래스는 함수다 | 25 | `typeof` 결과가 `'function'`. 선언 전에 쓰면 ReferenceError(TDZ). `new` 없이 부르면 TypeError. 본문은 항상 strict이고 메서드는 열거되지 않음 | 표 + 퀴즈 | 완료(`class-basics.md`) |
 | 2 | 클래스 상속과 super | 25 | 파생 클래스 생성자에서 `super()` 전에 `this`를 쓰면 ReferenceError. `super.method()`. `extends`는 인스턴스 쪽과 생성자 쪽 두 체인을 만듦 | 체인 그림 또는 생성 단계 시뮬레이터 | 완료(`class-inheritance.md`) |
-| 3 | 화살표 함수와 메서드 축약 | 26 | 화살표 함수와 메서드 축약은 생성자가 아님(`new`하면 TypeError, 화살표는 `prototype` 없음). 화살표 함수에는 자기 `arguments`·`this`가 없음 | 함수 종류별 비교표 + 퀴즈 | 대기 |
+| 3 | 화살표 함수와 메서드 축약 | 26 | 화살표 함수와 메서드 축약은 생성자가 아님(`new`하면 TypeError, 화살표는 `prototype` 없음). 화살표 함수에는 자기 `arguments`·`this`가 없음 | 함수 종류별 비교표 + 퀴즈 | 완료(`arrow-functions.md`) |
 | 4 | 배열은 객체다: 인덱스와 length | 27 | 인덱스는 프로퍼티 키. `[1, , 3]`은 `length`가 3이지만 `1 in a`는 false(희소 배열). `length`에 작은 값을 대입하면 요소가 지워짐 | 프로퍼티 표 | 대기 |
 | 5 | 배열 메서드의 함정 | 27 | `[10, 9, 1].sort()`는 `[1, 10, 9]`(기본 비교가 문자열 비교). 원본을 바꾸는 메서드와 새 배열을 만드는 메서드가 다름. `[NaN].indexOf(NaN)`은 -1이지만 `includes`는 true | 표 + 퀴즈 | 대기 |
 | 6 | 정규 표현식의 g 플래그와 lastIndex | 31 | 같은 `/a/g`로 `test('a')`를 반복하면 `true, false, true`. 원인은 `lastIndex` 상태 | lastIndex 단계 시뮬레이터 | 대기 |
@@ -44,6 +44,7 @@
 - 28장 Number: `number-type`이 부동소수점을 다뤘다. `(1.005).toFixed(2)`가 `'1.00'`인 것, `Number.MAX_SAFE_INTEGER + 2`가 `9007199254740992`인 것(안전한 정수)은 추가 게시글 후보로 둔다.
 - 29장 Math: 메서드 목록 성격이라 개념 페이지로 만들지 않는다.
 - 30장 Date: 결과가 호스트의 시간대에 따라 달라 "실제 실행으로 검증"하기 어렵다. 제외하거나, 시간대 고정 방법을 정한 뒤 다시 검토한다.
+- 26장 매개변수 기본값: 3번 `arrow-functions`에서 다루지 않았다(사용자 결정 2026-11-02, 범위는 화살표 함수·메서드 축약·rest). `undefined`일 때만 적용, 호출할 때마다 평가, `length`에서 빠짐, 매개변수 스코프를 추가 게시글 후보로 둔다.
 
 ## 개념 간 메모 (각 계획에서 확인)
 
@@ -62,3 +63,5 @@
 - 2026-10-30: 사용자 콘텐츠 검토 승인 — `class-basics`의 `reviewedAt`을 2026-10-30으로 기록.
 - 2026-10-30: 2번 '클래스 상속과 super'(`class-inheritance`, order 240, category `objects`) 계획 작성(사용자 결정: super는 정의된 곳이 정한다·필드 초기화 순서·파생 생성자의 return과 new.target·extends 대상 포함, 시뮬레이터).
 - 2026-11-02: 2번 `class-inheritance` 구현·리뷰·외부 콘텐츠 검토 2회(6건·4건) 반영 완료, 사용자 검토 승인(`reviewedAt` 2026-11-02), 커밋.
+- 2026-11-02: 3번 '화살표 함수와 메서드 축약'(`arrow-functions`, order 250, category `execution`) 계획 작성(사용자 결정: rest 파라미터 포함·매개변수 기본값은 추가 게시글 후보, arguments는 이 페이지에서 짧게, 비교표 + 퀴즈, slug·제목 추천안).
+- 2026-11-02: 3번 `arrow-functions` 구현·리뷰(High 1 수정)·외부 콘텐츠 검토 2회(8건·3건 중 명세와 다른 제안 1건 제외) 반영 완료, 사용자 검토 승인(`reviewedAt` 2026-11-02), 커밋.

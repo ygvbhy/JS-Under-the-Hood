@@ -332,4 +332,4 @@
    <details><summary>답</summary>"초기화 전"은 함수 환경 레코드의 this 바인딩 상태다. 기본 생성자는 내장 함수라 그런 레코드가 없으므로, 존재하지 않는 바인딩의 상태를 그리는 셈이 된다(변경 이력 첫 항목).</details>
 5. 메서드를 다른 객체로 옮겨도 super가 원래 부모를 부르는 이유와, 그래도 결과가 바뀔 수 있는 경우는?
    <details><summary>답</summary>super는 메서드에 고정된 [[HomeObject]]에서 출발한다. 다만 그 [[Prototype]]은 호출할 때마다 읽으므로 HomeObject의 [[Prototype]]을 바꾸면 결과가 바뀐다(변경 이력 ③, 근거 테스트).</details>
-- e2e (외부 검수 2차 반영 후): 3 skipped, 실패 0
+- e2e (외부 검수 2차 반영 후): 377 passed, 3 skipped, 실패 0
