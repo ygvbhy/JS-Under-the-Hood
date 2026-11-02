@@ -863,6 +863,21 @@ describe('시뮬레이터 프리렌더 (for-let)', () => {
   })
 })
 
+// 25~37장 로드맵 5번(array-method-pitfalls)은 시뮬레이터 없이 반환값 표와 퀴즈로 구성된다. 둘 다 프리렌더 HTML에 있어야 한다.
+describe('프리렌더 (array-method-pitfalls)', () => {
+  const html = read('concepts/array-method-pitfalls/index.html')
+  const text = htmlToText(html)
+
+  it('퀴즈 정답이 <details>로 7개 이상 프리렌더된다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(7)
+  })
+
+  it('원본 변경과 반환값 표가 있다', () => {
+    expect(html).toContain('aria-label="배열 메서드의 원본 변경과 반환값 표')
+    expect(text).toContain('지운 요소들의 새 배열')
+  })
+})
+
 // 학습 순서 이전/다음: 관련 개념 링크와 섞이지 않도록 nav 영역만 잘라 검사한다.
 describe('학습 순서 pager', () => {
   const ordered = sortByOrder(concepts)

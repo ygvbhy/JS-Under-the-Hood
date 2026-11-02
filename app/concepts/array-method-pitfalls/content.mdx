@@ -1,0 +1,281 @@
+import { methods } from './methods'
+
+## 동작 원리
+
+`[10, 9, 1].sort()`의 결과는 `[1, 9, 10]`이 아니라 `[1, 10, 9]`입니다. `sort`를 부른 배열이 함께 바뀌어 있기도 하고, `[NaN].indexOf(NaN)`은 `-1`인데 `[NaN].includes(NaN)`은 `true`입니다. 배열 메서드의 결과가 예상과 다를 때는 대개 메서드마다 명세가 정한 세 가지가 다르기 때문입니다. 첫째, 원래 배열의 프로퍼티를 바꾸는지 새 배열을 만들어 돌려주는지. 둘째, 요소를 무엇으로 비교하는지(문자열 표현, `===`, SameValueZero). 셋째, 구멍(프로퍼티가 없는 인덱스)을 건너뛰는지 `undefined`로 읽는지. 이 페이지는 이 세 질문으로 예제 일곱 개를 살펴보고, 마지막에 메서드 표로 정리합니다. 인덱스와 `length`, 구멍은 [배열은 객체다](/concepts/array-index-length), `NaN`과 `+0`/`-0`의 비교는 [동등 비교](/concepts/equality-operators), 여러 변수가 같은 객체를 값으로 가질 수 있다는 것은 [원시 값과 객체](/concepts/primitives-and-objects), 콜백으로 쓰는 화살표 함수는 [화살표 함수와 메서드 축약](/concepts/arrow-functions)에서 본 것을 전제합니다. `filter`·`find` 같은 고차 함수 각각의 사용법은 다루지 않고, 콜백 메서드는 구멍을 만났을 때와 `reduce`의 초기값만 봅니다.
+
+### 기본 sort는 문자열로 비교한다
+
+`sort`에 비교 함수를 넘기지 않으면, 명세의 CompareArrayElements는 두 요소를 각각 문자열로 바꾼 뒤([암묵적 타입 변환](/concepts/type-coercion)) 그 문자열을 비교합니다. 문자열 비교는 앞에서부터 한 글자씩, 정확히는 UTF-16 코드 유닛의 번호를 비교합니다. 한쪽이 다른 쪽의 앞부분과 같으면 짧은 쪽이 앞입니다. 숫자의 크기는 비교에 쓰이지 않습니다.
+
+예제 1의 2번 줄에서 `10`과 `9`를 비교할 때는 `'10'`과 `'9'`를 비교합니다. 첫 글자 `'1'`(U+0031)이 `'9'`(U+0039)보다 앞이므로 `'10'`이 앞입니다. `'1'`과 `'10'`은 `'1'`이 `'10'`의 앞부분이라 `'1'`이 앞입니다. 그래서 결과는 `[1,10,9]`입니다. 3번 줄의 `[-1, -2, 3]`은 `'-'`(U+002D)가 `'3'`보다 앞이고 `'-1'`과 `'-2'`는 두 번째 글자 `'1'`이 `'2'`보다 앞이라, 순서가 하나도 바뀌지 않은 `[-1,-2,3]`입니다. 5번 줄처럼 문자열 배열에서도 대문자 `'B'`(U+0042)가 소문자 `'a'`(U+0061)보다 앞이라 `["B","a","b"]`입니다.
+
+요소가 문자열로 바뀌어 저장되는 것은 아닙니다. 문자열로 바꾸는 것은 비교할 때뿐이고, 정렬된 배열의 요소는 원래 값인 숫자 그대로입니다. 숫자 크기로 정렬하려면 4번 줄처럼 비교 함수를 넘깁니다. 비교 함수의 반환값은 숫자로 바뀌어, 음수면 첫 인수를 앞에, 양수면 뒤에 두고, 0이면 두 값이 같다고 봅니다. `(a, b) => a - b`는 `a`가 작을 때 음수를 돌려주므로 오름차순 `[1,9,10]`이 됩니다.
+
+비교 함수가 `(a, b) => a > b`처럼 불리언을 돌려주면 `true`는 1, `false`는 0으로 바뀝니다. 그러면 `a`가 `b`보다 작을 때도 0, 곧 "같다"가 되어, 1과 3을 비교하면 같다고 하고 3과 1을 비교하면 3이 크다고 하는 모순이 생깁니다. 명세는 이런 함수를 일관된 비교자(consistent comparator)가 아니라고 보고, 이때 정렬 결과의 순서는 정하지 않고 구현에 맡깁니다. 엔진과 배열에 따라 우연히 맞게 정렬될 수도 있으므로, 비교 함수는 불리언이 아니라 음수·0·양수를 돌려주게 씁니다. 비교 함수의 반환값이 숫자로 바뀐 결과가 `NaN`이면 명세는 이를 0, 곧 "같다"로 봅니다. 그래서 문자열 배열에 `(a, b) => a - b`를 쓰면 `'b' - 'a'`가 `NaN`이라 모든 쌍을 같다고 보고, 뒤에서 볼 안정 정렬 규칙에 따라 같다고 본 요소는 원래 순서를 지키므로 `['b', 'a'].sort((a, b) => a - b)`는 `["b","a"]` 그대로입니다. 빼기 비교 함수는 숫자로 바꾸면 `NaN`이 되는 값, 예를 들어 `'a'` 같은 보통의 문자열에는 쓸 수 없습니다.
+
+### 원본을 바꾸는 메서드와 새 배열을 만드는 메서드
+
+`sort`와 `reverse`는 정렬하거나 뒤집은 결과를 원래 배열의 인덱스 프로퍼티에 다시 씁니다. 그리고 새 배열이 아니라 그 배열 자신을 돌려줍니다. 예제 2의 2번 줄에서 `sorted`에 담긴 값은 `original`과 같은 객체라서, 3번 줄의 `sorted === original`은 `true`이고 `original`도 `[1,2,3]`으로 바뀌어 있습니다. 4~5번 줄의 `reverse`도 같아서 `reversed === original`은 `true`이고 `original`은 `[3,2,1]`이 됩니다. 결과를 다른 변수에 담았다고 원래 배열이 남아 있는 것은 아닙니다.
+
+`slice`와 `map`은 반대로 새 배열을 만들어 결과를 담고, 원래 배열에는 쓰지 않습니다. 6~7번 줄의 `part`는 `original`과 다른 배열이라 `part === original`은 `false`이고, `part`는 `[2,1]`, `original`은 `[3,2,1]` 그대로입니다. 8~9번 줄의 `map`도 각 요소에 콜백을 부른 결과로 새 배열 `[6,4,2]`를 만들 뿐 `original`은 바꾸지 않습니다.
+
+### 반환값이 예상과 다른 메서드
+
+원본을 바꾸는 메서드는 바꾼 배열이 아닌 다른 값을 돌려주는 경우가 많습니다. `push`는 요소를 끝에 추가한 뒤 새 `length`를, `pop`은 끝에서 꺼낸 요소를, `splice`는 지운 요소들을 담은 새 배열을 돌려줍니다. `forEach`는 각 요소에 콜백을 부르기만 하고 언제나 `undefined`를 돌려줍니다.
+
+예제 3의 2번 줄에서 `list.push('c')`는 `list`를 `["a","b","c"]`로 바꾸고 새 `length`인 `3`을 돌려줍니다. `console.log`의 인수는 왼쪽부터 평가되므로 `JSON.stringify(list)`는 `push` 뒤의 배열을 보여 줍니다. 3번 줄의 `pop()`은 꺼낸 `'c'`를 돌려줍니다. 4번 줄의 `splice(0, 1, 'x', 'y')`는 인덱스 0부터 요소 1개를 지우고 그 자리에 `'x'`와 `'y'`를 넣습니다. 돌려주는 값은 바뀐 `list`가 아니라 지운 요소를 담은 `["a"]`이고, `list`는 `["x","y","b"]`가 됩니다. 6번 줄의 `forEach`는 콜백이 값을 돌려줘도 그 값을 모으지 않으므로 `undefined`입니다.
+
+### ES2023의 복사 메서드
+
+`sort`, `reverse`, `splice`, 인덱스 대입처럼 원본을 바꾸는 동작에는 ES2023에서 원본을 바꾸지 않는 짝 메서드 `toSorted`, `toReversed`, `toSpliced`, `with`가 추가되었습니다. 『모던 자바스크립트 Deep Dive』 출간 뒤에 생긴 메서드입니다. 흔히 복사 메서드라고 부르는데, 명세가 정한 동작은 새 배열을 만들고(ArrayCreate) 원래 배열에서 읽은 값을 새 배열에 넣는 것입니다. `toSorted`, `toReversed`, `with`의 새 배열은 원래 배열과 `length`가 같고, `toSpliced`의 새 배열은 뺀 요소와 넣은 요소의 수만큼 `length`가 달라집니다. `with`는 지정한 인덱스에, `toSpliced`는 넣을 자리에 원래 배열에서 읽은 값 대신 인수로 받은 값을 넣습니다. 원래 배열에는 아무것도 쓰지 않습니다.
+
+예제 4의 2~3번 줄에서 `toSorted`는 정렬된 새 배열 `[10,20,30]`을 돌려주고 `scores`는 `[30,10,20]` 그대로입니다. 4번 줄의 `toReversed`는 `[20,10,30]`, `toSpliced(0, 1)`은 인덱스 0의 요소 하나를 뺀 `[10,20]`입니다. 5번 줄의 `with(-1, 99)`는 한 인덱스만 다른 값으로 바꾼 새 배열을 돌려주는데, 음수 인덱스는 `length`에 더해 뒤에서부터 셉니다. `-1`은 인덱스 2가 되어 `[30,10,99]`입니다. 6번 줄의 `with(3, 0)`은 인덱스 3이 `length` 이상이므로 명세가 RangeError를 던지게 정했습니다. 그래서 `try` 안의 `console.log`는 실행되지 않고 `catch`가 오류 이름을 출력합니다. `scores[3] = 0`처럼 대입하면 `length`가 늘어나는 것과 다릅니다.
+
+새 배열에 들어가는 것은 원래 배열에서 읽은 값 그대로입니다. 요소가 객체라면 새 배열의 요소도 같은 객체이고, 새 객체가 만들어지지 않습니다. 7~8번 줄의 `copy`는 `users`와 다른 배열이라 10번 줄의 `copy === users`는 `false`입니다. 하지만 `copy[0]`과 `users[0]`은 같은 객체라서, 9번 줄에서 `copy[0].name`을 바꾸면(객체의 변경) `users[0].name`도 `'lee'`입니다.
+
+### sort와 undefined, 구멍, 안정 정렬
+
+`sort`는 먼저 `0`부터 `length - 1`까지 프로퍼티가 있는 인덱스의 값만 모읍니다. 구멍은 이 단계에서 빠집니다. 모은 값을 정렬할 때 `undefined`는 비교 함수를 부르지 않고 항상 다른 모든 값보다 뒤로 보냅니다. 정렬한 값을 인덱스 0부터 다시 쓴 뒤, 남은 인덱스는 지워서 처음 있던 구멍 수만큼 끝에 구멍을 남깁니다. 그래서 결과는 다른 값들, `undefined`, 구멍 순서입니다.
+
+예제 5의 1번 줄 `mixed`는 인덱스 1에 `undefined` 값이 있고 인덱스 2는 구멍입니다. 2번 줄의 `sort()`는 `3`, `undefined`, `1`을 모아 `1`, `3`, `undefined` 순서로 인덱스 0~2에 쓰고, 인덱스 3을 지웁니다. 3번 줄에서 `length`는 `4` 그대로이고, `JSON.stringify`는 `undefined`와 구멍을 모두 `null`로 써서 `[1,3,null,null]`입니다. 둘을 구분하는 것은 `in`입니다. `2 in mixed`는 `undefined` 값이 든 프로퍼티라 `true`, `3 in mixed`는 구멍이라 `false`입니다. 4~6번 줄은 비교 함수가 `undefined`를 받은 횟수를 셉니다. `undefined`는 비교 함수에 넘기기 전에 순서가 정해지므로 `called`는 `0`입니다.
+
+비교 함수가 0을 돌려준 두 요소, 곧 같다고 본 요소는 정렬 전의 순서를 유지합니다. 이를 안정 정렬(stable sort)이라 하고, 명세는 ES2019부터 `sort`가 안정 정렬이어야 한다고 정합니다. 7~13번 줄은 나이로만 정렬합니다. 20살인 `B`와 `D`, 30살인 `A`와 `C`는 각각 원래 순서를 지키므로, 14번 줄에서 이름을 이어 붙인 결과는 `BDAC`입니다. 14번 줄의 `map`과 `join`은 정렬 결과를 한 줄로 보이려고 이름을 모아 이어 붙이는 데만 씁니다. 정렬이 비교 함수를 어떤 순서로 몇 번 부르는지는 명세가 정하지 않으므로 이 페이지에서 다루지 않습니다.
+
+### indexOf와 includes는 비교 방법이 다르다
+
+`indexOf`는 요소를 `===`(명세의 IsStrictlyEqual)로 비교하고, `includes`는 SameValueZero로 비교합니다. SameValueZero는 `===`와 거의 같지만 `NaN`을 `NaN`과 같다고 봅니다. 두 방법 모두 `+0`과 `-0`은 같다고 봅니다. `NaN === NaN`은 `false`이므로([동등 비교](/concepts/equality-operators)) `indexOf`로는 `NaN`을 찾을 수 없습니다. 예제 6의 2번 줄에서 `indexOf(NaN)`은 `-1`, `includes(NaN)`은 `true`입니다. 3번 줄의 `-0`은 두 방법 모두 `0`과 같다고 보므로 `indexOf(-0)`은 `0`이 있는 인덱스 `2`, `includes(-0)`은 `true`입니다. 뒤에서부터 찾는 `lastIndexOf`도 `===`로 비교해서 `NaN`을 찾지 못합니다.
+
+구멍도 다르게 다룹니다. `indexOf`는 프로퍼티가 있는 인덱스만 읽고 구멍은 건너뜁니다. `includes`는 모든 인덱스를 읽으므로 구멍을 읽으면 `undefined`입니다. 5번 줄에서 `[1, , 3]`의 `indexOf(undefined)`는 `undefined` 값이 든 프로퍼티가 없어 `-1`이고, `includes(undefined)`는 구멍을 `undefined`로 읽어 `true`입니다.
+
+### 구멍을 만난 콜백 메서드와 reduce
+
+`forEach`와 `map`은 인덱스마다 프로퍼티가 있는지 먼저 확인하고, 구멍에서는 콜백을 부르지 않습니다. `map`은 원래 배열과 같은 `length`의 새 배열을 만든 뒤 콜백을 부른 자리에만 결과를 넣으므로, 구멍이었던 자리는 새 배열에서도 구멍입니다. 예제 7의 3번 줄 `forEach`는 `[1, , 3]`에서 콜백을 두 번만 불러 `visited`가 `2`입니다. 4번 줄의 `mapped`는 `length`가 `3`이지만 `1 in mapped`가 `false`인 희소 배열이고, `JSON.stringify`는 구멍을 `null`로 써서 `[2,null,6]`입니다.
+
+복사 메서드는 반대입니다. `toSorted`, `toReversed`, `toSpliced`, `with`는 구멍을 건너뛰지 않고 읽어서 `undefined`를 새 배열에 넣습니다. 6번 줄의 `toSorted()`는 `1`, `undefined`, `3`을 정렬해 `[1, 3, undefined]`를 만들므로, 7번 줄에서 `length`는 `3`이고 인덱스 1과 2 모두 프로퍼티가 있어 `true true`입니다. 원래 배열에 있던 구멍이 결과에서는 `undefined` 값으로 바뀝니다.
+
+`reduce`는 콜백을 부를 때마다 이전 결과(누적값)와 현재 요소를 넘기고, 콜백의 반환값을 다음 누적값으로 씁니다. 두 번째 인수로 초기값을 주면 그 값에서 시작하고, 주지 않으면 프로퍼티가 있는 첫 요소를 초기값으로 쓰고, 그다음 프로퍼티가 있는 요소부터 콜백을 부릅니다. 초기값을 찾을 때도, 그 뒤 반복에서도 구멍은 어디에 있든 건너뛰므로 `[ , 5, 6].reduce(sum)`은 TypeError가 아니라 `5`에서 시작해 `11`입니다. 9번 줄에서 `[1, 2, 3].reduce(sum)`은 `1`에서 시작해 `6`, 초기값 `10`을 준 쪽은 `16`입니다. 초기값 없이 빈 배열에 부르면 시작할 값이 없으므로 명세가 TypeError를 던지게 정했습니다. 10번 줄은 `reduce`가 오류를 던져 `try` 안의 `console.log`까지 가지 못하고 `catch`가 오류 이름을 출력합니다. 구멍만 있는 배열도 프로퍼티가 있는 요소가 없어 같은 TypeError입니다. 11번 줄처럼 초기값이 있으면 빈 배열은 콜백을 한 번도 부르지 않고 초기값 `0`을 돌려줍니다. 요소가 하나뿐인 `[5]`는 초기값 없이 부르면 `5`가 초기값이 되고 다음 요소가 없어 콜백을 부르지 않으므로, `'never'`가 아니라 `5`입니다.
+
+### 메서드 표로 정리
+
+아래 표는 지금까지 본 메서드가 원래 배열을 바꾸는지와 무엇을 돌려주는지 정리한 것입니다. 칸마다 `[3, 1, 2]`에 해당 메서드를 부르는 짧은 코드를 실제로 실행한 결과와 대조해 두었습니다. `map(fn)`과 `forEach(fn)`의 `fn`은 콜백 함수입니다.
+
+<div
+  className="focus-visible:outline-accent my-6 overflow-x-auto focus-visible:outline-2"
+  tabIndex={0}
+  role="region"
+  aria-label="배열 메서드의 원본 변경과 반환값 표(좁은 화면에서는 가로로 스크롤할 수 있습니다)"
+>
+  <table className="w-full border-collapse text-left [&_code]:whitespace-nowrap">
+    <thead>
+      <tr>
+        <th scope="col" className="border-border border px-3 py-2">
+          메서드
+        </th>
+        <th scope="col" className="border-border border px-3 py-2">
+          원래 배열
+        </th>
+        <th scope="col" className="border-border border px-3 py-2">
+          반환값
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      {methods.map((row) => (
+        <tr key={row.method}>
+          <th scope="row" className="border-border border px-3 py-2">
+            <code>{row.method}</code>
+          </th>
+          <td className="border-border border px-3 py-2">{row.mutates.text}</td>
+          <td className="border-border border px-3 py-2">{row.returns.text}</td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
+
+## 예제
+
+예제의 `console.log`는 값을 출력하는 호스트 API이며 ECMAScript 언어의 일부가 아닙니다. 예제 코드는 `'use strict'`가 없는 sloppy mode 스크립트입니다. 배열은 `JSON.stringify`로 출력하므로 구멍과 `undefined`는 `null`로 나옵니다. 여러 줄 출력은 퀴즈에서 ' / '로 이어 적었습니다.
+
+### 예제 1: 기본 sort는 문자열로 비교한다
+
+```js file=./examples/default-sort.js
+
+```
+
+<PredictQuiz
+  question="예제 1의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '[1,9,10] / [-2,-1,3] / [1,9,10] / ["a","b","B"]',
+    '[1,10,9] / [-1,-2,3] / [1,9,10] / ["B","a","b"]',
+    '[1,10,9] / [-2,-1,3] / [1,9,10] / ["a","B","b"]',
+    '[1,9,10] / [-1,-2,3] / [10,9,1] / ["B","a","b"]',
+  ]}
+  answer={1}
+  explanation="비교 함수가 없으면 두 요소의 문자열 표현을 코드 유닛 순서로 비교합니다. '10'은 첫 글자 '1'이 '9'보다 앞이라 9보다 앞이고, '-1'과 '-2'는 두 번째 글자로 갈려 [-1,-2,3]이 그대로입니다. 대문자 'B'는 소문자보다 앞입니다. 비교 함수 (a, b) => a - b를 넘긴 4번 줄만 숫자 크기순입니다."
+/>
+
+### 예제 2: 원본을 바꾸는 메서드와 새 배열을 만드는 메서드
+
+```js file=./examples/mutating-methods.js
+
+```
+
+<PredictQuiz
+  question="예제 2의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'false [3,1,2] / false [3,1,2] / false [1,2] [3,1,2] / [6,2,4] [3,1,2]',
+    'true [1,2,3] / true [3,2,1] / true [2,1] [2,1] / [6,4,2] [6,4,2]',
+    'false [1,2,3] / false [3,2,1] / false [2,1] [3,2,1] / [6,4,2] [3,2,1]',
+    'true [1,2,3] / true [3,2,1] / false [2,1] [3,2,1] / [6,4,2] [3,2,1]',
+  ]}
+  answer={3}
+  explanation="sort와 reverse는 원래 배열에 결과를 쓰고 그 배열 자신을 돌려주므로 sorted와 reversed는 original과 같은 객체이고 original이 바뀝니다. slice와 map은 새 배열을 만들어 돌려주므로 part === original은 false이고 original은 [3,2,1] 그대로입니다."
+/>
+
+### 예제 3: 반환값이 예상과 다른 메서드
+
+```js file=./examples/return-values.js
+
+```
+
+<PredictQuiz
+  question="예제 3의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '3 ["a","b","c"] / c ["a","b"] / ["a"] ["x","y","b"] / undefined',
+    '["a","b","c"] ["a","b","c"] / ["a","b"] ["a","b"] / ["x","y","b"] ["x","y","b"] / ["a!","x!","y!","b!"]',
+    '3 ["a","b","c"] / c ["a","b"] / ["x","y","b"] ["x","y","b"] / undefined',
+    '3 ["a","b","c"] / 2 ["a","b"] / ["a"] ["x","y","b"] / ["x!","y!","b!"]',
+  ]}
+  answer={0}
+  explanation="push는 새 length 3을, pop은 꺼낸 요소 'c'를 돌려줍니다. splice는 바뀐 배열이 아니라 지운 요소를 담은 새 배열 ['a']를 돌려주고, list는 ['x', 'y', 'b']가 됩니다. forEach는 콜백의 반환값을 모으지 않고 언제나 undefined를 돌려줍니다."
+/>
+
+### 예제 4: ES2023의 복사 메서드
+
+```js file=./examples/copy-methods.js
+
+```
+
+<PredictQuiz
+  question="예제 4의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '[10,20,30] [10,20,30] / [30,20,10] [] / [30,10,99] [30,10,99] / RangeError / false kim',
+    '[10,20,30] [30,10,20] / [20,10,30] [10,20] / [30,10,99] [30,10,20] / RangeError / false kim',
+    '[10,20,30] [30,10,20] / [20,10,30] [10,20] / [30,10,99] [30,10,20] / RangeError / false lee',
+    '[10,20,30] [30,10,20] / [20,10,30] [10,20] / [99,10,20] [30,10,20] / [30,10,20,0] / true lee',
+  ]}
+  answer={2}
+  explanation="toSorted, toReversed, toSpliced, with는 새 배열을 만들어 돌려주고 scores는 바꾸지 않습니다. with(-1, 99)의 -1은 뒤에서 첫 번째인 인덱스 2이고, length 이상인 인덱스 3은 RangeError입니다. copy는 새 배열이지만 그 요소는 users[0]과 같은 객체라서 copy[0].name을 바꾸면 users[0].name도 lee입니다."
+/>
+
+### 예제 5: sort와 undefined, 구멍, 안정 정렬
+
+```js file=./examples/undefined-and-stable.js
+
+```
+
+<PredictQuiz
+  question="예제 5의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '4 [1,3,null,null] true false / 0 / BDAC',
+    '4 [null,null,1,3] false true / 2 / BDAC',
+    '3 [1,3,null] true true / 0 / DBCA',
+    '4 [1,3,null,null] true false / 2 / BD 순서는 정해지지 않음',
+  ]}
+  answer={0}
+  explanation="sort는 구멍을 빼고 3, undefined, 1을 모아 정렬하고, undefined는 비교 함수를 부르지 않고 맨 뒤로 보냅니다. 인덱스 0~2에 1, 3, undefined를 쓰고 인덱스 3은 지워 구멍으로 남기므로 2 in mixed는 true, 3 in mixed는 false입니다. 같은 나이끼리는 안정 정렬이라 원래 순서를 지켜 BDAC입니다."
+/>
+
+### 예제 6: indexOf와 includes
+
+```js file=./examples/search-nan.js
+
+```
+
+<PredictQuiz
+  question="예제 6의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '1 true / 2 true / 1 true',
+    '-1 false / -1 false / -1 false',
+    '-1 true / -1 false / -1 true',
+    '-1 true / 2 true / -1 true',
+  ]}
+  answer={3}
+  explanation="indexOf는 ===로 비교해 NaN을 찾지 못하고, includes는 SameValueZero로 비교해 NaN을 찾습니다. 두 방법 모두 -0과 0을 같다고 봐서 2와 true입니다. indexOf는 구멍을 건너뛰어 undefined를 찾지 못하고, includes는 구멍을 undefined로 읽어 true입니다."
+/>
+
+### 예제 7: 구멍을 만난 콜백 메서드와 reduce
+
+```js file=./examples/holes-and-reduce.js
+
+```
+
+<PredictQuiz
+  question="예제 7의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '3 3 true [2,null,6] / 3 false true / 6 16 / TypeError / 0 never',
+    '2 3 false [2,null,6] / 3 true true / 6 16 / TypeError / 0 5',
+    '2 2 true [2,6] / 2 true false / 6 16 / 0 / 0 5',
+    '2 3 false [2,null,6] / 3 false true / 6 6 / undefined / undefined 5',
+  ]}
+  answer={1}
+  explanation="forEach와 map은 구멍에서 콜백을 부르지 않아 visited는 2이고, map 결과는 length 3에 인덱스 1이 구멍입니다. toSorted는 구멍을 undefined로 읽어 [1, 3, undefined]를 만들어 모든 인덱스에 프로퍼티가 있습니다. 초기값 없는 reduce는 빈 배열에서 TypeError이고, 요소가 하나면 콜백을 부르지 않고 그 요소 5를 돌려줍니다."
+/>
+
+## 결과와 이유
+
+### 예제 1
+
+2번 줄의 `numbers.sort()`는 `'10'`, `'9'`, `'1'`을 비교해 `'1'`, `'10'`, `'9'` 순서가 되므로 `[1,10,9]`입니다. 3번 줄은 `'-1'`, `'-2'`, `'3'`의 순서가 이미 문자열 순서라 `[-1,-2,3]` 그대로입니다. 4번 줄은 비교 함수 `(a, b) => a - b`가 숫자 크기로 비교하므로 `[1,9,10]`입니다. 5번 줄은 코드 유닛 번호가 `'B'` < `'a'` < `'b'`라 `["B","a","b"]`입니다.
+
+### 예제 2
+
+3번 줄은 `sort`가 `original` 자신을 정렬하고 돌려주어 `true [1,2,3]`입니다. 5번 줄은 `reverse`도 `original` 자신을 뒤집고 돌려주어 `true [3,2,1]`입니다. 7번 줄은 `slice(1)`이 인덱스 1부터 끝까지를 담은 새 배열이라 `false [2,1] [3,2,1]`입니다. 9번 줄은 `map`이 각 요소를 두 배로 한 새 배열 `[6,4,2]`를 만들고 `original`은 `[3,2,1]` 그대로입니다.
+
+### 예제 3
+
+2번 줄의 `push('c')`는 새 `length` `3`을 돌려주어 `3 ["a","b","c"]`입니다. 3번 줄의 `pop()`은 꺼낸 `'c'`를 돌려주어 `c ["a","b"]`입니다. 5번 줄의 `removed`는 `splice`가 지운 요소의 배열 `["a"]`이고 `list`는 `["x","y","b"]`입니다. 6번 줄의 `forEach`는 `undefined`를 돌려줍니다.
+
+### 예제 4
+
+3번 줄의 `toSorted`는 새 배열 `[10,20,30]`을 돌려주고 `scores`는 `[30,10,20]`입니다. 4번 줄의 `toReversed()`는 `[20,10,30]`, `toSpliced(0, 1)`은 `[10,20]`입니다. 5번 줄의 `with(-1, 99)`는 인덱스 2만 바꾼 새 배열 `[30,10,99]`이고 `scores`는 그대로입니다. 6번 줄의 `with(3, 0)`은 인덱스가 범위를 벗어나 RangeError를 던지므로 `try` 안의 `console.log`는 실행되지 않고 `catch`가 `RangeError`를 출력합니다. 10번 줄은 `copy`가 새 배열이라 `copy === users`가 `false`이고, `copy[0]`이 `users[0]`과 같은 객체라 `users[0].name`이 `lee`입니다.
+
+### 예제 5
+
+3번 줄은 `sort` 뒤의 `mixed`가 인덱스 0~2에 `1`, `3`, `undefined`를 갖고 인덱스 3이 구멍이라 `4 [1,3,null,null] true false`입니다. 6번 줄의 `called`는 비교 함수가 `undefined`를 한 번도 받지 않아 `0`입니다. 14번 줄은 같은 나이끼리 원래 순서를 지킨 `B`, `D`, `A`, `C`를 이어 붙여 `BDAC`입니다.
+
+### 예제 6
+
+2번 줄은 `indexOf(NaN)`이 `-1`, `includes(NaN)`이 `true`라 `-1 true`입니다. 3번 줄은 두 메서드 모두 `-0`을 `0`과 같다고 보아 `2 true`입니다. 5번 줄은 `indexOf`가 구멍을 건너뛰어 `-1`, `includes`가 구멍을 `undefined`로 읽어 `true`라서 `-1 true`입니다.
+
+### 예제 7
+
+5번 줄은 `forEach`가 콜백을 두 번 불러 `visited`가 `2`, `mapped`가 `length` `3`에 인덱스 1이 구멍이라 `2 3 false [2,null,6]`입니다. 7번 줄은 `toSorted`가 만든 `[1, 3, undefined]`라 `3 true true`입니다. 9번 줄은 초기값이 없을 때 `1 + 2 + 3`, 초기값 `10`이 있을 때 `10 + 1 + 2 + 3`이라 `6 16`입니다. 10번 줄은 빈 배열에 초기값 없이 부른 `reduce`가 TypeError를 던져 `try` 안의 `console.log`는 실행되지 않고 `catch`가 `TypeError`를 출력합니다. 11번 줄은 초기값 `0`을 그대로 돌려준 `0`과, 콜백을 부르지 않고 하나뿐인 요소를 돌려준 `5`입니다.
+
+### 흔한 오해
+
+<Callout type="misconception" title="sort()는 숫자를 크기순으로 정렬한다">
+
+비교 함수가 없으면 `sort`는 두 요소의 문자열 표현을 비교합니다. 그래서 `[10, 9, 1]`은 `[1, 10, 9]`가 되고, 음수가 섞이면 순서가 더 어긋납니다(예제 1). 요소가 문자열로 바뀌는 것은 아니고 비교할 때만 문자열을 씁니다. 숫자 크기순으로 정렬하려면 `(a, b) => a - b`처럼 음수·0·양수를 돌려주는 비교 함수를 넘깁니다.
+
+</Callout>
+
+<Callout type="misconception" title="새 배열을 돌려주면 요소도 새로 만들어진다">
+
+`slice`, `toSorted`, `toReversed`, `toSpliced`, `with`가 새로 만드는 것은 배열 하나뿐입니다. 새 배열에는 원래 배열에서 읽은 값이 그대로 들어가므로(`with`와 `toSpliced`가 인수로 받은 값은 제외), 요소가 객체라면 두 배열이 같은 객체를 요소로 가집니다. 한쪽에서 그 객체의 프로퍼티를 바꾸면 다른 쪽에서도 바뀐 값이 보입니다(예제 4). `map`은 원래 값이 아니라 콜백이 돌려준 값을 새 배열에 넣으므로, 콜백이 새 객체를 만들어 돌려주면 새 객체가, 받은 요소를 그대로 돌려주면 같은 객체가 들어갑니다.
+
+</Callout>
+
+<Callout type="misconception" title="indexOf와 includes는 같은 방법으로 찾는다">
+
+`indexOf`는 `===`로 비교하고 구멍을 건너뜁니다. `includes`는 SameValueZero로 비교하고 구멍을 `undefined`로 읽습니다. 그래서 `NaN`은 `includes`로만 찾을 수 있고, 구멍이 있는 배열에서 `undefined`를 찾으면 두 메서드의 답이 다릅니다(예제 6). `+0`과 `-0`은 두 메서드 모두 같다고 봅니다.
+
+</Callout>
+
+<Callout type="misconception" title="map은 구멍을 undefined로 채운다">
+
+`map`은 구멍에서 콜백을 부르지 않고, 결과 배열의 그 자리도 구멍으로 남깁니다(예제 7). `JSON.stringify`로 출력하면 `null`로 보여 값이 들어간 것처럼 보이지만, `in`으로 확인하면 프로퍼티가 없습니다. 구멍을 `undefined`로 읽는 것은 `includes`이고, 읽어서 새 배열에 `undefined`로 넣는 것은 `toSorted` 같은 복사 메서드입니다.
+
+</Callout>

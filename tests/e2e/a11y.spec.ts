@@ -45,6 +45,7 @@ import {
   ARROW_FUNCTIONS_PATH,
   ARRAY_INDEX_LENGTH_PATH,
   ARRAY_INDEX_LENGTH_SIMULATOR_NAME,
+  ARRAY_METHOD_PITFALLS_PATH,
   SWITCH_PATH,
   SWITCH_SIMULATOR_NAME,
   TYPE_COERCION_PATH,
@@ -644,6 +645,13 @@ for (const colorScheme of ['light', 'dark'] as const) {
         }
         await expect(next).toBeDisabled()
       }
+    })
+
+    test('개념 페이지: 배열 메서드의 함정', async ({ page }) => {
+      await page.goto(ARRAY_METHOD_PITFALLS_PATH)
+      await waitForHydration(page)
+      await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
+      await expectNoSeriousViolations(page)
     })
 
     test('개념 페이지: 배열 length 시뮬레이터 5단계에서 length가 5이고 구멍이 보인다', async ({

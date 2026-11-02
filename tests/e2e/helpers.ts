@@ -49,6 +49,7 @@ export const CLASS_INHERITANCE_SIMULATOR_NAME = '클래스 상속 시뮬레이�
 export const ARROW_FUNCTIONS_PATH = '/concepts/arrow-functions'
 export const ARRAY_INDEX_LENGTH_PATH = '/concepts/array-index-length'
 export const ARRAY_INDEX_LENGTH_SIMULATOR_NAME = '배열 length 시뮬레이터'
+export const ARRAY_METHOD_PITFALLS_PATH = '/concepts/array-method-pitfalls'
 
 // 404 문서 자체를 받을 때 브라우저가 남기는 리소스 로드 로그. 앱 오류가 아니므로 무시한다.
 const IGNORED_404_LOG = /Failed to load resource: the server responded with a status of 404/
