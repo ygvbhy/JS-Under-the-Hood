@@ -1,0 +1,271 @@
+import { Simulator } from './Simulator'
+import { scenarios } from './scenarios'
+
+## 동작 원리
+
+같은 정규 표현식으로 같은 문자열을 `test`하면 결과도 늘 같을 것 같습니다. 그런데 `var re = /a/g;`로 만든 `re`에 `re.test('a')`를 세 번 부르면 `true`, `false`, `true`가 나옵니다. 원인은 정규 표현식 객체가 가진 `lastIndex` 프로퍼티입니다. `g`나 `y` 플래그가 있으면 `test`와 `exec`는 이 프로퍼티를 읽어 검색을 시작할 위치로 쓰고, 검색이 끝나면 새 값을 써 넣습니다. 그래서 같은 호출이라도 앞선 호출이 남긴 `lastIndex`에 따라 결과가 달라집니다. 이 페이지는 명세가 정한 검색 절차(RegExpBuiltinExec)로 이 동작을 설명합니다.
+
+### lastIndex는 다음 검색을 시작할 위치다
+
+정규 표현식 리터럴(`/a/g`)을 평가하면 정규 표현식 객체가 만들어집니다. 이 객체에는 `lastIndex`라는 자기 프로퍼티가 있고 처음 값은 `0`입니다. `lastIndex`는 쓰기 가능(writable)하고 열거할 수 없으며(enumerable 아님) 설정할 수 없는(configurable 아님) 데이터 프로퍼티입니다([프로퍼티 어트리뷰트와 접근자](/concepts/property-attributes)). `lastIndex`는 검색할 문자열이 아니라 정규 표현식 객체에 붙어 있다는 점이 이 페이지의 핵심입니다.
+
+`exec`는 명세의 RegExpBuiltinExec로 검색합니다. `g`나 `y` 플래그가 있을 때 이 절차는 다음 세 규칙을 따릅니다.
+
+- 시작: 문자열의 `lastIndex` 위치에서 매치를 시도합니다. `g`는 그 자리에 매치가 없으면 다음 위치(인덱스가 1 큰 쪽)로 한 칸씩 옮겨 가며 다시 시도하고, `y`는 `lastIndex` 위치에서만 시도합니다(뒤의 y 플래그 절). `lastIndex`가 문자열 길이보다 크면 시도하지 않고 실패합니다. 길이와 같은 위치, 곧 문자열 끝에서는 한 번 시도하므로 빈 문자열에 매치할 수 있습니다(예제 7).
+- 성공: 매치가 끝난 위치를 `lastIndex`에 씁니다.
+- 실패(끝까지 매치가 없음): `lastIndex`에 `0`을 씁니다.
+
+`test`는 같은 검색을 하고 결과가 `null`이면 `false`, 아니면 `true`를 돌려줄 뿐입니다. 그래서 `test`도 `lastIndex`를 읽고 바꿉니다.
+
+예제 1의 2번 줄에서 `lastIndex`는 `0`이라 `'a'`의 0번 위치에서 매치하고, 매치 끝인 `1`이 `lastIndex`가 됩니다. 3번 줄은 같은 호출이지만 1번 위치(문자열 끝)부터 찾으므로 매치가 없고, 실패했으니 `lastIndex`가 `0`으로 돌아갑니다. 4번 줄은 다시 0번 위치부터 찾으므로 2번 줄과 결과가 같습니다.
+
+### exec로 모든 매치 찾기
+
+`exec`는 매치하면 매치 결과 배열을, 못 찾으면 `null`을 돌려줍니다. 결과 배열의 `0`번 요소는 매치한 문자열이고 `index` 프로퍼티는 매치를 시작한 위치입니다. `g` 플래그가 있으면 성공할 때마다 `lastIndex`가 매치 끝으로 옮겨 가므로, `exec`를 반복해 부르면 앞에서 찾은 자리 다음부터 찾습니다.
+
+예제 2의 4번 줄 `while ((m = re.exec(text)) !== null)`은 이 성질을 씁니다. 괄호 안의 대입식은 대입한 값, 곧 `exec`의 결과를 돌려주므로 결과가 `null`이 아닌 동안 반복합니다. 첫 `exec`는 `'cat bat'`의 1번 위치에서 시작하는 `at`에 매치해 `lastIndex`를 매치가 끝난 위치 3으로 바꾸고, 두 번째는 3부터 찾아 5번 위치의 `at`에 매치해 `lastIndex`를 7로 바꿉니다. 세 번째는 7(문자열 끝)부터 찾아 실패하므로 `null`을 돌려주고 `lastIndex`를 `0`으로 되돌립니다. 그래서 반복이 끝난 뒤 7번 줄은 `0`을 출력합니다.
+
+### g가 없으면 lastIndex를 무시하고 바꾸지 않는다
+
+`g`도 `y`도 없으면 RegExpBuiltinExec는 `lastIndex` 프로퍼티 값을 읽기는 하지만 시작 위치로 삼지 않고 항상 `0`부터 찾습니다. 성공하든 실패하든 `lastIndex`에 값을 쓰지도 않습니다. 그래서 `g` 없는 정규 표현식은 몇 번을 불러도 결과가 같습니다.
+
+예제 3의 2번 줄은 `lastIndex`에 `3`을 대입합니다. 그래도 3번 줄의 `test`는 0번 위치부터 찾아 `true`이고 `lastIndex`는 `3` 그대로입니다. 4번 줄의 `exec`도 `'banana'`의 처음부터 찾아 `index`가 `1`이고, 5번 줄에서 `lastIndex`는 여전히 `3`입니다.
+
+### match는 g가 있으면 처음부터 끝까지 찾는다
+
+문자열의 `match` 메서드는 인수로 받은 정규 표현식의 검색을 부릅니다. `g`가 없으면 `exec`를 한 번 부른 것과 같은 결과(`index`가 있는 매치 결과 배열이나 `null`)를 돌려줍니다. `g`가 있으면 동작이 다릅니다. 먼저 `lastIndex`에 `0`을 쓰고, `exec`와 같은 검색을 실패할 때까지 반복해 매치한 문자열만 새 배열에 모읍니다. 이 배열은 매치 결과 배열이 아니라 `index`가 없고, 마지막 검색이 실패하며 `lastIndex`는 `0`으로 돌아갑니다. 하나도 못 찾으면 `null`입니다.
+
+예제 4의 2번 줄에서 `lastIndex`를 `4`로 바꿔 두었지만, 3번 줄의 `match`는 `0`부터 다시 시작해 `'banana'`의 `an` 두 개를 모두 찾습니다. 4번 줄에서 `all.index`는 `undefined`이고 `lastIndex`는 `0`입니다. 5번 줄의 `/an/`에는 `g`가 없어 첫 매치의 결과 배열을 돌려주고, 6번 줄에서 `first.index`는 `1`입니다. `JSON.stringify`는 배열의 인덱스 요소만 쓰므로 `index` 프로퍼티는 출력에 나오지 않습니다. 7번 줄은 매치가 없어 `null`입니다.
+
+### 같은 정규 표현식을 여러 문자열에 쓰는 함정
+
+`lastIndex`는 문자열이 아니라 정규 표현식 객체에 있으므로, `g` 플래그가 있는 정규 표현식 하나를 여러 문자열에 차례로 쓰면 앞 문자열의 검색이 남긴 `lastIndex`에서 다음 문자열의 검색이 시작됩니다. 배열의 `filter`처럼 콜백을 요소마다 부르는 메서드에서 자주 만나는 함정입니다.
+
+예제 5의 3번 줄에서 `filter`는 단어마다 콜백을 부르고, 콜백은 모두 같은 `startsWithA` 객체로 `test`합니다(콜백의 화살표 함수는 [화살표 함수와 메서드 축약](/concepts/arrow-functions)). `^`는 문자열의 시작에서만 맞습니다. `'apple'`은 0에서 매치해 `lastIndex`가 1이 됩니다. `'avocado'`는 1번 위치부터 찾는데, 1번 이후에는 문자열의 시작이 없으므로 실패하고 `lastIndex`는 `0`이 됩니다. `'banana'`는 0부터 찾지만 `a`로 시작하지 않아 실패하고, `'apricot'`은 0에서 매치합니다. 그래서 `'avocado'`가 빠진 `["apple","apricot"]`이 나오고 `lastIndex`는 `1`입니다. 6번 줄처럼 `g`를 빼면 검색은 늘 0부터라 세 단어가 모두 통과합니다. `g`가 꼭 필요하다면 검색하기 전에 `lastIndex`를 `0`으로 되돌립니다.
+
+### 리터럴은 평가할 때마다 새 객체를 만든다
+
+정규 표현식 리터럴은 평가할 때마다 새 정규 표현식 객체를 만듭니다. 그래서 함수 안에 리터럴을 쓰면 함수를 부를 때마다 `lastIndex`가 `0`인 새 객체로 검색합니다. 반대로 리터럴을 함수 밖 변수에 한 번 담아 두고 함수 안에서 그 변수를 쓰면, 모든 호출이 같은 객체를 쓰므로 `lastIndex`가 호출 사이에 이어집니다([원시 값과 객체](/concepts/primitives-and-objects)).
+
+예제 6의 `hasA`는 부를 때마다 2번 줄의 `/a/g`를 새로 평가하므로 4번 줄은 `true true true`입니다. `hasAShared`는 5번 줄에서 만든 `shared` 하나를 쓰므로 9번 줄은 예제 1과 같은 `true false true`입니다. 13번 줄의 `make() === make()`는 두 번의 평가가 서로 다른 객체를 만들었으므로 `false`입니다.
+
+### 빈 문자열 매치와 exec 반복
+
+`/x*/`처럼 빈 문자열에도 매치할 수 있는 정규 표현식은 `exec` 반복에서 조심해야 합니다. 빈 문자열에 매치하면 매치 끝이 시작 위치와 같으므로, 성공 규칙대로 `lastIndex`에 쓴 값이 원래 값 그대로입니다. 다음 `exec`도 같은 위치에서 같은 빈 문자열에 매치하므로, `while ((m = re.exec(s)) !== null)` 반복은 끝나지 않습니다. 예제 실행기는 2초 제한이 있어 이런 반복은 예제로 실행하지 않았습니다.
+
+예제 7의 2번 줄과 4번 줄은 같은 `exec`를 두 번 부르는데, 둘 다 0번 위치의 빈 문자열에 매치하고 `lastIndex`는 `0` 그대로입니다. 6번 줄의 `match`는 매치한 문자열이 빈 문자열이면 `lastIndex`를 직접 다음 위치로 한 칸 옮기도록 명세가 정해 두었으므로 0, 1, 2, 3번 위치의 빈 문자열 네 개를 모으고 끝납니다. 직접 반복할 때도 같은 방법을 씁니다. 10번 줄처럼 빈 문자열에 매치했을 때 `lastIndex`를 1 늘리면, 8번 줄의 반복은 네 번 매치한 뒤 `lastIndex`가 문자열 길이(3)를 넘어 실패하고 끝납니다. 12번 줄은 `4 0`입니다. 이 예제는 `u`·`v` 플래그가 없어 한 칸이 UTF-16 코드 유닛 하나입니다. `u`나 `v` 플래그가 있으면 한 칸이 코드 포인트라서 `lastIndex`를 1 늘리면 서로게이트 쌍의 가운데에 놓일 수 있고, 그 위치의 검색은 쌍의 처음에서 매치해 `lastIndex`가 제자리로 돌아오므로 반복이 끝나지 않을 수 있습니다. 명세의 `match`는 이 경우에 코드 포인트 단위로 한 칸을 옮깁니다. 빈 문자열 매치에서 다음 위치로 옮기는 이 처리는 `matchAll`(ES2020, 별도 개념)이 대신 해 줍니다(흔한 오해 3).
+
+### y(sticky) 플래그
+
+`y` 플래그도 `g`처럼 `lastIndex`를 읽고 씁니다. 다른 점은 매치를 시도하는 위치입니다. `g`는 `lastIndex`에서 매치가 없으면 다음 위치로 한 칸씩 옮겨 가며 다시 시도하지만, `y`는 `lastIndex` 위치에서만 시도하고 실패하면 바로 `lastIndex`에 `0`을 씁니다. `y` 플래그는 ES2015에 추가되었고 『모던 자바스크립트 Deep Dive』 31장은 다루지 않습니다.
+
+예제 8의 2번 줄에서 `sticky`는 0번 위치의 `'b'`에서만 시도하므로 `false 0`입니다. 3번 줄에서 `lastIndex`를 `1`로 바꾸면 4번 줄은 1번 위치의 `'a'`에 매치해 `true 2`입니다. 5번 줄은 2번 위치(문자열 끝)에서 시도해 실패하므로 `false 0`입니다. 7번 줄의 `globalA`는 `g` 플래그라 0번 위치에서 실패한 뒤 1번 위치로 나아가 매치하므로 `true 2`입니다.
+
+## 예제
+
+예제의 `console.log`는 값을 출력하는 호스트 API이며 ECMAScript 언어의 일부가 아닙니다. 예제 코드는 `'use strict'`가 없는 sloppy mode 스크립트입니다. 여러 줄 출력은 퀴즈에서 ' / '로 이어 적었습니다. 예제 2를 푼 뒤에 나오는 시뮬레이터로 예제 1, 2, 5를 한 단계씩 실행해 볼 수 있습니다.
+
+### 예제 1: 같은 test가 번갈아 바뀐다
+
+```js file=./examples/test-alternates.js
+
+```
+
+<PredictQuiz
+  question="예제 1의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'true 0 / true 0 / true 0',
+    'true 1 / true 1 / true 1',
+    'true 1 / false 0 / true 1',
+    'true 1 / false 1 / false 1',
+  ]}
+  answer={2}
+  explanation="g 플래그가 있으면 test는 lastIndex부터 찾고, 성공하면 lastIndex를 매치 끝(1)으로, 실패하면 0으로 바꿉니다. 두 번째 호출은 문자열 끝(1)부터 찾아 실패하고, 세 번째는 다시 0부터 찾습니다."
+/>
+
+### 예제 2: exec로 모든 매치 찾기
+
+```js file=./examples/exec-loop.js
+
+```
+
+<PredictQuiz
+  question="예제 2의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'at 1 3 / at 5 7 / 0',
+    'at 1 3 / at 5 7 / 7',
+    'at 1 3 / at 1 3 / 0',
+    'at 1 2 / at 5 6 / 0',
+  ]}
+  answer={0}
+  explanation="exec는 성공할 때마다 lastIndex를 매치 끝(3, 7)으로 옮기므로 다음 호출은 그 뒤부터 찾습니다. 세 번째 exec는 7부터 찾아 실패하고 null을 돌려주며 lastIndex를 0으로 되돌립니다."
+/>
+
+### 시뮬레이터로 확인하기
+
+예제 1, 2, 5를 한 단계씩 실행하며 검색이 어디서 시작하고 `lastIndex`가 어떻게 바뀌는지 확인해 보세요.
+
+<Simulator scenarios={scenarios} />
+
+### 예제 3: g가 없는 정규 표현식
+
+```js file=./examples/non-global.js
+
+```
+
+<PredictQuiz
+  question="예제 3의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={['false 0 / 1 0', 'true 1 / 1 2', 'false 3 / 5 6', 'true 3 / 1 3']}
+  answer={3}
+  explanation="g도 y도 없으면 검색은 lastIndex와 상관없이 0부터 시작하고, lastIndex에 값을 쓰지도 않습니다. 그래서 대입한 3이 그대로 남고 test는 true, exec의 index는 1입니다."
+/>
+
+### 예제 4: match와 g 플래그
+
+```js file=./examples/match-global.js
+
+```
+
+<PredictQuiz
+  question="예제 4의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '["an"] 4 6 / ["an"] 1 / null',
+    '["an","an"] undefined 0 / ["an"] 1 / null',
+    '["an","an"] 1 0 / ["an"] 1 / []',
+    '["an","an"] undefined 4 / ["an"] 1 / null',
+  ]}
+  answer={1}
+  explanation="g가 있는 match는 lastIndex를 0으로 맞춘 뒤 끝까지 찾아 매치 문자열만 모은 배열을 돌려주므로 index가 없고, 마지막 검색이 실패해 lastIndex는 0입니다. g가 없으면 exec와 같은 결과라 index가 1이고, 매치가 없으면 null입니다."
+/>
+
+### 예제 5: filter 콜백에서 쓴 g 플래그
+
+```js file=./examples/filter-trap.js
+
+```
+
+<PredictQuiz
+  question="예제 5의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '["apple","avocado","apricot"] 0 / ["apple","avocado","apricot"]',
+    '["apple","avocado","apricot"] 1 / ["apple","avocado","apricot"]',
+    '["apple","apricot"] 1 / ["apple","avocado","apricot"]',
+    '["apple"] 1 / ["apple","avocado","apricot"]',
+  ]}
+  answer={2}
+  explanation="모든 콜백이 같은 startsWithA 객체를 씁니다. apple이 성공해 lastIndex가 1이 되면 avocado는 1부터 찾아 실패하고 lastIndex가 0이 됩니다. banana는 실패, apricot은 0부터 찾아 성공합니다. g가 없는 noFlag는 늘 0부터 찾습니다."
+/>
+
+### 예제 6: 리터럴과 공유한 객체
+
+```js file=./examples/literal-new-object.js
+
+```
+
+<PredictQuiz
+  question="예제 6의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'true false true / true false true / true',
+    'true true true / true false true / false',
+    'true true true / true true true / false',
+    'true false true / true true true / false',
+  ]}
+  answer={1}
+  explanation="hasA는 부를 때마다 리터럴을 새로 평가해 lastIndex가 0인 새 객체로 검색합니다. hasAShared는 바깥의 shared 하나를 써서 lastIndex가 호출 사이에 이어집니다. make()는 부를 때마다 새 객체를 만들므로 두 결과는 같은 객체가 아닙니다."
+/>
+
+### 예제 7: 빈 문자열 매치
+
+```js file=./examples/empty-match.js
+
+```
+
+<PredictQuiz
+  question="예제 7의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '"" 0 0 / "" 1 1 / ["","","",""] / 4 0',
+    '"" 0 1 / "" 1 2 / ["","",""] / 3 0',
+    '"" 0 0 / "" 0 0 / [] / 0 0',
+    '"" 0 0 / "" 0 0 / ["","","",""] / 4 0',
+  ]}
+  answer={3}
+  explanation="빈 문자열에 매치하면 매치 끝이 시작 위치와 같아 lastIndex가 0 그대로이고, 다음 exec도 같은 자리에서 매치합니다. match는 빈 매치면 lastIndex를 직접 한 칸 옮겨 0~3의 빈 문자열 네 개를 모읍니다. 반복문은 빈 매치 때 lastIndex를 늘려 네 번 뒤에 끝납니다."
+/>
+
+### 예제 8: y(sticky) 플래그
+
+```js file=./examples/sticky.js
+
+```
+
+<PredictQuiz
+  question="예제 8의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'false 0 / true 2 / false 0 / true 2',
+    'true 2 / true 2 / false 0 / true 2',
+    'false 0 / true 2 / true 2 / false 0',
+    'false 0 / false 0 / false 0 / true 2',
+  ]}
+  answer={0}
+  explanation="y는 lastIndex 위치에서만 매치를 시도합니다. 0번 위치는 b라 실패하고, lastIndex를 1로 바꾸면 a에 매치해 2가 됩니다. 2는 문자열 끝이라 실패하고 0이 됩니다. g는 0에서 실패해도 1로 나아가 매치합니다."
+/>
+
+## 결과와 이유
+
+### 예제 1
+
+2번 줄은 `true 1`입니다. `lastIndex` 0부터 찾아 0번 위치에서 매치하고, `g` 플래그라 매치 끝 `1`을 `lastIndex`에 씁니다. 3번 줄은 `false 0`입니다. 같은 `re`의 `lastIndex`가 1이라 문자열 끝부터 찾고, 매치가 없으므로 `lastIndex`에 `0`을 씁니다. 4번 줄은 다시 0부터 찾아 `true 1`입니다.
+
+### 예제 2
+
+5번 줄은 두 번 실행되어 `at 1 3`과 `at 5 7`을 출력합니다. `m.index`는 매치를 시작한 위치이고, `lastIndex`는 매치가 끝난 위치입니다. 세 번째 `exec`는 7(문자열 끝)부터 찾아 실패하므로 `null`을 돌려주고 `lastIndex`에 `0`을 씁니다. 반복이 끝난 뒤 7번 줄은 `0`입니다.
+
+### 예제 3
+
+3번 줄은 `true 3`입니다. `g`가 없으니 2번 줄에서 대입한 `3`과 상관없이 0부터 찾아 매치하고, `lastIndex`에 값을 쓰지 않아 `3`이 그대로 남습니다. 5번 줄은 `1 3`입니다. 4번 줄의 `exec`도 처음부터 찾아 `'banana'`의 1번 위치에서 매치했고, `lastIndex`는 여전히 `3`입니다.
+
+### 예제 4
+
+4번 줄은 `["an","an"] undefined 0`입니다. `g`가 있는 `match`는 2번 줄의 `4`를 무시하고 `lastIndex`에 `0`을 쓴 뒤 1번과 3번 위치의 `an`을 모읍니다. 모은 배열에는 `index`가 없고, 마지막 검색이 실패하며 `lastIndex`가 `0`이 됩니다. 6번 줄은 `["an"] 1`입니다. `g`가 없는 `match`는 `exec`와 같은 매치 결과 배열을 돌려주고, 이 배열의 `index`는 `1`입니다. 7번 줄은 매치가 없어 `null`입니다.
+
+### 예제 5
+
+4번 줄은 `["apple","apricot"] 1`입니다. `'apple'`이 성공해 `lastIndex`가 1이 되고, `'avocado'`는 1번 위치부터 찾다 실패해 결과에서 빠지며 `lastIndex`가 0이 됩니다. `'banana'`는 실패, `'apricot'`은 0부터 찾아 성공하고 `lastIndex`가 1이 됩니다. 6번 줄은 `["apple","avocado","apricot"]`입니다. `g`가 없는 `noFlag`는 단어마다 0부터 찾습니다.
+
+### 예제 6
+
+4번 줄은 `true true true`입니다. `hasA`를 부를 때마다 2번 줄의 리터럴이 새 객체를 만들고, 새 객체의 `lastIndex`는 `0`입니다. 9번 줄은 `true false true`입니다. 세 호출이 5번 줄에서 만든 `shared` 하나를 쓰므로 예제 1과 같은 이유로 결과가 번갈아 바뀝니다. 13번 줄은 `false`입니다. `make`를 두 번 부르면 리터럴이 두 번 평가되어 서로 다른 객체가 나옵니다.
+
+### 예제 7
+
+3번 줄과 5번 줄은 둘 다 `"" 0 0`입니다. `x*`는 0번 위치의 빈 문자열에 매치하고, 매치 끝이 0이라 `lastIndex`가 `0` 그대로이므로 두 번째 `exec`도 같은 결과입니다. 6번 줄은 `["","","",""]`입니다. `match`는 빈 문자열에 매치할 때마다 `lastIndex`를 한 칸 옮겨 0, 1, 2, 3번 위치에서 매치하고, 4가 문자열 길이 3보다 커지면 끝납니다. 3번 위치는 문자열 끝이지만 길이보다 크지 않아 한 번 시도하므로, 빈 문자열은 세 개가 아니라 네 개입니다. 12번 줄은 `4 0`입니다. 앞의 `exec` 두 번이 `lastIndex`를 `0`에 남겼으므로 8번 줄의 반복은 0부터 시작하고, 10번 줄이 빈 매치 때마다 `lastIndex`를 늘려 반복은 네 번 매치한 뒤 실패하고, 실패하며 `lastIndex`가 `0`이 됩니다.
+
+### 예제 8
+
+2번 줄은 `false 0`입니다. `y`는 `lastIndex` 0번 위치에서만 시도하는데 그 자리가 `'b'`라 실패합니다. 4번 줄은 `true 2`입니다. 3번 줄에서 `lastIndex`를 `1`로 바꿨으므로 1번 위치의 `'a'`에 매치하고 매치 끝 `2`를 씁니다. 5번 줄은 `false 0`입니다. 2번 위치는 문자열 끝이라 매치가 없고, 실패하며 `lastIndex`에 `0`을 씁니다. 7번 줄은 `true 2`입니다. `g`는 0번 위치에서 실패하면 1번 위치로 나아가 다시 시도합니다.
+
+### 흔한 오해
+
+<Callout type="misconception" title="test는 결과만 알려 주고 정규 표현식은 바뀌지 않는다">
+
+`g`나 `y` 플래그가 있으면 `test`는 `exec`와 같은 검색을 하면서 정규 표현식 객체의 `lastIndex`에 새 값을 씁니다(예제 1). 결과로는 불리언만 돌려주니 바뀐 것이 눈에 띄지 않을 뿐입니다. 결과가 앞선 호출에 영향을 받으면 안 되는 검사에는 `g` 플래그를 붙이지 않습니다.
+
+</Callout>
+
+<Callout type="misconception" title="lastIndex는 검색한 문자열에 따라 정해진다">
+
+`lastIndex`는 문자열이 아니라 정규 표현식 객체의 프로퍼티입니다. 다른 문자열을 검색해도 앞 검색이 남긴 값에서 시작하므로, 하나의 정규 표현식을 여러 문자열에 쓰면 결과가 섞입니다(예제 5). 반대로 리터럴을 매번 새로 평가하면 객체가 새로 만들어지므로 `lastIndex`가 이어지지 않습니다(예제 6).
+
+</Callout>
+
+<Callout type="misconception" title="match에 g를 붙여도 exec처럼 매치 위치를 알려 준다">
+
+`g`가 있는 `match`는 매치한 문자열만 모은 배열을 돌려주므로 `index`가 없습니다(예제 4). 매치마다 위치가 필요하면 `exec`를 반복해 결과 배열의 `index`를 읽습니다(예제 2). ES2020에 추가된 `matchAll`도 매치마다 결과 배열을 줍니다(이터레이터를 쓰는 별도 개념). `matchAll`은 정규 표현식을 복제해 쓰므로 원래 객체의 `lastIndex`는 바뀌지 않지만, 복제본은 원래 `lastIndex` 값을 이어받아 그 위치부터 찾습니다. 빈 문자열에 매치해도 `match`처럼 다음 위치로 알아서 나아가 제자리에 머물지 않고, `g` 플래그가 없는 정규 표현식을 넘기면 TypeError입니다.
+
+</Callout>
+
+<Callout type="misconception" title="g가 없어도 lastIndex를 바꾸면 그 위치부터 찾는다">
+
+`g`도 `y`도 없으면 검색은 항상 0번 위치부터 시작하고 `lastIndex`는 읽어도 시작 위치로 삼지 않고 값을 바꾸지도 않습니다(예제 3). 특정 위치부터 찾으려면 `g`나 `y` 플래그를 붙이고 `lastIndex`를 대입합니다.
+
+</Callout>

@@ -46,6 +46,8 @@ import {
   ARRAY_INDEX_LENGTH_PATH,
   ARRAY_INDEX_LENGTH_SIMULATOR_NAME,
   ARRAY_METHOD_PITFALLS_PATH,
+  REGEXP_LASTINDEX_PATH,
+  REGEXP_LASTINDEX_SIMULATOR_NAME,
   SWITCH_PATH,
   SWITCH_SIMULATOR_NAME,
   TYPE_COERCION_PATH,
@@ -652,6 +654,49 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await waitForHydration(page)
       await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
       await expectNoSeriousViolations(page)
+    })
+
+    test('개념 페이지: 정규 표현식의 g 플래그', async ({ page }) => {
+      await page.goto(REGEXP_LASTINDEX_PATH)
+      await waitForHydration(page)
+      await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
+      await expectNoSeriousViolations(page)
+    })
+
+    test('개념 페이지: lastIndex 시뮬레이터를 진행한 뒤', async ({ page }) => {
+      test.slow() // 3개 시나리오의 모든 단계에서 axe를 돌린다
+      await page.goto(REGEXP_LASTINDEX_PATH)
+      await waitForHydration(page)
+      const region = page.getByRole('region', { name: REGEXP_LASTINDEX_SIMULATOR_NAME })
+      for (const scenario of ['test 결과가 번갈아', 'exec로 모두 찾기', 'filter와 test']) {
+        await region.getByRole('radio', { name: scenario, exact: true }).check()
+        const next = region.getByRole('button', { name: '다음' })
+        // 시나리오의 단계 수는 모두 20 이하이므로 마지막 단계까지 모든 단계를 검사한다.
+        for (let i = 0; i < 20 && (await next.isEnabled()); i++) {
+          await next.click()
+          await expectNoSeriousViolations(page)
+        }
+        await expect(next).toBeDisabled()
+      }
+    })
+
+    test('개념 페이지: lastIndex 시뮬레이터 4단계에서 1에서 시작한 검색이 실패한다', async ({
+      page,
+    }) => {
+      await page.goto(REGEXP_LASTINDEX_PATH)
+      await waitForHydration(page)
+      const region = page.getByRole('region', { name: REGEXP_LASTINDEX_SIMULATOR_NAME })
+      const next = region.getByRole('button', { name: '다음' })
+
+      await region.getByRole('radio', { name: 'test 결과가 번갈아', exact: true }).check()
+      for (let i = 0; i < 3; i++) await next.click()
+      await expect(
+        region.getByText("단계 4: re.test('a'): 1에서 시작해 실패, lastIndex는 0", {
+          exact: true,
+        }),
+      ).toBeVisible()
+      await expect(region.getByText('결과: false').first()).toBeVisible()
+      await expect(region.getByText('(매치 없음)').first()).toBeVisible()
     })
 
     test('개념 페이지: 배열 length 시뮬레이터 5단계에서 length가 5이고 구멍이 보인다', async ({

@@ -44,6 +44,8 @@ import {
   ARRAY_INDEX_LENGTH_PATH,
   ARRAY_INDEX_LENGTH_SIMULATOR_NAME,
   ARRAY_METHOD_PITFALLS_PATH,
+  REGEXP_LASTINDEX_PATH,
+  REGEXP_LASTINDEX_SIMULATOR_NAME,
   SWITCH_PATH,
   SWITCH_SIMULATOR_NAME,
   TYPE_COERCION_PATH,
@@ -788,10 +790,39 @@ test(`${ARRAY_METHOD_PITFALLS_PATH}: 가로 스크롤이 없다`, async ({ page 
   expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
 })
 
+test(`${REGEXP_LASTINDEX_PATH}: 가로 스크롤이 없다`, async ({ page }) => {
+  await page.goto(REGEXP_LASTINDEX_PATH)
+  await waitForHydration(page)
+  const { scrollWidth, innerWidth } = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    innerWidth: window.innerWidth,
+  }))
+  expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
+})
+
+test('정규 표현식의 g 플래그 개념 페이지: 시뮬레이터를 끝까지 진행해도 가로 스크롤이 없다', async ({
+  page,
+}) => {
+  await page.goto(REGEXP_LASTINDEX_PATH)
+  await waitForHydration(page)
+  const region = page.getByRole('region', { name: REGEXP_LASTINDEX_SIMULATOR_NAME })
+  for (const scenario of ['test 결과가 번갈아', 'exec로 모두 찾기', 'filter와 test']) {
+    await region.getByRole('radio', { name: scenario, exact: true }).check()
+    const next = region.getByRole('button', { name: '다음' })
+    while (await next.isEnabled()) {
+      await next.click()
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - window.innerWidth,
+      )
+      expect(overflow).toBeLessThanOrEqual(0)
+    }
+  }
+})
+
 test('홈 학습 순서 보기: 가로 스크롤이 없다', async ({ page }) => {
   await page.goto('/?view=order')
   await waitForHydration(page)
-  await expect(page.getByRole('article')).toHaveCount(29)
+  await expect(page.getByRole('article')).toHaveCount(30)
   const { scrollWidth, innerWidth } = await page.evaluate(() => ({
     scrollWidth: document.documentElement.scrollWidth,
     innerWidth: window.innerWidth,
