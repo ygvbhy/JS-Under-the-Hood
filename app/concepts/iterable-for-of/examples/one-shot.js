@@ -1,0 +1,11 @@
+var nums = [1, 2];
+var it = nums[Symbol.iterator]();
+console.log(it[Symbol.iterator]() === it);
+var first = 0;
+for (var a of it) first += a;
+var second = 0;
+for (var b of it) second += b;
+console.log(first, second);
+var again = 0;
+for (var c of nums) again += c;
+console.log(again);

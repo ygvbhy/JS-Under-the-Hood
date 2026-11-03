@@ -935,6 +935,28 @@ describe('프리렌더 (symbol)', () => {
   })
 })
 
+// 25~37장 로드맵 9번(iterable-for-of)의 시뮬레이터와 퀴즈도 프리렌더 HTML에 정적으로 들어 있어야 한다.
+describe('시뮬레이터 프리렌더 (iterable-for-of)', () => {
+  const html = read('concepts/iterable-for-of/index.html')
+  const text = htmlToText(html)
+
+  it('단계 1(실행 전) 텍스트가 HTML에 있다', () => {
+    expect(text).toContain('단계 1: 실행 전')
+  })
+
+  it('시뮬레이터 region과 시나리오 선택 라디오 2개 이상이 있다', () => {
+    expect(html).toMatch(/role="region"[^>]*aria-label="이터레이터 시뮬레이터"/)
+    for (const label of ['배열을 for...of로', '직접 만든 이터러블과 break']) {
+      expect(text).toContain(label)
+    }
+    expect(html.match(/type="radio"/g)?.length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('퀴즈 정답이 <details>로 9개 이상 프리렌더된다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(9)
+  })
+})
+
 // 학습 순서 이전/다음: 관련 개념 링크와 섞이지 않도록 nav 영역만 잘라 검사한다.
 describe('학습 순서 pager', () => {
   const ordered = sortByOrder(concepts)

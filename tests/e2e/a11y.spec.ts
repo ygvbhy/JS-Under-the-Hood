@@ -50,6 +50,8 @@ import {
   REGEXP_LASTINDEX_SIMULATOR_NAME,
   STRING_UTF16_PATH,
   STRING_UTF16_VIEW_NAME,
+  ITERABLE_FOR_OF_PATH,
+  ITERABLE_FOR_OF_SIMULATOR_NAME,
   SYMBOL_PATH,
   SWITCH_PATH,
   SWITCH_SIMULATOR_NAME,
@@ -739,6 +741,48 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await waitForHydration(page)
       await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
       await expectNoSeriousViolations(page)
+    })
+
+    test('개념 페이지: 이터러블과 for...of', async ({ page }) => {
+      await page.goto(ITERABLE_FOR_OF_PATH)
+      await waitForHydration(page)
+      await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
+      await expectNoSeriousViolations(page)
+    })
+
+    test('개념 페이지: 이터레이터 시뮬레이터를 진행한 뒤', async ({ page }) => {
+      test.slow() // 2개 시나리오의 모든 단계에서 axe를 돌린다
+      await page.goto(ITERABLE_FOR_OF_PATH)
+      await waitForHydration(page)
+      const region = page.getByRole('region', { name: ITERABLE_FOR_OF_SIMULATOR_NAME })
+      for (const scenario of ['배열을 for...of로', '직접 만든 이터러블과 break']) {
+        await region.getByRole('radio', { name: scenario, exact: true }).check()
+        const next = region.getByRole('button', { name: '다음' })
+        // 시나리오의 단계 수는 모두 20 이하이므로 마지막 단계까지 모든 단계를 검사한다.
+        for (let i = 0; i < 20 && (await next.isEnabled()); i++) {
+          await next.click()
+          await expectNoSeriousViolations(page)
+        }
+        await expect(next).toBeDisabled()
+      }
+    })
+
+    test('개념 페이지: 이터레이터 시뮬레이터에서 break 뒤 return이 불린다', async ({ page }) => {
+      await page.goto(ITERABLE_FOR_OF_PATH)
+      await waitForHydration(page)
+      const region = page.getByRole('region', { name: ITERABLE_FOR_OF_SIMULATOR_NAME })
+      const next = region.getByRole('button', { name: '다음' })
+
+      await region.getByRole('radio', { name: '직접 만든 이터러블과 break', exact: true }).check()
+      // 12번 누르면 13단계: return 메서드가 결과를 돌려준 단계에 return() 호출이 기록된다.
+      for (let i = 0; i < 12; i++) await next.click()
+      await expect(
+        region.getByText('단계 13: return 메서드 안: { done: true }를 돌려주고 루프 끝', {
+          exact: true,
+        }),
+      ).toBeVisible()
+      await expect(region.getByRole('list', { name: '이번 단계의 호출' })).toHaveText('return()')
+      await expect(next).toBeDisabled()
     })
 
     test('개념 페이지: 배열 length 시뮬레이터 5단계에서 length가 5이고 구멍이 보인다', async ({

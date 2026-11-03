@@ -101,15 +101,15 @@ describe('getAdjacentConcepts', () => {
     expect(adj.prev).toBeNull()
     expect(adj.next?.slug).toBe('short-circuit-evaluation')
     expect(adj.position).toBe(1)
-    expect(adj.total).toBe(32)
+    expect(adj.total).toBe(33)
   })
 
   it('마지막 개념은 다음이 없다', () => {
-    const adj = getAdjacentConcepts('symbol')
-    expect(adj.prev?.slug).toBe('string-utf16')
+    const adj = getAdjacentConcepts('iterable-for-of')
+    expect(adj.prev?.slug).toBe('symbol')
     expect(adj.next).toBeNull()
-    expect(adj.position).toBe(32)
-    expect(adj.total).toBe(32)
+    expect(adj.position).toBe(33)
+    expect(adj.total).toBe(33)
   })
 
   it('중간 개념은 앞뒤 개념을 돌려준다', () => {
