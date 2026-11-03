@@ -1,4 +1,23 @@
-export type ConceptCategory = 'fundamentals' | 'execution' | 'objects' | 'async' | 'memory'
+export type ConceptCategory =
+  'fundamentals' | 'execution' | 'objects' | 'browser' | 'async' | 'memory'
+
+export type EcmascriptExample = {
+  id: string
+  file: string // examples/ 하위 파일명(.js)
+  runtime: 'ecmascript' // Node vm script(기본 sloppy, 'use strict' 지시어로 strict)
+  expectedOutput: string[] // console.log 줄 단위
+}
+
+export type BrowserExample = {
+  id: string
+  file: string // examples/ 하위 파일명(.html 또는 .js)
+  runtime: 'browser' // Chromium 페이지에서 실행(호스트 동작)
+  expectedOutput: string[] // console.log 줄 단위
+  resources?: { path: string; file: string; delayMs?: number }[] // 가짜 서버가 path로 내주는 .js (delayMs 기본 0)
+  settleMs?: number // 로드 뒤 출력을 기다리는 시간(기본 300, 0~2000)
+}
+
+export type ConceptExample = EcmascriptExample | BrowserExample
 
 export type ConceptMeta = {
   slug: string // 폴더명과 동일 (테스트)
@@ -10,12 +29,7 @@ export type ConceptMeta = {
   goals: string[] // ≥1
   prerequisites: { label: string; slug?: string }[] // slug 있으면 존재 검사, 자기 자신 금지
   related: string[] // 존재하는 slug만
-  examples: {
-    id: string
-    file: string // examples/ 하위 파일명
-    runtime: 'ecmascript' // MVP: Node vm script(기본 sloppy, 'use strict' 지시어로 strict)
-    expectedOutput: string[] // console.log 줄 단위
-  }[]
+  examples: ConceptExample[]
   simplifications: string[] // ≥1 (단순화가 없으면 그 사유를 1줄로)
   references: { label: string; url: string }[] // ≥1
   reviewedAt: string | null // YYYY-MM-DD, null이면 "검토 중" 배지
@@ -25,6 +39,7 @@ export const CATEGORY_LABELS: Record<ConceptCategory, string> = {
   fundamentals: '언어 기초',
   execution: '실행 모델',
   objects: '객체와 프로토타입',
+  browser: '브라우저',
   async: '비동기',
   memory: '메모리',
 }

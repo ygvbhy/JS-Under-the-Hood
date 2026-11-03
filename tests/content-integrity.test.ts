@@ -2,6 +2,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { listConcepts, type ConceptMeta } from '~/lib/concepts'
+import { checkExampleSpec } from './helpers/browser-example'
 
 // L3: 메타데이터·콘텐츠 무결성. 레지스트리와 같은 glob을 쓰되 폴더명을 키에서 직접 뽑는다.
 const modules = import.meta.glob<{ concept: ConceptMeta }>('../app/concepts/*/meta.ts', {
@@ -114,6 +115,16 @@ describe.each(entries)('$folder', ({ folder, concept }) => {
       const path = join(conceptsDir, folder, 'examples', ex.file)
       expect(existsSync(path), `예제 파일 없음: examples/${ex.file}`).toBe(true)
     }
+  })
+
+  it('예제 명세가 규칙을 지킨다', () => {
+    const dir = join(conceptsDir, folder, 'examples')
+    const fs = {
+      exists: (file: string) => existsSync(join(dir, file)),
+      read: (file: string) => readFileSync(join(dir, file), 'utf8'),
+    }
+    const errors = concept.examples.flatMap((ex) => checkExampleSpec(ex, fs))
+    expect(errors, errors.join('\n')).toEqual([])
   })
 
   // reviewedAt은 구조화 데이터 dateModified와 sitemap lastmod로도 쓰인다

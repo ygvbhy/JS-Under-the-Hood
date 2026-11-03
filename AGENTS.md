@@ -9,7 +9,7 @@
 ## 정확성 원칙 (최우선)
 
 - 설명의 근거는 ECMAScript 명세와 실제 실행 결과다. 페이지의 모든 "실행 결과" 주장은 실제 실행으로 검증한다(`npm test`가 예제를 실제로 실행해 대조한다). 출력은 추측해서 쓰지 않는다.
-- ECMAScript 언어 동작과 호스트(브라우저/Node) 동작을 구분해서 쓴다. 예: `console`은 호스트 API다.
+- ECMAScript 언어 동작과 호스트(브라우저/Node) 동작을 구분해서 쓴다. 예: `console`은 호스트 API다. 브라우저(호스트) 동작의 근거는 WHATWG HTML·DOM 표준과 실제 Chromium 실행 결과다.
 - 교육용 추상화(스택/힙 그림, "복사" 같은 비유)를 엔진 내부 구현처럼 서술하지 않는다. 결과의 원인을 "복사해서/공유해서"로 설명하지 않고 명세가 정의한 동작(재할당, 변경 등)으로 설명한다.
 - 단순화한 부분은 반드시 페이지에 명시한다(`meta.simplifications`).
 - 확실하지 않은 동작은 사실처럼 쓰지 않는다. 불확실하면 그렇다고 밝히거나 쓰지 않는다.
@@ -38,11 +38,11 @@ app/
     meta.ts                      # 메타데이터(순수 데이터)
     content.mdx                  # 설명 본문
     route.tsx                    # 얇은 라우트 모듈
-    examples/*.js                # 실행 검증되는 예제
+    examples/*.js, *.html        # 실행 검증되는 예제
     scenarios.ts 등              # (선택) 시뮬레이터: 시나리오, 시각화, Simulator.tsx(공통 셸 래퍼)
     concept.test.ts              # (시뮬레이터가 있으면) 시나리오 불변식 테스트
 tests/
-  helpers/                       # run-example.ts, scenario-invariants.ts
+  helpers/                       # run-example.ts, run-browser-example.ts, browser-example.ts, scenario-invariants.ts
   content-integrity.test.ts      # 메타데이터·필수 h2 무결성 (L3)
   examples.test.ts               # 예제 실제 실행 (L1)
   build/                         # 빌드 결과 검사 — `npm run test:build` 전용
@@ -63,9 +63,10 @@ vercel.json, serve.json          # 배포 설정, 로컬 정적 서빙 설정
 
 ## 예제 규칙
 
-- 출력 결과를 주장하는 예제는 반드시 `examples/*.js`에 파일로 두고 `meta.examples`에 등록한다. 본문의 코드 블록은 `file=` 문법으로 그 파일을 가져온다(복붙 금지).
+- 출력 결과를 주장하는 예제는 반드시 `examples/`에 `*.js` 또는 `*.html` 파일로 두고 `meta.examples`에 등록한다. 본문의 코드 블록은 `file=` 문법으로 그 파일을 가져온다(복붙 금지).
 - `console.log`에는 원시 값, 불리언, `JSON.stringify` 결과만 넘긴다. 객체를 직접 출력하지 않는다(호스트마다 출력 형식이 다르다).
-- 예제는 Node `vm`에서 스크립트로 실행된다(예제마다 새 컨텍스트, 2초 제한). 기본은 sloppy mode이고, strict mode 동작을 보이려면 파일 첫 줄에 `'use strict';`를 쓴다. 이 지시어 없이 strict/sloppy에 따라 결과가 달라지는 예제는 쓰지 않는다. 타이머·DOM 등 호스트 API 예제는 현재 지원하지 않는다. Promise 콜백(microtask)은 평가 직후 같은 제한 시간 안에서 실행되어 출력이 수집된다(`microtaskMode: 'afterEvaluate'`).
+- `runtime: 'ecmascript'` 예제는 Node `vm`에서 스크립트로 실행된다(예제마다 새 컨텍스트, 2초 제한). 기본은 sloppy mode이고, strict mode 동작을 보이려면 파일 첫 줄에 `'use strict';`를 쓴다. 이 지시어 없이 strict/sloppy에 따라 결과가 달라지는 예제는 쓰지 않는다. 타이머·DOM 등 호스트 API는 이 런타임에서 쓰지 않는다. Promise 콜백(microtask)은 평가 직후 같은 제한 시간 안에서 실행되어 출력이 수집된다(`microtaskMode: 'afterEvaluate'`).
+- DOM·이벤트·타이머 같은 브라우저 호스트 동작은 `runtime: 'browser'` 예제로 쓰며, `npm test`가 Playwright Chromium에서 실제로 실행해 `expectedOutput`과 대조한다. 작성 규칙·실패 조건·제약은 [docs/content-guide.md](docs/content-guide.md)의 "브라우저 예제".
 - `app/concepts/*/examples/**`는 Prettier와 ESLint에서 제외한다. 시뮬레이터가 줄 번호(`line`)로 코드를 강조하므로 자동 포맷으로 줄이 바뀌면 안 된다.
 - `node:vm`은 보안 경계가 아니다. 저장소에 포함된 신뢰된 예제만 실행한다.
 
@@ -79,19 +80,19 @@ vercel.json, serve.json          # 배포 설정, 로컬 정적 서빙 설정
 
 ## 명령어
 
-| 명령어                 | 설명                                                                   | 언제 실행하나                       |
-| ---------------------- | ---------------------------------------------------------------------- | ----------------------------------- |
-| `npm run dev`          | 개발 서버. 새 개념 폴더를 추가하면 재시작 필요                         | 작업 중 화면 확인                   |
-| `npm run build`        | 프리렌더 정적 빌드 → `build/client` (+ 404.html, sitemap, robots 생성) | 배포 전, e2e 전                     |
-| `npm run start`        | `build/client`를 `serve`로 정적 서빙 (`serve.json` 사용)               | 빌드 결과를 로컬에서 직접 확인할 때 |
-| `npm run typecheck`    | `react-router typegen && tsc --noEmit`                                 | 타입이 바뀌는 모든 작업 후          |
-| `npm run lint`         | ESLint                                                                 | 코드 변경 후                        |
-| `npm run format`       | Prettier로 전체 파일 포맷                                              | 포맷 오류를 고칠 때                 |
-| `npm run format:check` | Prettier 검사 (`.md`·`.mdx`·`.json` 포함)                              | 마무리 전                           |
-| `npm test`             | Vitest: 예제 실행(L1), 시나리오 불변식, 메타 무결성, 단위·컴포넌트     | 콘텐츠·코드 변경 후 항상            |
-| `npm run test:build`   | `npm run build` 후 빌드 결과(HTML·SEO·sitemap·404) 검사                | 콘텐츠 추가, 라우트·SEO 변경 후     |
-| `npm run e2e`          | Playwright(데스크톱 + 모바일) E2E와 axe 접근성 검사. 먼저 build 필요   | UI·시뮬레이터·내비게이션 변경 후    |
-| `npm run og:generate`  | `public/og-default.png` 재생성                                         | 공유 이미지를 바꿀 때만             |
+| 명령어                 | 설명                                                                                              | 언제 실행하나                       |
+| ---------------------- | ------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| `npm run dev`          | 개발 서버. 새 개념 폴더를 추가하면 재시작 필요                                                    | 작업 중 화면 확인                   |
+| `npm run build`        | 프리렌더 정적 빌드 → `build/client` (+ 404.html, sitemap, robots 생성)                            | 배포 전, e2e 전                     |
+| `npm run start`        | `build/client`를 `serve`로 정적 서빙 (`serve.json` 사용)                                          | 빌드 결과를 로컬에서 직접 확인할 때 |
+| `npm run typecheck`    | `react-router typegen && tsc --noEmit`                                                            | 타입이 바뀌는 모든 작업 후          |
+| `npm run lint`         | ESLint                                                                                            | 코드 변경 후                        |
+| `npm run format`       | Prettier로 전체 파일 포맷                                                                         | 포맷 오류를 고칠 때                 |
+| `npm run format:check` | Prettier 검사 (`.md`·`.mdx`·`.json` 포함)                                                         | 마무리 전                           |
+| `npm test`             | Vitest: 예제 실행(L1, 브라우저 예제는 Chromium 필요), 시나리오 불변식, 메타 무결성, 단위·컴포넌트 | 콘텐츠·코드 변경 후 항상            |
+| `npm run test:build`   | `npm run build` 후 빌드 결과(HTML·SEO·sitemap·404) 검사                                           | 콘텐츠 추가, 라우트·SEO 변경 후     |
+| `npm run e2e`          | Playwright(데스크톱 + 모바일) E2E와 axe 접근성 검사. 먼저 build 필요                              | UI·시뮬레이터·내비게이션 변경 후    |
+| `npm run og:generate`  | `public/og-default.png` 재생성                                                                    | 공유 이미지를 바꿀 때만             |
 
 ## 검증 순서
 
@@ -109,7 +110,7 @@ npx playwright test tests/e2e/navigation.spec.ts && npx playwright test -g "<slu
 
 공통 코드를 바꿨거나 영향 범위가 애매하면 전체 `npm run e2e`를 실행한다.
 
-최초 1회 `npx playwright install chromium`이 필요하다.
+최초 1회 `npx playwright install chromium`이 필요하다. e2e뿐 아니라 브라우저 예제를 실행하는 `npm test`에도 필요하다.
 
 ## 배포
 
