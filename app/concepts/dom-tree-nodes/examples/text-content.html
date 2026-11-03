@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<p id="greet">안녕 <b>세상</b>!</p>
+<script>
+var p = document.getElementById('greet');
+p.textContent = '<i>새 글</i>';
+console.log(p.childNodes.length, p.firstChild.nodeName, p.children.length);
+console.log(JSON.stringify(p.textContent));
+p.textContent = '';
+console.log(p.childNodes.length, p.hasChildNodes());
+</script>
+</body>
+</html>

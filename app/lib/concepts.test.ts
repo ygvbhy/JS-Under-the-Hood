@@ -101,15 +101,15 @@ describe('getAdjacentConcepts', () => {
     expect(adj.prev).toBeNull()
     expect(adj.next?.slug).toBe('short-circuit-evaluation')
     expect(adj.position).toBe(1)
-    expect(adj.total).toBe(36)
+    expect(adj.total).toBe(37)
   })
 
   it('마지막 개념은 다음이 없다', () => {
-    const adj = getAdjacentConcepts('script-async-defer')
-    expect(adj.prev?.slug).toBe('set-map')
+    const adj = getAdjacentConcepts('dom-tree-nodes')
+    expect(adj.prev?.slug).toBe('script-async-defer')
     expect(adj.next).toBeNull()
-    expect(adj.position).toBe(36)
-    expect(adj.total).toBe(36)
+    expect(adj.position).toBe(37)
+    expect(adj.total).toBe(37)
   })
 
   it('중간 개념은 앞뒤 개념을 돌려준다', () => {

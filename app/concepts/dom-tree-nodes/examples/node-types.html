@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<!-- 주석 -->
+<p id="intro" class="lead">안녕</p>
+<script>
+var p = document.getElementById('intro');
+console.log(document.nodeType, document.nodeName);
+console.log(document.firstChild.nodeType, document.firstChild.nodeName);
+console.log(document.documentElement.nodeType, document.documentElement.nodeName);
+console.log(document.body.childNodes[1].nodeType, document.body.childNodes[1].nodeName);
+console.log(p.firstChild.nodeType, p.firstChild.nodeName);
+var attr = p.getAttributeNode('class');
+console.log(attr.nodeType, attr.nodeName, attr.parentNode, p.childNodes.length);
+</script>
+</body>
+</html>

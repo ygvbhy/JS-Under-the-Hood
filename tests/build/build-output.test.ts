@@ -1012,6 +1012,29 @@ describe('프리렌더 (script-async-defer)', () => {
   })
 })
 
+// 38~42장 로드맵 2번(dom-tree-nodes): 실제 DOM 출력으로 그린 노드 트리와 퀴즈가 프리렌더 HTML에 정적으로 있어야 한다.
+describe('프리렌더 (dom-tree-nodes)', () => {
+  const html = read('concepts/dom-tree-nodes/index.html')
+
+  it('DOM 노드 트리 region이 HTML에 있다', () => {
+    expect(html).toContain('aria-label="DOM 노드 트리')
+  })
+
+  it('노드 트리 region에 노드 23개(<li>)가 프리렌더된다', () => {
+    // region 시작부터 다음 제목 태그 전까지를 잘라 <li 개수를 센다
+    const start = html.indexOf('aria-label="DOM 노드 트리')
+    expect(start).toBeGreaterThan(-1)
+    const rest = html.slice(start)
+    const end = rest.search(/<h[1-6][\s>]/)
+    const region = end === -1 ? rest : rest.slice(0, end)
+    expect(region.match(/<li/g)?.length).toBe(23)
+  })
+
+  it('퀴즈 정답이 <details>로 7개 이상 프리렌더된다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(7)
+  })
+})
+
 // 학습 순서 이전/다음: 관련 개념 링크와 섞이지 않도록 nav 영역만 잘라 검사한다.
 describe('학습 순서 pager', () => {
   const ordered = sortByOrder(concepts)

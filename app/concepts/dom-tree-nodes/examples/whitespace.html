@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<ul id="fruits">
+  <li>사과</li>
+</ul>
+<script>
+var ul = document.getElementById('fruits');
+console.log(ul.childNodes.length, ul.children.length);
+console.log(ul.firstChild.nodeName, JSON.stringify(ul.firstChild.nodeValue));
+console.log(ul.firstElementChild.nodeName, ul.firstElementChild.firstChild.nodeName);
+var li = ul.firstElementChild;
+console.log(li.nextSibling.nodeName, li.nextElementSibling);
+console.log(ul.nextSibling.nodeName, ul.nextElementSibling.nodeName);
+var html = document.documentElement;
+console.log(html.parentNode.nodeName, html.parentElement);
+</script>
+</body>
+</html>

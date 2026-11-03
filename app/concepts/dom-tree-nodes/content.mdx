@@ -1,0 +1,339 @@
+import { NodeTreeView } from './NodeTreeView'
+import { treeRoot } from './tree-root'
+
+## 동작 원리
+
+`<ul>` 안에 `<li>`를 하나만 적었는데 `ul.childNodes.length`가 1이 아니라 3인 이유는 무엇일까요? 이 페이지는 브라우저가 HTML 문서를 노드의 트리로 바꾸는 규칙을 따라가며, 어떤 종류의 노드가 있는지, 줄바꿈과 들여쓰기가 왜 노드가 되는지, 파서가 소스와 다른 트리를 만드는 경우는 언제인지를 확인합니다. 노드와 트리는 ECMAScript가 아니라 WHATWG DOM 표준이 정하고, HTML 소스를 읽어 그 트리를 만드는 규칙은 WHATWG HTML 표준의 파싱 단계가 정하는 호스트(브라우저)의 동작입니다. 예제의 출력은 모두 테스트가 Chromium에서 실제로 열어 `console.log` 출력을 모은 값입니다. 문서가 파싱을 끝낸 뒤에 코드를 실행하는 방법(`defer`)은 [script의 async와 defer](/concepts/script-async-defer)에서 본 것을 전제하고, 노드의 상속 구조를 따라가는 마지막 절은 [프로토타입 체인](/concepts/prototype-chain)을 전제합니다. `getElementById`, `querySelectorAll`, `getAttributeNode`는 이 페이지에서 결과를 보이는 도구로만 씁니다. `childNodes`와 `children`이 돌려주는 컬렉션의 차이(NodeList와 HTMLCollection)와 어트리뷰트는 별도 개념입니다.
+
+### HTML 문서는 노드 트리가 된다
+
+파서는 HTML 소스를 읽으면서 노드를 만들어 트리에 붙입니다. 뿌리는 문서(Document) 노드이고, 그 아래에 문서 유형(`<!doctype html>`) 노드와 `html` 요소가 붙으며, 요소 아래에 다시 요소·텍스트·주석 노드가 붙습니다. 중요한 점은 태그뿐 아니라 태그 사이의 글자도 노드라는 것입니다. 요소 사이의 줄바꿈과 들여쓰기도 텍스트 노드입니다. 그래서 `<ul>`과 첫 `<li>` 사이의 `"\n  "`도, 마지막 `</li>`와 `</ul>` 사이의 `"\n"`도 `ul`의 자식입니다. `<li>`가 하나뿐인 `ul`의 자식이 3개(텍스트, `li`, 텍스트)인 이유가 이것입니다.
+
+아래 그림은 예제 1의 출력을 그대로 그린 것입니다. 이 출력은 테스트가 실제 Chromium의 결과와 대조하므로 그림도 실제 DOM과 같습니다. 깊이는 목록의 중첩으로 나타내고, 텍스트와 주석의 값은 JSON 문자열이라 `\n`은 줄바꿈 한 글자를 뜻합니다.
+
+<Wide>
+  <NodeTreeView
+    root={treeRoot}
+    label="DOM 노드 트리: 예제 1 문서의 모든 노드(공백 텍스트 노드 포함, 좁은 화면에서는 가로로 스크롤할 수 있습니다)"
+  />
+</Wide>
+
+### 노드 종류와 nodeType, nodeName
+
+노드는 종류마다 `nodeType` 숫자와 `nodeName` 문자열을 갖습니다. DOM 표준의 `Node` 인터페이스는 이 숫자를 상수로 정해 둡니다. 요소 `Node.ELEMENT_NODE`는 1, 어트리뷰트 `Node.ATTRIBUTE_NODE`는 2, 텍스트 `Node.TEXT_NODE`는 3, 주석 `Node.COMMENT_NODE`는 8, 문서 `Node.DOCUMENT_NODE`는 9, 문서 유형 `Node.DOCUMENT_TYPE_NODE`는 10입니다. `nodeName`은 표준이 종류별로 정합니다. 요소는 "Its HTML-uppercased qualified name"입니다. 표준은 이 이름을 HTML 네임스페이스의 요소이고 문서가 HTML 문서일 때만 대문자로 바꾼다고 정하므로 HTML 문서의 `p`는 `P`이지만, 같은 문서 안의 SVG 요소는 대문자로 바꾸지 않고 이름 그대로입니다(`svg`, `foreignObject`). HTML 파서가 SVG 안의 `foreignobject` 같은 태그 이름을 표준의 표에 따라 `foreignObject`처럼 바로잡아 만들기 때문에, SVG 요소의 이름이 모두 소문자인 것도 아닙니다. 나머지는 텍스트 `#text`, 주석 `#comment`, 문서 `#document`, 문서 유형은 "Its name"(`<!doctype html>`은 `html`)입니다. 예제 1의 그림에서 문서 유형이 소문자 `html`, 요소가 대문자 `HTML`인 것이 이 규칙입니다.
+
+어트리뷰트(`class="lead"`)도 노드(Attr)이지만 요소의 자식이 아닙니다. DOM 표준은 이렇게 적습니다.
+
+> Attr nodes participate in a tree for historical reasons; they never have a (non-null) parent or any children and are therefore alone in a tree.
+
+역사적인 이유로 어트리뷰트 노드도 트리에 참여하지만, 부모는 항상 `null`이고 자식도 없으므로 그 노드 하나가 곧 하나의 트리라는 뜻입니다. 그래서 어트리뷰트 노드의 `parentNode`는 `null`이고, 요소의 `childNodes`에는 들어 있지 않습니다(예제 2).
+
+### 공백 텍스트 노드와 탐색 프로퍼티
+
+공백 텍스트 노드가 있으면 "자식"을 세는 프로퍼티와 "자식 요소"를 세는 프로퍼티의 결과가 달라집니다. DOM 표준은 둘을 이렇게 정의합니다.
+
+> The childNodes getter steps are to return a NodeList rooted at this matching only children.
+
+> The children getter steps are to return an HTMLCollection collection rooted at this matching only element children.
+
+`childNodes`는 모든 종류의 자식 노드를, `children`은 요소인 자식만 돌려줍니다. 같은 구분이 짝을 이룬 다른 프로퍼티에도 있습니다. 표준은 `firstElementChild`를 이렇게 정합니다.
+
+> The firstElementChild getter steps are to return the first child that is an element; otherwise null.
+
+그래서 `firstChild`는 첫 번째 자식 노드(공백 텍스트일 수 있음)이고 `firstElementChild`는 첫 번째 자식 요소입니다. `nextSibling`과 `nextElementSibling`, `parentNode`와 `parentElement`도 같은 짝입니다. 뒤의 것은 요소만 찾으므로 해당하는 것이 없으면 `null`입니다. `html` 요소의 부모는 문서 노드라서 `parentNode`는 문서이지만 `parentElement`는 `null`입니다(예제 3). 두 컬렉션이 "살아 있는지"의 차이는 별도 개념이고, 이 페이지는 개수와 내용만 비교합니다.
+
+### head와 body 밖의 공백은 어디로 갈까
+
+예제 1의 그림에서 `HTML`의 자식은 `HEAD`, 공백 텍스트, `BODY` 세 개이고 첫 자식이 공백이 아니라 `HEAD`입니다. 그리고 `</body>`와 `</html>` 뒤의 줄바꿈은 `html`이 아니라 `BODY` 안에 있습니다. HTML 표준의 파싱 단계는 공백 문자를 파서의 현재 상태(삽입 모드)마다 다르게 처리하기 때문입니다.
+
+- `<!doctype html>` 뒤 `<html>` 앞("before html"): 공백 문자는 "Ignore the token."입니다. 그래서 문서 노드의 자식은 문서 유형과 `HTML`뿐입니다. 표준의 "insert a character"도 넣을 곳이 문서 노드이면 아무것도 하지 않으므로("If targetParent is a Document node, then return.") 문서 노드는 텍스트 자식을 가질 수 없습니다.
+- `<html>` 뒤 `<head>` 앞("before head"): 공백 문자는 "Ignore the token."입니다. 버려지므로 `HTML`의 첫 자식은 `HEAD`입니다.
+- `<head>` 안("in head"): "Insert the character."입니다. `HEAD` 안의 공백이 모두 텍스트 노드로 남습니다.
+- `</head>` 뒤 `<body>` 앞("after head"): 역시 "Insert the character."이고 현재 위치가 `html`이라 `HEAD`와 `BODY` 사이의 공백이 `HTML`의 자식이 됩니다.
+- `</body>` 뒤("after body"): 공백 문자는 "Process the token using the rules for the "in body" insertion mode."입니다. 표준의 "after after body"(`</html>` 뒤)도 공백에는 in body 규칙을 씁니다. in body 규칙은 문자를 `body`에 넣는 규칙이 아니라 지금 열려 있는 가장 안쪽 요소(현재 노드)에 넣는 규칙입니다. 그런데 `</body>` 종료 태그는 삽입 모드를 "after body"로 바꿀 뿐 열린 요소 스택에서 `body`를 빼지 않고, 그 뒤의 `</html>`도 모드만 "after after body"로 바꿉니다. 그래서 현재 노드가 여전히 `body`이고, `</body>`와 `</html>` 뒤의 줄바꿈도 `BODY` 안에 들어갑니다.
+
+예제 1에서는 `</ul>` 뒤의 줄바꿈, `</body>` 뒤의 줄바꿈, `</html>` 뒤의 줄바꿈이 모두 `BODY` 안으로 들어갑니다. 그런데 그림의 `BODY`는 줄바꿈 세 개를 따로 가지지 않고 `"\n\n\n"` 텍스트 노드 하나를 가집니다. 문자를 넣는 표준의 "insert a character" 단계가 이렇게 정하기 때문입니다.
+
+> If previousSibling is a Text node, then append data to previousSibling's data.
+
+넣을 자리 바로 앞이 텍스트 노드이면 새 노드를 만들지 않고 그 노드의 데이터에 이어 붙입니다. 세 줄바꿈이 한 텍스트 노드로 합쳐지는 이유입니다.
+
+### 파서가 소스와 다른 트리를 만든다
+
+HTML 파서는 규칙에 어긋난 소스도 받아 들이고, 그때 소스에 적지 않은 요소를 만들거나 요소를 다른 자리에 놓습니다. 예제 5에 두 가지가 있습니다. 첫째, `<table>` 바로 아래에 `<tr>`을 적은 경우입니다. "in table" 삽입 모드에서 `td`, `th`, `tr` 시작 태그를 만나면 표준은 이렇게 처리합니다.
+
+> Insert an HTML element for a "tbody" start tag token with no attributes
+
+소스에 `<tbody>`가 없어도 파서가 `tbody`를 만들어 그 아래에 `tr`을 넣습니다. 그래서 `table`의 첫 자식 요소는 `TBODY`입니다.
+
+둘째, `<p>` 안에 `<div>`를 적은 경우입니다. "in body" 삽입 모드에서 `div` 시작 태그를 만나면 표준은 먼저 이렇게 합니다.
+
+> If the stack of open elements has a p element in button scope, then close a p element.
+
+열려 있는 `p`가 있으면 그 `p`를 닫고 나서 `div`를 넣으므로 `div`는 `p`의 자식이 아니라 다음 형제가 되고, `p`는 비어 있게 됩니다. 이어서 소스의 `</p>`를 만나면 열려 있는 `p`가 없습니다. 표준은 이 경우를 이렇게 처리합니다.
+
+> If the stack of open elements does not have a p element in button scope, then this is a parse error; insert an HTML element for a "p" start tag token with no attributes.
+
+파싱 오류로 기록하고 빈 `p`를 하나 더 만듭니다. 그 결과 소스에는 `<p>`가 하나인데 DOM에는 `p`가 둘 있습니다. 소스 문자열이 곧 DOM은 아니라는 뜻입니다.
+
+### nodeValue와 textContent
+
+`nodeValue`는 노드 종류에 따라 값을 돌려줍니다. DOM 표준은 getter가 돌려줄 값을 이렇게 정합니다.
+
+> Attr this's value. CharacterData this's data. Otherwise Null.
+
+어트리뷰트면 그 값, `CharacterData`(텍스트와 주석)면 데이터, 그 밖의 노드(요소, 문서 등)는 `null`입니다. 그래서 `<p>`의 `nodeValue`는 `null`이고 텍스트 노드의 `nodeValue`는 글자입니다. `textContent`의 getter는 노드 종류마다 정의가 있고, 요소에는 "The descendant text content of node"를 돌려줍니다. 요소의 후손 텍스트 노드의 데이터를 트리 순서대로 이은 문자열입니다. `<p>안녕 <b>세상</b>!</p>`의 `textContent`가 `안녕 세상!`인 이유입니다. 텍스트 노드의 `nodeValue`를 바꾸면 그 노드의 데이터가 바뀌므로 부모의 `textContent`도 따라 바뀌지만, 노드의 개수는 그대로입니다(예제 4).
+
+### textContent 대입은 HTML이 아니다
+
+요소의 `textContent`에 문자열을 대입하는 setter는 표준의 "string replace all" 단계를 씁니다. 표준은 이렇게 적습니다.
+
+> If string is not the empty string, then set node to the result of creating a text node given parent's node document and string.
+
+그리고 이어서 "Replace all with node within parent."를 합니다. 부모의 모든 자식을 방금 만든 텍스트 노드 하나로 바꾼다는 뜻입니다. 이 단계 어디에도 문자열을 HTML로 해석하는 부분은 없으므로 `<i>새 글</i>`을 대입해도 `i` 요소는 생기지 않고, 꺾쇠가 그대로 들어 있는 텍스트 노드 하나가 됩니다. 빈 문자열이면 텍스트 노드를 만들지 않으므로 모든 자식이 사라지고 `hasChildNodes()`는 `false`입니다(예제 6). HTML 문자열을 요소로 해석해 넣는 `innerHTML` 같은 API는 별도 개념입니다.
+
+### 노드의 상속 구조
+
+DOM의 노드 종류는 표준의 인터페이스 상속으로 정리됩니다. DOM 표준의 인터페이스 정의로 `Text`는 `CharacterData`를, `CharacterData`는 `Node`를, `Node`는 `EventTarget`을 확장하고(`Text : CharacterData : Node : EventTarget`), `Element`도 `Node`를 확장합니다. HTML 표준에서 `HTMLElement`는 `Element`를, `HTMLLIElement`는 `HTMLElement`를 확장합니다. 이 상속은 브라우저에서 프로토타입 체인으로 보입니다. [프로토타입 체인](/concepts/prototype-chain)에서 쓴 `Object.getPrototypeOf` 순회로 `li`를 따라가면 `HTMLLIElement`, `HTMLElement`, `Element`, `Node`, `EventTarget`, `Object` 순서이고, 텍스트 노드는 `Text`, `CharacterData`, `Node`, `EventTarget`, `Object` 순서입니다(예제 7).
+
+프로퍼티가 어느 인터페이스에 있는지도 여기서 정해집니다. `childNodes`는 `Node`에 있어서 텍스트 노드에도 있지만, `children`은 `ParentNode` 믹스인으로 `Element`(와 `Document`, `DocumentFragment`)에 들어가므로 텍스트 노드의 체인에는 `children`이 없고 `typeof`가 `undefined`입니다. 이 예제에서 `document` 자신의 체인은 뺐습니다. HTML 표준은 `Window`에 "For historical reasons, Window objects must also have a writable, configurable, non-enumerable property named HTMLDocument whose value is the Document interface object."라고 적습니다. 표준에서는 `HTMLDocument`가 `Document`와 같은 객체인데, 이 페이지가 실행하는 Chromium은 `document`의 체인에 `HTMLDocument`를 따로 보고하므로 표준 구조와 다르게 보이기 때문입니다(다른 브라우저는 이 페이지에서 확인하지 않았습니다).
+
+## 예제
+
+예제의 `console.log`는 값을 출력하는 호스트 API이며 ECMAScript 언어의 일부가 아닙니다. 모든 예제는 테스트가 Chromium에서 실제로 열어 얻은 출력이고, 응답을 일부러 늦추는 지연은 어떤 예제에도 없습니다(예제 1의 `walk.js`도 지연 없이 응답하며, 결과는 파서와 DOM 표준이 정한 것입니다). 여러 줄 출력은 퀴즈에서 ' / '로 이어 적었고, 출력이 길거나 공백이 중요한 예제는 줄 일부만 물었습니다.
+
+### 예제 1: 문서의 모든 노드를 깊이 우선으로 찍는다
+
+`defer` 스크립트 `walk.js`가 파싱이 끝난 뒤 문서 노드부터 모든 노드를 깊이 우선으로 찍습니다. 들여쓰기 두 칸이 한 단계 깊이이고, 텍스트와 주석은 값을 JSON 문자열로 함께 찍습니다. 위 노드 트리 그림이 이 출력입니다.
+
+```html file=./examples/tree.html
+
+```
+
+```js file=./examples/walk.js
+
+```
+
+<PredictQuiz
+  question="예제 1에서 BODY의 마지막 자식 노드는 무엇일까요?"
+  choices={['UL 요소', '#text "\\n"', '#text "\\n\\n\\n"', '#text "\\n\\n"']}
+  answer={2}
+  explanation={
+    '</ul> 뒤, </body> 뒤, </html> 뒤의 줄바꿈이 모두 body 안에 들어가고, 인접한 문자는 앞 텍스트 노드에 이어 붙으므로 줄바꿈 세 개가 담긴 텍스트 노드 하나가 BODY의 마지막 자식입니다. UL은 마지막에서 두 번째입니다.'
+  }
+/>
+
+<PredictQuiz
+  question="예제 1에서 HTML 요소의 자식 노드는 몇 개일까요?"
+  choices={[
+    '2개(HEAD, BODY)',
+    '3개(HEAD, #text, BODY)',
+    '4개(#text, HEAD, #text, BODY)',
+    '1개(BODY)',
+  ]}
+  answer={1}
+  explanation={
+    '<html> 뒤 <head> 앞의 공백은 버려져 첫 자식이 HEAD이고, </head> 뒤 <body> 앞의 공백은 html의 자식 텍스트 노드가 되며, 그 뒤에 BODY가 있어 모두 3개입니다.'
+  }
+/>
+
+### 예제 2: 노드 종류별 nodeType과 nodeName
+
+문서, 문서 유형, `html` 요소, 주석, 텍스트, 어트리뷰트 노드의 `nodeType`과 `nodeName`을 찍고, 어트리뷰트 노드의 `parentNode`와 요소의 `childNodes` 개수를 확인합니다.
+
+```html file=./examples/node-types.html
+
+```
+
+<PredictQuiz
+  question="예제 2의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '9 #document / 1 HTML / 1 HTML / 8 #comment / 3 #text / 2 class null 1',
+    '9 #document / 10 HTML / 1 HTML / 8 #comment / 3 #text / 2 class null 1',
+    '9 #document / 10 html / 1 HTML / 8 #comment / 3 #text / 2 class null 1',
+    '9 #document / 10 html / 1 HTML / 8 #comment / 3 #text / 2 class null 2',
+  ]}
+  answer={2}
+  explanation={
+    'document.firstChild는 요소가 아니라 문서 유형 노드이고(10, nodeName은 이름인 html), html 요소의 nodeName은 대문자 HTML입니다. 어트리뷰트 노드는 nodeType이 2, parentNode가 null이고 요소의 childNodes에 들지 않아 p의 childNodes는 텍스트 노드 하나뿐입니다.'
+  }
+/>
+
+### 예제 3: 공백 텍스트 노드와 짝을 이룬 프로퍼티
+
+`li` 하나만 든 `ul`에서 `childNodes`와 `children`, `firstChild`와 `firstElementChild`, 형제와 부모 프로퍼티의 결과를 비교합니다.
+
+```html file=./examples/whitespace.html
+
+```
+
+<PredictQuiz
+  question="예제 3의 첫 줄(ul.childNodes.length와 ul.children.length)은 무엇일까요?"
+  choices={['1 1', '2 1', '3 1', '3 3']}
+  answer={2}
+  explanation={
+    'ul의 자식 노드는 <ul> 뒤 줄바꿈과 들여쓰기의 텍스트 노드, li, 마지막 줄바꿈의 텍스트 노드로 3개이고, 그중 요소는 li 하나뿐입니다.'
+  }
+/>
+
+<PredictQuiz
+  question="예제 3의 넷째 줄(li.nextSibling.nodeName과 li.nextElementSibling)은 무엇일까요?"
+  choices={['LI null', '#text null', '#text #text', 'null null']}
+  answer={1}
+  explanation={
+    'li 바로 뒤에는 줄바꿈 텍스트 노드가 있어 nextSibling의 nodeName은 #text이고, 그 뒤에 형제 요소는 없어 nextElementSibling은 null입니다.'
+  }
+/>
+
+### 예제 4: nodeValue와 textContent
+
+요소의 `nodeValue`, 텍스트 노드의 `nodeValue`, 요소의 `textContent`를 비교하고, 텍스트 노드의 `nodeValue`를 바꾼 뒤의 `textContent`와 노드 개수를 확인합니다.
+
+```html file=./examples/node-value.html
+
+```
+
+<PredictQuiz
+  question="예제 4의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '"안녕 세상!" 3 / "안녕 " "안녕 세상!" / "잘 가 세상!" 3',
+    'null 3 / "안녕 " "안녕 세상!" / "잘 가 " 3',
+    'null 3 / "안녕 " "안녕 세상!" / "잘 가 세상!" 3',
+    'null 3 / "안녕 " "안녕 세상!" / "잘 가 세상!" 1',
+  ]}
+  answer={2}
+  explanation={
+    '요소의 nodeValue는 null이고 p의 자식은 텍스트, b, 텍스트로 3개입니다. 첫 텍스트 노드의 데이터를 바꾸면 후손 텍스트를 이은 textContent도 바뀌어 "잘 가 세상!"이 되고, 노드 개수는 그대로 3입니다.'
+  }
+/>
+
+### 예제 5: 파서가 고친 트리
+
+소스에 `tbody`가 없는 표와, `p` 안에 `div`를 적은 문단이 DOM에서 어떤 구조가 되는지 확인합니다.
+
+```html file=./examples/parser-fix.html
+
+```
+
+<PredictQuiz
+  question="예제 5의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'TR TD / 1 SCRIPT / 1',
+    'TBODY TR / 0 DIV / 1',
+    'TR TD / 0 DIV / 2',
+    'TBODY TR / 0 DIV / 2',
+  ]}
+  answer={3}
+  explanation={
+    '파서가 table 아래에 tbody를 만들어 table의 첫 자식 요소는 TBODY이고 그 첫 자식 요소는 TR입니다. div 시작 태그가 열린 p를 닫아 p#note는 비고 div는 다음 형제이며, 소스의 </p>가 빈 p를 하나 더 만들어 문서의 p는 2개입니다.'
+  }
+/>
+
+### 예제 6: textContent에 대입한 태그 문자열
+
+`textContent`에 태그가 든 문자열과 빈 문자열을 차례로 대입하고 자식 노드를 확인합니다.
+
+```html file=./examples/text-content.html
+
+```
+
+<PredictQuiz
+  question="예제 6의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '1 I 1 / "새 글" / 0 false',
+    '1 #text 0 / "<i>새 글</i>" / 1 true',
+    '2 #text 1 / "<i>새 글</i>" / 0 false',
+    '1 #text 0 / "<i>새 글</i>" / 0 false',
+  ]}
+  answer={3}
+  explanation={
+    'textContent 대입은 문자열을 HTML로 해석하지 않고 텍스트 노드 하나로 바꿉니다. 그래서 자식은 텍스트 노드 하나이고 자식 요소는 0개이며 textContent에는 꺾쇠가 그대로 있습니다. 빈 문자열을 대입하면 텍스트 노드를 만들지 않아 자식이 모두 사라집니다.'
+  }
+/>
+
+### 예제 7: 노드의 프로토타입 체인
+
+요소 `li`와 그 텍스트 노드의 프로토타입 체인에 있는 생성자 이름을 순서대로 찍고, `instanceof`와 `children`의 유무를 확인합니다.
+
+```html file=./examples/inheritance.html
+
+```
+
+<PredictQuiz
+  question="예제 7의 둘째 줄(li.firstChild의 프로토타입 체인)은 무엇일까요?"
+  choices={[
+    '["Text","Node","EventTarget","Object"]',
+    '["Text","Element","Node","EventTarget","Object"]',
+    '["Text","CharacterData","Node","EventTarget","Object"]',
+    '["Text","CharacterData","Element","Node","EventTarget","Object"]',
+  ]}
+  answer={2}
+  explanation={
+    '텍스트 노드의 인터페이스는 Text이고 CharacterData를 거쳐 Node, EventTarget으로 이어집니다. Element는 이 체인에 없습니다.'
+  }
+/>
+
+<PredictQuiz
+  question="예제 7의 셋째 줄은 무엇일까요?"
+  choices={['true true object', 'true false undefined', 'true false object', 'true true undefined']}
+  answer={1}
+  explanation={
+    'li는 Node이고, li.firstChild는 텍스트 노드라 Element가 아닙니다. children은 Element에 있는 프로퍼티라 텍스트 노드에는 없어 typeof가 undefined입니다.'
+  }
+/>
+
+## 결과와 이유
+
+### 예제 1
+
+문서 노드의 자식이 문서 유형과 `HTML` 둘뿐인 것은 1번 줄 `<!doctype html>` 뒤의 줄바꿈이 "before html"에서 버려지기 때문입니다. `HTML`의 자식이 `HEAD`, `#text "\n"`, `BODY` 세 개인 것도 파서의 삽입 모드 때문입니다. 2번 줄 `<html lang="ko">` 뒤의 줄바꿈은 "before head"에서 버려져서 첫 자식이 `HEAD`이고, 6번 줄 `</head>` 뒤의 줄바꿈은 "after head"에서 `html` 안에 들어가 `HEAD`와 `BODY` 사이의 `#text "\n"`이 됩니다. `HEAD` 안의 공백(`<meta>` 앞뒤와 `<script>` 뒤)은 "in head"에서 텍스트 노드로 남아 `#text "\n"` 세 개가 `META`, `SCRIPT`와 번갈아 놓입니다. `BODY`의 첫 자식 `#text "\n"`, 주석 `#comment " 과일 "`, 그 뒤 `#text "\n"`은 7번~8번 줄에서 나온 노드이고, `UL`의 자식 다섯 개(`#text "\n  "`, `LI`, `#text "\n  "`, `LI`, `#text "\n"`)는 9번~12번 줄의 들여쓰기와 줄바꿈입니다. 마지막 `#text "\n\n\n"`은 줄바꿈 세 개가 합쳐진 것입니다. 12번 줄 `</ul>` 뒤의 줄바꿈은 아직 "in body"에서 `BODY` 안에 들어가고, 13번 줄 `</body>` 뒤와 14번 줄 `</html>` 뒤의 줄바꿈은 "after body"와 "after after body"에서 in body 규칙으로 처리되는데, 두 종료 태그가 `body`를 열린 요소 스택에서 빼지 않아 현재 노드가 여전히 `body`이므로 역시 `BODY` 안에 들어가며, "insert a character"가 그때마다 앞 텍스트 노드에 이어 붙입니다. 출력의 들여쓰기는 `walk.js`의 6번 줄이 깊이만큼 두 칸씩 붙인 것입니다. `walk.js`는 `defer`라서 파싱이 끝난 뒤 실행되므로 위 노드가 모두 만들어진 상태에서 순회합니다.
+
+### 예제 2
+
+11번 줄 `9 #document`는 `document` 자신이 문서 노드(`Node.DOCUMENT_NODE`)이기 때문입니다. 12번 줄 `10 html`은 `document.firstChild`가 요소가 아니라 문서 유형 노드(`Node.DOCUMENT_TYPE_NODE`)이고 `nodeName`이 그 이름 `html`이기 때문입니다. 13번 줄 `1 HTML`은 HTML 문서에 있는 HTML 요소의 `nodeName`이 대문자이기 때문입니다(같은 문서의 SVG 요소는 대문자로 바꾸지 않고 `svg`, `foreignObject`처럼 이름 그대로입니다). 14번 줄 `8 #comment`는 `body.childNodes[1]`이 7번 줄의 주석이라서입니다(`childNodes[0]`은 `<body>` 뒤 줄바꿈 텍스트 노드입니다). 15번 줄 `3 #text`는 `p`의 첫 자식이 텍스트 노드 `안녕`이기 때문입니다. 17번 줄 `2 class null 1`은 `getAttributeNode('class')`가 돌려준 노드의 `nodeType`이 2, `nodeName`이 `class`이고 `parentNode`가 `null`이며, `p.childNodes.length`는 텍스트 노드 하나라서 1이라는 뜻입니다. 어트리뷰트 노드는 요소의 `childNodes`에 들지 않습니다.
+
+### 예제 3
+
+12번 줄 `3 1`은 `ul`의 자식이 `#text "\n  "`, `LI`, `#text "\n"` 세 개이고 그중 요소는 `LI` 하나라서입니다. 13번 줄 `#text "\n  "`는 `firstChild`가 `<ul>`과 `<li>` 사이의 줄바꿈과 들여쓰기 텍스트 노드이기 때문입니다. 14번 줄 `LI #text`는 `firstElementChild`가 첫 자식 요소 `LI`이고 그 첫 자식이 텍스트 `사과`이기 때문입니다. 16번 줄 `#text null`은 `li.nextSibling`이 `</li>`와 `</ul>` 사이의 텍스트 노드이고, 그 뒤에 형제 요소가 없어 `nextElementSibling`이 `null`이라는 뜻입니다. 17번 줄 `#text SCRIPT`는 `ul` 바로 뒤가 `</ul>`와 `<script>` 사이의 줄바꿈 텍스트 노드이고, 형제 요소로는 이 스크립트 요소가 다음에 있기 때문입니다. 19번 줄 `#document null`은 `html`의 부모가 문서 노드라 `parentNode`는 문서이지만 문서는 요소가 아니라서 `parentElement`가 `null`이라는 뜻입니다.
+
+### 예제 4
+
+10번 줄 `null 3`은 요소의 `nodeValue`가 `null`이고 `p`의 자식이 텍스트 `안녕 `, `b`, 텍스트 `!` 세 개라서입니다. 11번 줄의 첫 값 `"안녕 "`은 첫 텍스트 노드의 데이터이고, 둘째 값 `"안녕 세상!"`은 후손 텍스트 노드(`안녕 `, `세상`, `!`)의 데이터를 이은 `textContent`입니다. 12번 줄이 첫 텍스트 노드의 `nodeValue`를 `'잘 가 '`로 바꾸므로 13번 줄에서 `textContent`는 `"잘 가 세상!"`이 되고, 바뀐 것은 한 노드의 데이터뿐이라 자식 개수는 그대로 3입니다.
+
+### 예제 5
+
+11번 줄 `TBODY TR`은 7번 줄의 `<tr>`을 "in table"에서 만난 파서가 `tbody`를 만들어 `table`의 첫 자식 요소로 두고 `tr`이 그 아래에 들어가기 때문입니다. 13번 줄 `0 DIV`는 8번 줄의 `<div>` 시작 태그가 열려 있는 `p`를 닫았기 때문입니다. `p#note`는 자식이 없고(`childNodes` 0) `div`는 그 다음 형제입니다. 14번 줄 `2`는 소스의 `</p>`를 만났을 때 열린 `p`가 없어 파서가 빈 `p`를 하나 만든 결과로, 문서에 `p#note`와 이 `p` 두 개가 있다는 뜻입니다. 소스를 눈으로 읽어서는 `TR TD`, 자식 1개, `p` 1개를 예상하기 쉽지만 DOM은 다릅니다.
+
+### 예제 6
+
+10번 줄이 `'<i>새 글</i>'`을 대입하면 "string replace all"이 문자열로 텍스트 노드 하나를 만들어 기존 자식(텍스트, `b`, 텍스트)을 모두 바꿉니다. 그래서 11번 줄 `1 #text 0`은 자식이 텍스트 노드 하나이고 자식 요소는 0개라는 뜻이고, 12번 줄의 `textContent`는 꺾쇠가 든 `"<i>새 글</i>"` 그대로입니다. 13번 줄이 빈 문자열을 대입하면 텍스트 노드를 만들지 않고 자식을 모두 지우므로 14번 줄은 `0 false`입니다.
+
+### 예제 7
+
+17번 줄의 첫 배열은 `li`에서 시작해 프로토타입을 따라 올라간 생성자 이름이라 `HTMLLIElement`, `HTMLElement`, `Element`, `Node`, `EventTarget`, `Object` 순서입니다. 18번 줄의 둘째 배열은 텍스트 노드의 체인으로 `Text`, `CharacterData`, `Node`, `EventTarget`, `Object`입니다. 19번 줄 `true false undefined`에서 `li instanceof Node`는 `Node`가 `li`의 체인에 있어서 `true`이고, `li.firstChild instanceof Element`는 텍스트 노드의 체인에 `Element`가 없어서 `false`입니다. `children`은 `Element`에 있는 프로퍼티라 텍스트 노드에는 없으므로 읽으면 `undefined`이고, `typeof` 결과가 문자열 `undefined`로 출력됩니다.
+
+### 흔한 오해
+
+<Callout type="misconception" title="줄바꿈과 들여쓰기는 DOM에 남지 않는다">
+
+요소 사이의 줄바꿈과 들여쓰기도 텍스트 노드로 DOM에 남습니다. `li`가 하나뿐인 `ul`의 `childNodes`가 3개인 이유이고(예제 3), 예제 1의 그림에서 `공백` 배지가 붙은 노드들입니다. 다만 어디서나 남는 것은 아닙니다. `<html>` 앞과 `<html>`~`<head>` 사이의 공백, `<pre>`·`<textarea>` 시작 태그 바로 뒤의 첫 줄바꿈 하나는 파서가 버립니다(표준의 "before html"·"before head"와 "in body"의 `pre`·`textarea` 규칙).
+
+</Callout>
+
+<Callout type="misconception" title="firstChild는 첫 번째 요소다">
+
+`firstChild`는 첫 번째 자식 노드이고, 요소 사이에 공백이 있으면 그 공백 텍스트 노드입니다(예제 3의 `#text "\n  "`). 첫 번째 자식 요소는 `firstElementChild`입니다. `nextSibling`과 `nextElementSibling`, `childNodes`와 `children`도 같은 차이입니다.
+
+</Callout>
+
+<Callout type="misconception" title="textContent에 넣은 태그는 요소가 된다">
+
+`textContent`에 대입한 문자열은 HTML로 해석되지 않고 텍스트 노드 하나가 됩니다(예제 6). `<i>`를 넣어도 `i` 요소는 생기지 않고 글자 그대로 들어갑니다.
+
+</Callout>
+
+<Callout type="misconception" title="HTML 소스 그대로 DOM이 만들어진다">
+
+파서는 소스에 없는 노드를 만들거나 소스와 다른 자리에 노드를 둘 수 있습니다. `<table>` 바로 아래의 `<tr>`은 `tbody` 아래로 들어가고, `<p>` 안의 `<div>`는 `p`를 닫아 형제가 되며 빈 `p`가 하나 더 생깁니다(예제 5). `</body>`와 `</html>` 뒤의 줄바꿈도 `html`이 아니라 `BODY` 안에 있습니다(예제 1).
+
+</Callout>

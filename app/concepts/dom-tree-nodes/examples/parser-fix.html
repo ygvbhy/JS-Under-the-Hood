@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<table id="scores"><tr><td>90</td></tr></table>
+<p id="note"><div>블록</div></p>
+<script>
+var table = document.getElementById('scores');
+console.log(table.firstElementChild.nodeName, table.firstElementChild.firstElementChild.nodeName);
+var p = document.getElementById('note');
+console.log(p.childNodes.length, p.nextElementSibling.nodeName);
+console.log(document.querySelectorAll('p').length);
+</script>
+</body>
+</html>

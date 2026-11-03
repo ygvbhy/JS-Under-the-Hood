@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<ul><li id="item">사과</li></ul>
+<script>
+function chain(obj) {
+  var names = [];
+  for (var o = Object.getPrototypeOf(obj); o !== null; o = Object.getPrototypeOf(o)) {
+    names.push(o.constructor.name);
+  }
+  return JSON.stringify(names);
+}
+var li = document.getElementById('item');
+console.log(chain(li));
+console.log(chain(li.firstChild));
+console.log(li instanceof Node, li.firstChild instanceof Element, typeof li.firstChild.children);
+</script>
+</body>
+</html>

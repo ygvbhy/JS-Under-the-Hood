@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<p id="greet">안녕 <b>세상</b>!</p>
+<script>
+var p = document.getElementById('greet');
+console.log(p.nodeValue, p.childNodes.length);
+console.log(JSON.stringify(p.firstChild.nodeValue), JSON.stringify(p.textContent));
+p.firstChild.nodeValue = '잘 가 ';
+console.log(JSON.stringify(p.textContent), p.childNodes.length);
+</script>
+</body>
+</html>
