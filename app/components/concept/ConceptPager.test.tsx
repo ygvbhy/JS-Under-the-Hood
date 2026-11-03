@@ -15,7 +15,7 @@ function renderPager(slug: string) {
 describe('ConceptPager', () => {
   it('첫 개념은 이전 없이 다음 링크만 있다', () => {
     const nav = renderPager('primitives-and-objects')
-    expect(within(nav).getByText('학습 순서 1 / 35')).toBeInTheDocument()
+    expect(within(nav).getByText('학습 순서 1 / 36')).toBeInTheDocument()
     expect(within(nav).queryByText('이전 개념')).not.toBeInTheDocument()
     const links = within(nav).getAllByRole('link')
     expect(links).toHaveLength(1)
@@ -24,12 +24,12 @@ describe('ConceptPager', () => {
   })
 
   it('마지막 개념은 다음 없이 이전 링크만 있다', () => {
-    const nav = renderPager('set-map')
-    expect(within(nav).getByText('학습 순서 35 / 35')).toBeInTheDocument()
+    const nav = renderPager('script-async-defer')
+    expect(within(nav).getByText('학습 순서 36 / 36')).toBeInTheDocument()
     expect(within(nav).queryByText('다음 개념')).not.toBeInTheDocument()
     const links = within(nav).getAllByRole('link')
     expect(links).toHaveLength(1)
-    expect(links[0]).toHaveAttribute('href', '/concepts/spread-destructuring')
+    expect(links[0]).toHaveAttribute('href', '/concepts/set-map')
     expect(links[0]).toHaveTextContent('이전 개념')
   })
 

@@ -22,7 +22,7 @@
 
 | # | 개념 (가제) | 장 | 핵심 오해 포인트 (Chromium으로 확인한 결과) | 시각화 (안) | 상태 |
 | - | - | - | - | - | - |
-| 1 | script의 async와 defer | 38 | 지연이 다른 `defer` 스크립트 둘(먼저 받은 것이 뒤)은 문서 순서대로 실행되고 둘 다 `DOMContentLoaded` 전(`readyState` `interactive`). `async`는 받는 대로 실행. 파서 차단 스크립트는 그 시점까지의 DOM만 봄(`querySelectorAll('p').length` 1) | 타임라인 표 또는 시뮬레이터 | 대기 |
+| 1 | script의 async와 defer | 38 | 지연이 다른 `defer` 스크립트 둘(먼저 받은 것이 뒤)은 문서 순서대로 실행되고 둘 다 `DOMContentLoaded` 전(`readyState` `interactive`). `async`는 받는 대로 실행. 파서 차단 스크립트는 그 시점까지의 DOM만 봄(`querySelectorAll('p').length` 1) | 타임라인 표 또는 시뮬레이터 | 완료 |
 | 2 | DOM 트리와 노드 종류 | 39 | 줄바꿈이 있는 `<ul>`의 `childNodes.length` 3·`children.length` 1, `firstChild.nodeType` 3(텍스트 노드), `firstElementChild`는 `LI` | 트리 그림 | 대기 |
 | 3 | HTMLCollection은 살아 있다 | 39 | `getElementsByClassName('r')` 4개를 돌며 클래스를 바꾸면 2개가 남음(살아 있는 컬렉션이 줄어들며 건너뜀). `querySelectorAll`의 정적 NodeList로는 4개 모두 바뀜 | 단계 시뮬레이터 후보 | 대기 |
 | 4 | 어트리뷰트와 프로퍼티 | 39 | `value="init"`인 input에 `.value = 'typed'` 뒤 `getAttribute('value')`·`defaultValue`는 `init`. 그 뒤 `setAttribute('value', …)`는 `defaultValue`만 바꾸고 `.value`는 `typed` 그대로 | 표 + 퀴즈 | 대기 |
@@ -45,3 +45,4 @@
 
 - 2026-11-03: 범위(38~42장, 책 순서), 검증 방식(Playwright 실제 브라우저), 카테고리(`browser` 추가), 개념 8개 사용자 결정. 0번 인프라 계획부터 진행.
 - 2026-11-03: 0번 브라우저 예제 실행 인프라 완료(`browser-example-runtime.md`). 1번 script의 async와 defer 계획 시작.
+- 2026-11-03: 1번 `script-async-defer`(order 340, browser 첫 개념, 36번째·마지막, 모드 비교표 10행 + 퀴즈 9개, 브라우저 예제 9개) 완료. 외부 검토 두 차례 반영. 다음은 2번 DOM 트리와 노드 종류.

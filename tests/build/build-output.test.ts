@@ -987,6 +987,31 @@ describe('프리렌더 (set-map)', () => {
   })
 })
 
+// 38~42장 로드맵 1번(script-async-defer): 첫 브라우저 예제 개념의 모드 비교표·퀴즈·html 코드 블록이 프리렌더 HTML에 정적으로 있어야 한다.
+describe('프리렌더 (script-async-defer)', () => {
+  const html = read('concepts/script-async-defer/index.html')
+  const text = htmlToText(html)
+
+  it('모드 비교 표 region이 HTML에 있다', () => {
+    expect(html).toContain(
+      'aria-label="script를 넣는 방식마다 파서가 기다리는지, 실행 시점, 순서, DOMContentLoaded가 기다리는지 비교한 표',
+    )
+    expect(text).toContain('DOMContentLoaded')
+  })
+
+  it('퀴즈 정답이 <details>로 9개 이상 프리렌더된다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(9)
+  })
+
+  it('html 코드 블록이 하이라이트되고 태그가 이스케이프된다', () => {
+    // Shiki는 '<'와 'script'를 다른 토큰(span)으로 나누므로 사이의 태그를 건너뛰고 찾는다
+    expect(html).toMatch(
+      /<pre class="shiki[^>]*>(?:(?!<\/pre>)[\s\S])*(?:&lt;|&#x3C;)(?:<[^>]+>)*script/,
+    )
+    expect(html).not.toContain('<script src="/head.js">')
+  })
+})
+
 // 학습 순서 이전/다음: 관련 개념 링크와 섞이지 않도록 nav 영역만 잘라 검사한다.
 describe('학습 순서 pager', () => {
   const ordered = sortByOrder(concepts)

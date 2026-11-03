@@ -52,6 +52,7 @@ import {
   STRING_UTF16_VIEW_NAME,
   ITERABLE_FOR_OF_PATH,
   ITERABLE_FOR_OF_SIMULATOR_NAME,
+  SCRIPT_ASYNC_DEFER_PATH,
   SET_MAP_PATH,
   SPREAD_DESTRUCTURING_PATH,
   SYMBOL_PATH,
@@ -796,6 +797,13 @@ for (const colorScheme of ['light', 'dark'] as const) {
 
     test('개념 페이지: Set과 Map', async ({ page }) => {
       await page.goto(SET_MAP_PATH)
+      await waitForHydration(page)
+      await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
+      await expectNoSeriousViolations(page)
+    })
+
+    test('개념 페이지: script의 async와 defer', async ({ page }) => {
+      await page.goto(SCRIPT_ASYNC_DEFER_PATH)
       await waitForHydration(page)
       await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
       await expectNoSeriousViolations(page)

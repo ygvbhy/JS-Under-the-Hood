@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<script defer>
+console.log('inline defer', document.readyState, document.querySelectorAll('p').length);
+</script>
+<p>본문</p>
+<script>
+document.addEventListener('DOMContentLoaded', () => console.log('DOMContentLoaded'));
+</script>
+</body>
+</html>
