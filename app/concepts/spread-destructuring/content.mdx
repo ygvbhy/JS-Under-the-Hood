@@ -1,0 +1,366 @@
+import { columns, rows, setup } from './default-table'
+
+## 동작 원리
+
+`var { v = 'D' } = { v: null }`을 실행하면 `v`는 기본값 `'D'`가 아니라 `null`입니다. 값이 없다는 점에서 `null`도 `undefined`와 비슷해 보이는데, 왜 `null`일 때는 기본값이 쓰이지 않을까요? 이 페이지는 이 질문을 스프레드(spread)와 디스트럭처링(destructuring)이 명세에서 어떻게 정의되는지로 따라갑니다. 먼저 스프레드가 배열·함수 인수·객체에서 각각 무엇을 하는지, 그 결과가 왜 "얕은 복사"라고 불리는지, 객체 스프레드가 `Object.assign`과 어떻게 다른지, 무엇이 펼쳐지지 않는지를 봅니다. 이어서 배열·객체 패턴으로 값을 꺼내는 방법, 기본값이 쓰이는 조건과 평가되는 시점, rest, `null`과 원시 값을 디스트럭처링할 때의 결과, 매개변수·스왑·할당 디스트럭처링을 예제 열 개로 확인하고 마지막에 기본값 표로 정리합니다. 이터레이터를 얻어 값을 꺼내는 프로토콜은 [이터러블과 for...of](/concepts/iterable-for-of), 재할당과 변경의 구분은 [원시 값과 객체](/concepts/primitives-and-objects), getter·setter와 열거 가능 여부는 [프로퍼티 어트리뷰트와 접근자](/concepts/property-attributes), `??`와 `||`는 [단축 평가](/concepts/short-circuit-evaluation), 원시 값에서 프로퍼티를 읽을 때 거치는 래퍼는 [원시 값의 메서드](/concepts/primitive-methods), rest 파라미터는 [화살표 함수와 메서드 축약](/concepts/arrow-functions), 심벌 키는 [심벌](/concepts/symbol), 상속 프로퍼티는 [프로토타입 체인](/concepts/prototype-chain), 객체가 원시 값으로 바뀌는 과정은 [암묵적 타입 변환](/concepts/type-coercion), 코드 유닛과 코드 포인트는 [문자열 길이와 UTF-16](/concepts/string-utf16)에서 본 것을 전제합니다. 매개변수 기본값의 세부 규칙, 깊은 복사, `try...catch`는 별도 개념입니다.
+
+### 스프레드는 이터러블을 펼치고, 객체 스프레드는 프로퍼티를 펼친다
+
+`...`이 붙은 식은 쓰이는 자리에 따라 서로 다른 알고리즘으로 평가됩니다. 배열 리터럴 안의 `[0, ...nums, 4]`는 ArrayAccumulation이 처리합니다. `nums`로 GetIterator를 불러 이터레이터를 얻고, 값을 하나씩 꺼낼 때마다 새 배열에 CreateDataPropertyOrThrow로 요소를 정의합니다. 함수 호출의 `Math.max(...nums)`는 ArgumentListEvaluation이 처리하며 같은 방식으로 이터레이터에서 꺼낸 값을 인수 목록에 이어 붙입니다. 두 경우 모두 펼치는 대상은 이터러블이어야 하고, 이터러블이 아니면 GetIterator에서 TypeError가 납니다.
+
+객체 리터럴 안의 `{ ...base }`는 이터레이터를 쓰지 않습니다. PropertyDefinitionEvaluation이 `CopyDataProperties(새 객체, base, « »)`를 부르고, 이 알고리즘은 `base`의 자기 프로퍼티 키 중 열거 가능한 것마다 `Get`으로 값을 읽어 새 객체에 CreateDataPropertyOrThrow로 정의합니다. 같은 `...`처럼 보여도 배열과 인수의 스프레드는 이터레이터 프로토콜, 객체 스프레드는 CopyDataProperties입니다.
+
+예제 1의 2번 줄에서 `[0, ...nums, 4]`는 새 배열 `[0,3,1,2,4]`가 되고 3번 줄에서 길이는 `5`입니다. 4번 줄의 `Math.max(...nums)`는 배열의 값이 인수 세 개로 펼쳐져 `3`이지만, `Math.max(nums)`는 배열 자체가 인수 하나로 전달됩니다. `Math.max`는 인수마다 ToNumber를 부르는데, 배열은 원시 값으로 바뀌면서 문자열 `'3,1,2'`가 되고 이 문자열은 숫자로 해석할 수 없어 `NaN`이 됩니다. 배열이라서 늘 `NaN`인 것은 아니어서 요소가 하나인 `Math.max([7])`은 문자열 `'7'`을 거쳐 `7`입니다. 객체가 원시 값으로 바뀌는 과정은 [암묵적 타입 변환](/concepts/type-coercion)에서 본 내용입니다. 5~8번 줄은 키가 겹칠 때를 보여 줍니다. `{ ...base, b: 20 }`은 `a`, `b`를 차례로 정의한 뒤 `b`를 `20`으로 다시 정의하므로 `{"a":1,"b":20}`입니다. `{ b: 20, ...base }`는 먼저 `b`를 `20`으로 정의하고 `base`의 `a`, `b`를 정의하는데, 이미 있는 `b`는 값만 `2`로 바뀝니다. 키의 자리는 처음 정의한 순서를 따르므로 결과는 `{"b":2,"a":1}`입니다. 키 나열 순서는 [심벌](/concepts/symbol)에서 본 OrdinaryOwnPropertyKeys의 규칙입니다. 이터레이터의 호출 횟수와 IteratorClose는 [이터러블과 for...of](/concepts/iterable-for-of)에서 다룬 내용이라 여기서는 다시 다루지 않습니다.
+
+### 얕은 복사: 새 객체에 같은 값이 들어간다
+
+배열 리터럴과 객체 리터럴의 스프레드 결과를 흔히 "얕은 복사(shallow copy)"라고 부릅니다. 둘 다 새 배열이나 새 객체를 하나 만들고, 원본에서 읽은 값을 그 프로퍼티로 정의합니다. 객체 스프레드가 부르는 CopyDataProperties도 이름과 달리 하는 일은 값을 `Get`으로 읽어 CreateDataPropertyOrThrow로 정의하는 것뿐이고, 배열 스프레드의 ArrayAccumulation도 이터레이터에서 꺼낸 값을 그대로 요소로 정의합니다. 읽은 값이 객체여도 그 객체를 새로 만드는 단계는 어디에도 없습니다. "얕은 복사"는 이 결과를 부르는 관용 용어입니다.
+
+읽은 값이 원시 값이든 객체든, 새 객체의 프로퍼티를 재할당하는 것은 새 객체의 프로퍼티만 바꾸므로 원본은 그대로입니다. 차이는 읽은 값이 객체일 때 드러납니다. 원본의 프로퍼티와 새 객체의 프로퍼티에 같은 객체가 들어 있으므로, 그 객체를 변경(mutation)하면 어느 쪽에서 읽어도 변경된 모습이 보입니다. 재할당과 변경의 차이는 [원시 값과 객체](/concepts/primitives-and-objects)에서 다룬 내용 그대로이고, 스프레드 때문에 달라지는 규칙은 없습니다.
+
+예제 2의 3번 줄 `copy.name = 'Lee'`는 `copy`의 `name` 프로퍼티를 재할당하므로 5번 줄에서 `user.name`은 `Kim`, `copy.name`은 `Lee`입니다. 4번 줄의 `copy.tags.push('b')`는 `tags` 프로퍼티를 바꾸는 것이 아니라 그 프로퍼티에 들어 있는 배열 객체를 변경합니다. `user.tags`와 `copy.tags`에는 같은 배열이 들어 있으므로 6번 줄에서 `user.tags`에도 `"b"`가 보이고 `copy.tags === user.tags`는 `true`입니다. 배열 스프레드도 같습니다. 8번 줄의 `listCopy`는 `list`와 다른 새 배열이지만 0번 요소로 같은 객체가 들어 있어서, 9번 줄에서 그 객체의 `n`을 바꾸면 10번 줄에서 `list[0].n`이 `2`로 보입니다. `listCopy === list`는 `false`, `listCopy[0] === list[0]`은 `true`입니다.
+
+### 객체 스프레드와 Object.assign
+
+객체 스프레드와 `Object.assign(target, source)`는 `source`에서 읽는 방법이 같습니다. 둘 다 `source`의 자기 프로퍼티 키 중 열거 가능한 것만 골라 `Get`으로 값을 읽으므로 `source`에 getter가 있으면 둘 다 그 getter를 실행합니다. 차이는 읽은 값을 대상에 넣는 방법입니다. `Object.assign`은 이미 있는 `target`에 `Set`(대입)으로 넣습니다. 그래서 `target`에 같은 이름의 setter가 있으면 그 setter가 불리고, `target`의 접근자 프로퍼티는 그대로 접근자 프로퍼티입니다. 객체 스프레드는 방금 만든 새 객체에 CreateDataPropertyOrThrow로 프로퍼티를 정의합니다. 대입이 아니라 정의이므로 setter를 부르지 않습니다. `{ set value(v) {}, ...source }`처럼 리터럴 앞쪽에 같은 이름의 setter를 정의해 두어도 그 setter는 불리지 않고, 그 프로퍼티는 읽은 값을 가진 데이터 프로퍼티로 바뀝니다. 원본이 getter였더라도 결과는 getter가 아닙니다. getter와 setter, 데이터 프로퍼티와 접근자 프로퍼티의 구분은 [프로퍼티 어트리뷰트와 접근자](/concepts/property-attributes)에서 본 내용입니다.
+
+예제 3의 `source`(2~4번 줄)에는 getter `value`가 있고 실행될 때 `calls`에 `'get'`을 넣습니다. `target`(5~7번 줄)에는 setter `value`가 있고 `'set '` 뒤에 받은 값을 넣습니다. 8번 줄의 `Object.assign(target, source)`는 getter를 실행해 값 `1`을 읽고 `target.value = 1`처럼 대입하므로 setter가 불려 9번 줄에서 `calls`는 `get,set 1`입니다. `target`의 `value`는 여전히 접근자 프로퍼티라 `set`의 타입은 `function`입니다. 10번 줄에서 `calls`를 비운 뒤 11번 줄의 `{ ...source }`는 getter는 실행하지만 새 객체에 정의할 뿐 setter를 부르지 않으므로 13번 줄에서 `calls`는 `get`뿐입니다. 12번 줄에서 얻은 `copy`의 `value`는 읽은 값 `1`을 가진 데이터 프로퍼티라 `desc.value`는 `1`, `typeof desc.get`은 `undefined`입니다.
+
+### 무엇이 펼쳐지지 않을까
+
+CopyDataProperties는 출처의 자기 프로퍼티 키 중 열거 가능한 것만 봅니다. 프로토타입에서 상속한 프로퍼티는 자기 프로퍼티가 아니라서 결과에 빠지고, `[[Enumerable]]`이 `false`인 열거 불가 프로퍼티도 빠집니다. 열거 가능한 심벌 키는 문자열 키처럼 펼쳐집니다([심벌](/concepts/symbol)에서 본 대로 심벌 키도 `[[OwnPropertyKeys]]`에 들어 있습니다). 출처가 `undefined`나 `null`이면 CopyDataProperties는 아무것도 하지 않고 바로 끝나서 `{ ...null }`은 오류 없이 빈 객체입니다. 반면 배열 스프레드 `[...null]`과 인수 스프레드 `f(...null)`은 GetIterator를 거치므로 TypeError입니다. 이터러블이 아닌 일반 객체를 배열이나 인수에 펼치는 `[...{ a: 1 }]`도 TypeError입니다.
+
+출처가 문자열이면 두 스프레드의 차이가 드러납니다. 객체 스프레드는 CopyDataProperties가 문자열을 ToObject로 래퍼 객체로 바꿔 그 자기 열거 가능 프로퍼티인 인덱스 키를 펼치고, 배열 스프레드는 문자열의 이터레이터가 돌려주는 값을 펼칩니다. 결과를 담는 그릇(객체와 배열)이 다를 뿐 아니라 글자를 나누는 단위도 다릅니다. 인덱스 키는 UTF-16 코드 유닛마다 하나씩 있고, 이터레이터는 코드 포인트 단위로 값을 돌려줍니다. 예제의 `'hi'`는 두 단위가 같아 같은 글자가 나오지만, 코드 유닛 두 개로 된 `'😀'`에서는 `Object.keys({ ...'😀' }).length`가 `2`, `[...'😀'].length`가 `1`입니다. 코드 유닛과 코드 포인트는 [문자열 길이와 UTF-16](/concepts/string-utf16)에서 다뤘습니다.
+
+예제 4의 1~4번 줄에서 `obj`는 프로토타입 `proto`에서 `inherited`를 상속하고, 자기 프로퍼티로 열거 가능한 `own`과 `defineProperty`로 만든 열거 불가 `hidden`을 가집니다. 6번 줄에서 `copy`의 키는 `["own"]`뿐이고 `copy.inherited`는 `undefined`, `'hidden' in copy`는 `false`입니다. 7번 줄의 `{ ...null }`과 `{ ...undefined }`는 둘 다 `{}`입니다. 8번 줄의 `{ ...'hi' }`는 인덱스 키 `"0"`, `"1"`을 가진 `{"0":"h","1":"i"}`이고, `[...'hi']`는 `["h","i"]`입니다.
+
+### 디스트럭처링: 패턴으로 값을 꺼낸다
+
+디스트럭처링은 좌변에 변수 이름 대신 배열 패턴이나 객체 패턴을 쓰는 문법입니다. 배열 패턴 `[x, , z]`는 BindingInitialization이 우변 값으로 GetIterator를 불러 이터레이터를 얻고, 패턴의 요소를 왼쪽부터 하나씩 이터레이터의 다음 값에 대응시킵니다. 쉼표만 있는 빈 자리는 값을 꺼내고 버립니다. 객체 패턴 `{ name, age: years }`는 먼저 우변 값이 `null`이나 `undefined`가 아닌지 확인하고, 프로퍼티 이름마다 `GetV(value, 이름)`로 값을 읽습니다. `GetV`는 프로토타입 체인까지 따라 읽으므로 상속한 프로퍼티도 꺼낼 수 있습니다. `age: years`처럼 쓰면 `age`를 읽어 변수 `years`에 넣고, 읽을 프로퍼티가 없으면 읽은 값이 `undefined`입니다. 패턴 안에 패턴을 둘 수도 있습니다.
+
+예제 5의 2번 줄 `var [x, , z] = point`는 `point`의 첫 값과 세 번째 값을 `x`, `z`에 넣고 둘째 값은 건너뛰므로 3번 줄에서 `10 30`입니다. 5번 줄의 `var { name, age: years, email } = user`는 `name`은 `Kim`, `years`는 `age`를 읽은 `30`이고, `user`에 `email`이 없으니 읽은 값 `undefined`가 `email`에 들어가 6번 줄에서 `Kim 30 undefined`입니다. 7번 줄의 중첩 패턴 `{ address: { city } }`는 `address`를 읽은 값에 다시 객체 패턴을 적용해 `city`만 변수로 만듭니다. `address`라는 변수는 만들어지지 않고 8번 줄에서 `city`는 `Seoul`입니다.
+
+### 기본값은 undefined일 때만 쓰인다
+
+패턴의 요소에 `= 기본값`을 붙이면 그 요소에서 읽은 값이 `undefined`일 때만 기본값 식이 평가됩니다. 객체 패턴에서는 KeyedBindingInitialization이 `GetV`로 값을 읽은 뒤 "Initializer가 있고 값이 `undefined`이면" 기본값을 평가합니다. 배열 패턴의 IteratorBindingInitialization도 이터레이터에서 꺼낸 값이 `undefined`이고 Initializer가 있을 때 기본값을 평가하며, 이터레이터가 이미 끝났다면 값은 `undefined`로 둡니다. 기준은 프로퍼티가 있는지 없는지가 아니라 읽은 값이 `undefined`인지입니다. 키가 없어서 읽은 값이 `undefined`인 경우, `undefined`를 직접 넣어 둔 경우, 배열 요소가 모자란 경우가 모두 같은 조건에 걸립니다. `null`, `0`, `''`, `false`, `NaN`은 `undefined`가 아니므로 기본값 없이 그 값이 쓰입니다.
+
+명세는 기본값 규칙을 왜 이렇게 정했는지 따로 적어 두지 않습니다. 다만 명세의 용어 정의가 이 규칙을 이해하는 실마리가 됩니다. 명세는 `undefined`를 "변수에 값이 할당되지 않았을 때 쓰이는 원시 값", `null`을 "객체 값이 의도적으로 없음을 나타내는 원시 값"으로 정의합니다. 실제로 없는 프로퍼티를 읽거나, 배열 패턴에 요소가 모자라거나, 함수에 인수를 넘기지 않으면 그 자리의 값은 `undefined`입니다. 디스트럭처링 기본값과 매개변수 기본값이 모두 `undefined` 하나만 기준으로 삼으므로, 값이 주어지지 않은 자리는 기본값으로 채우고 "없음"을 나타내는 값으로 들어 있는 `null`은 그대로 쓴다고 이해할 수 있습니다. 이것은 동작을 정리한 해석이며, 명세가 밝힌 설계 의도는 아닙니다.
+
+`??`와 `||`는 조건이 다릅니다. `a ?? b`는 `a`가 `null`이나 `undefined`일 때, `a || b`는 `a`가 falsy일 때 `b`를 고릅니다. 이 둘은 [단축 평가](/concepts/short-circuit-evaluation)에서 본 연산자입니다.
+
+예제 6의 1번 줄에서 `a`는 `undefined`를 직접 넣었고 `d`는 키가 없어 읽은 값이 `undefined`이므로 둘 다 기본값 `D`가 쓰입니다. `b`는 `null`, `c`는 `0`이라 그대로여서 2번 줄은 `D null 0 D`입니다. 3번 줄의 배열 패턴도 같아서 `undefined`인 `e`만 `D`이고 `null`인 `f`는 `null`이며 4번 줄은 `D null`입니다. 5번 줄의 `g`는 `''`가 읽혔으므로 기본값이 쓰이지 않아 `JSON.stringify(g)`는 `""`입니다. 같은 값을 `||`로 바꾸면 `'' || 'D'`는 `'D'`이고 `null ?? 'D'`도 `'D'`여서 6번 줄은 `"" "D" "D"`입니다.
+
+### 기본값은 필요할 때만, 왼쪽부터 평가된다
+
+기본값은 값이 아니라 식입니다. 읽은 값이 `undefined`가 아니면 이 식은 평가되지 않으므로 함수 호출 같은 부수 효과도 일어나지 않습니다. 또 패턴의 요소는 왼쪽부터 차례로 초기화되므로, 뒤쪽 요소의 기본값 식에서 앞쪽 요소를 쓸 수 있습니다.
+
+예제 7의 6번 줄에서 `p`는 `'given'`이 읽혔으므로 `next()`를 부르지 않고, `q`만 기본값이 필요해 `next()`를 한 번 불러 `1`이 됩니다. `count`도 `1`이어서 7번 줄은 `given 1 1`입니다. 8번 줄의 `[first = 1, second = first * 10] = []`에서는 두 요소 모두 읽은 값이 `undefined`입니다. `first`가 먼저 `1`로 초기화된 뒤 `second`의 기본값 식 `first * 10`이 평가되어 9번 줄은 `1 10`입니다.
+
+### rest 요소와 rest 프로퍼티
+
+패턴 맨 끝에 `...이름`을 쓰면 앞에서 꺼내고 남은 부분을 받습니다. 배열 패턴의 rest는 이터레이터에 남은 값을 모두 꺼내 새 배열로 만들어 변수에 넣습니다. 객체 패턴의 rest는 RestBindingInitialization이 `Object.prototype`을 프로토타입으로 하는 새 객체를 만들고, `CopyDataProperties`로 우변 값의 자기 열거 가능 프로퍼티를 정의하는데 앞에서 이미 꺼낸 이름은 제외합니다. 객체 스프레드와 같은 알고리즘이라 상속한 프로퍼티는 담기지 않고, 읽은 값을 정의할 뿐이므로 값이 객체이면 같은 객체가 들어갑니다. 반면 패턴에 직접 쓴 이름은 `GetV`로 읽으므로 상속한 프로퍼티도 꺼낼 수 있습니다. rest는 패턴 맨 끝에만 쓸 수 있고, 그 뒤에 요소를 더 쓰면 SyntaxError입니다. 함수의 rest 파라미터는 [화살표 함수와 메서드 축약](/concepts/arrow-functions)에서 본 것과 같은 `...` 표기이지만 이 페이지에서는 패턴의 rest만 다룹니다.
+
+예제 8의 1번 줄에서 `head`는 `1`, `tail`은 남은 값으로 만든 새 배열 `[2,3]`이며 2번 줄은 `1 [2,3] true`입니다. 3~6번 줄에서 `src`는 프로토타입 `proto`에서 `inherited`를 상속하고, 자기 프로퍼티로 `a`와 객체 `box`를 가집니다. 7번 줄의 패턴 `{ inherited, a, ...others }`에서 `inherited`는 체인을 따라 읽어 `'P'`, `a`는 `1`입니다. `others`에는 자기 프로퍼티 중 앞에서 꺼내지 않은 `box`만 정의되어 8번 줄은 `P 1 {"box":{"n":1}} undefined`이고, `others.inherited`는 `undefined`입니다. 9번 줄에서 `others.box.n`을 `2`로 바꾸면 `others.box`와 `src.box`에는 같은 객체가 들어 있으므로 10번 줄에서 `src.box.n`도 `2`이고 `others.box === src.box`는 `true`입니다.
+
+### null과 원시 값을 디스트럭처링하면
+
+객체 패턴은 BindingInitialization 첫 단계에서 RequireObjectCoercible을 호출합니다. 우변이 `undefined`나 `null`이면 이 단계에서 TypeError가 납니다. 그 밖의 값은 통과하므로 원시 값도 객체 패턴으로 꺼낼 수 있고, `GetV`가 원시 값을 ToObject로 래퍼 객체로 바꿔 프로퍼티를 읽습니다([원시 값의 메서드](/concepts/primitive-methods)에서 본 그 래퍼입니다). 배열 패턴은 GetIterator를 쓰므로 이터러블인 값만 됩니다. 문자열은 이터러블이라 한 글자씩(코드 포인트) 꺼낼 수 있지만, `null`이나 이터러블이 아닌 일반 객체는 TypeError입니다.
+
+예제 9의 1번 줄 `var { length } = 'hello'`는 문자열 래퍼 객체에서 `length`를 읽어 `5`가 됩니다. 2번 줄의 `var [c1, c2] = 'hi'`는 이터레이터가 돌려주는 `'h'`와 `'i'`를 꺼내 3번 줄은 `5 h i`입니다. 4번 줄의 `var { toFixed } = 5`는 숫자 `5`의 래퍼 객체가 상속한 메서드 `toFixed`를 읽으므로 5번 줄에서 `typeof toFixed`는 `function`입니다.
+
+### 매개변수, 스왑, 할당 디스트럭처링
+
+함수 매개변수에도 패턴을 쓸 수 있고, 같은 규칙이 적용됩니다. `{ width = 1, height = 1 }`에서 `height`로 `null`을 넘기면 읽은 값이 `undefined`가 아니므로 기본값이 쓰이지 않습니다. 인수 없이 부르면 패턴이 받는 값이 `undefined`라서 RequireObjectCoercible에서 TypeError가 납니다. 이를 피하려고 `= {}`를 붙이는데, 이것은 매개변수에 `undefined`가 들어올 때 쓰이는 기본값입니다. 매개변수 기본값은 이 페이지에서 "`undefined`일 때 쓰인다"는 것까지만 다루고, 나머지 규칙은 별도 개념입니다.
+
+선언 없이 이미 있는 변수에 패턴으로 대입할 수도 있습니다. 할당 연산자는 왼쪽이 배열 리터럴이나 객체 리터럴 모양이면 패턴으로 보고, 오른쪽을 먼저 평가한 뒤 DestructuringAssignmentEvaluation으로 꺼내 대입합니다. `[a, b] = [b, a]`가 값을 맞바꾸는 이유입니다. 오른쪽의 새 배열 `[b, a]`가 먼저 만들어진 다음에 `a`, `b`에 대입되므로 대입하는 도중에 값이 사라지지 않습니다. 문장이 `{`로 시작하면 ExpressionStatement가 허용하지 않고 블록으로 읽히므로, 선언 없는 객체 패턴 할당은 `({ x, y } = ...)`처럼 괄호로 감쌉니다. 괄호가 없으면 SyntaxError입니다.
+
+예제 10의 4번 줄에서 `area({ width: 3 })`는 `height`를 읽은 값이 `undefined`라 기본값 `1`이 쓰여 `3 * 1`로 `3`입니다. `area({ width: 3, height: null })`은 `height`가 `null`로 그대로 쓰여 `3 * null`이 되고, `*`가 `null`을 숫자 `0`으로 바꾸므로 `0`입니다. `area()`는 인수가 없어 매개변수의 기본값 `{}`가 쓰이고 두 요소 모두 기본값이라 `1`입니다. 4번 줄은 `3 0 1`입니다. 7번 줄의 `[a, b] = [b, a]`는 8번 줄에서 `2 1`이 됩니다. 10번 줄의 `({ x, y } = { x: 'X', y: 'Y' })`는 11번 줄에서 `X Y`입니다.
+
+### 기본값 표로 정리
+
+아래 표는 읽은 값의 종류마다 디스트럭처링 기본값과 `??`, `||`의 결과를 정리한 것입니다. 모든 칸은 같은 준비 코드 <code>{setup}</code> 뒤에 짧은 코드를 붙여 새 실행 환경에서 실제로 실행한 결과와 대조해 두었습니다. `show`는 문자열이면 따옴표를 붙여 보여 주고 그 밖의 값은 `String`으로 바꿔 보여 주는 함수입니다. `없음`은 객체 디스트럭처링에서는 키가 없는 `{}`, 배열 디스트럭처링에서는 요소가 없는 `[]`, `??`와 `||`에서는 없는 프로퍼티를 읽은 `({}).v`를 뜻하며, 기본값은 모두 `'D'`입니다.
+
+<div
+  className="focus-visible:outline-accent my-6 overflow-x-auto focus-visible:outline-2"
+  tabIndex={0}
+  role="region"
+  aria-label="입력값마다 디스트럭처링 기본값과 ??·||의 결과를 비교한 표(좁은 화면에서는 가로로 스크롤할 수 있습니다)"
+>
+  <table className="w-full border-collapse text-left [&_code]:whitespace-nowrap">
+    <thead>
+      <tr>
+        <th scope="col" className="border-border border px-3 py-2">
+          읽은 값
+        </th>
+        {columns.map((column) => (
+          <th key={column.key} scope="col" className="border-border border px-3 py-2">
+            {column.label}
+          </th>
+        ))}
+      </tr>
+    </thead>
+    <tbody>
+      {rows.map((row) => (
+        <tr key={row.value}>
+          <th scope="row" className="border-border border px-3 py-2">
+            <code>{row.value}</code>
+          </th>
+          {row.cells.map((cell, i) => (
+            <td key={columns[i].key} className="border-border border px-3 py-2">
+              <code>{cell.result}</code>
+            </td>
+          ))}
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
+
+디스트럭처링 기본값은 읽은 값이 `undefined`일 때만 쓰입니다. `??`는 `null`과 `undefined`에서, `||`는 falsy 값 전부(`undefined`, `null`, `0`, `''`, `false`, `NaN`)에서 오른쪽 값을 고릅니다. `null` 행에서 디스트럭처링과 `??`가 갈리고, `0`, `''`, `false`, `NaN` 행에서 `||`가 갈립니다.
+
+## 예제
+
+예제의 `console.log`는 값을 출력하는 호스트 API이며 ECMAScript 언어의 일부가 아닙니다. 예제 코드는 `'use strict'`가 없는 sloppy mode 스크립트입니다. 객체와 배열은 `JSON.stringify`로 출력합니다. 여러 줄 출력은 퀴즈에서 ' / '로 이어 적었습니다.
+
+### 예제 1: 스프레드는 이터러블과 프로퍼티를 펼친다
+
+```js file=./examples/spread-basics.js
+
+```
+
+<PredictQuiz
+  question="예제 1의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '[0,3,1,2,4] 5 / 3 NaN / {"a":1,"b":20} {"a":1,"b":2}',
+    '[0,3,1,2,4] 5 / 3 NaN / {"a":1,"b":20} {"b":2,"a":1}',
+    '[0,[3,1,2],4] 3 / 3 NaN / {"a":1,"b":20} {"b":2,"a":1}',
+    '[0,3,1,2,4] 5 / 3 3 / {"a":1,"b":20} {"b":2,"a":1}',
+  ]}
+  answer={1}
+  explanation="배열 스프레드는 이터레이터에서 꺼낸 값을 새 배열의 요소로 정의하므로 [0,3,1,2,4]이고 길이는 5입니다. Math.max(nums)는 배열 자체가 인수 하나이고, ToNumber가 이를 문자열 '3,1,2'로 바꾼 뒤 숫자로 해석하지 못해 NaN입니다. { b: 20, ...base }에서는 이미 있는 b의 값만 2로 바뀌고 키의 자리는 처음 정의한 b가 앞이라 {b:2,a:1}입니다."
+/>
+
+### 예제 2: 얕은 복사
+
+```js file=./examples/shallow.js
+
+```
+
+<PredictQuiz
+  question="예제 2의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'Kim Lee / ["a"] false / 1 false false',
+    'Lee Lee / ["a","b"] true / 2 false true',
+    'Kim Lee / ["a","b"] true / 2 false true',
+    'Kim Lee / ["a","b"] true / 1 false true',
+  ]}
+  answer={2}
+  explanation="copy.name = 'Lee'는 copy의 name을 재할당할 뿐이라 user.name은 Kim 그대로입니다. user.tags와 copy.tags에는 같은 배열이 들어 있어서 push로 그 배열을 변경하면 양쪽에서 보이고 ===도 true입니다. listCopy는 list와 다른 새 배열이지만 0번 요소는 같은 객체라 n이 2로 보이고 listCopy === list는 false, listCopy[0] === list[0]은 true입니다."
+/>
+
+### 예제 3: 객체 스프레드와 Object.assign
+
+```js file=./examples/spread-vs-assign.js
+
+```
+
+<PredictQuiz
+  question="예제 3의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'get 1 undefined / get 1 undefined',
+    'get,set 1 function / get,set 1 function',
+    'get,set 1 function / get 1 undefined',
+    'get,set 1 function / get 1 function',
+  ]}
+  answer={2}
+  explanation="Object.assign은 source의 getter를 실행해 읽은 값을 target에 대입(Set)하므로 target의 setter가 불리고 target의 value는 접근자 프로퍼티 그대로입니다. 객체 스프레드는 getter를 실행하지만 새 객체에 읽은 값을 정의하므로 setter는 불리지 않고 결과의 value는 값 1을 가진 데이터 프로퍼티라 get이 undefined입니다."
+/>
+
+### 예제 4: 펼쳐지지 않는 것
+
+```js file=./examples/what-is-copied.js
+
+```
+
+<PredictQuiz
+  question="예제 4의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '["own"] 1 false / {} {} / {"0":"h","1":"i"} ["h","i"]',
+    '["own","hidden"] undefined true / {} {} / {"0":"h","1":"i"} ["h","i"]',
+    '["own"] undefined false / {} {} / {"0":"h","1":"i"} ["h","i"]',
+    '["own"] undefined false / {} {} / ["h","i"] ["h","i"]',
+  ]}
+  answer={2}
+  explanation="객체 스프레드는 자기 열거 가능 프로퍼티만 펼치므로 상속한 inherited와 열거 불가인 hidden은 빠집니다. 출처가 null이나 undefined이면 CopyDataProperties가 아무것도 하지 않아 {}입니다. 문자열은 객체 스프레드에서 래퍼 객체의 인덱스 키 0, 1이 되고, 배열 스프레드에서는 이터레이터가 돌려주는 글자가 됩니다."
+/>
+
+### 예제 5: 디스트럭처링 기본
+
+```js file=./examples/destructuring-basics.js
+
+```
+
+<PredictQuiz
+  question="예제 5의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '10 20 / Kim 30 undefined / Seoul',
+    '10 30 / Kim 30 undefined / Seoul',
+    '10 30 / Kim 30 null / Seoul',
+    '10 30 / Kim undefined undefined / Seoul',
+  ]}
+  answer={1}
+  explanation="[x, , z]는 빈 자리의 값을 건너뛰어 첫째와 셋째 값을 꺼냅니다. age: years는 age를 읽어 years에 넣고, user에 email이 없으면 읽은 값이 undefined입니다. 중첩 패턴은 address를 읽은 값에 다시 패턴을 적용해 city만 변수로 만듭니다."
+/>
+
+### 예제 6: 기본값은 undefined일 때만
+
+```js file=./examples/default-undefined.js
+
+```
+
+<PredictQuiz
+  question="예제 6의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'D D 0 D / D D / "" "D" "D"',
+    'D null 0 D / D null / "" "D" "D"',
+    'D null 0 D / D null / "D" "D" "D"',
+    'D null 0 undefined / D null / "" "D" "D"',
+  ]}
+  answer={1}
+  explanation="기본값은 읽은 값이 undefined일 때만 평가됩니다. a는 undefined를 직접 넣었고 d는 키가 없어 읽은 값이 undefined라서 D입니다. null, 0, 빈 문자열은 undefined가 아니라 그대로 쓰입니다. 배열 패턴도 같습니다. '' || 'D'는 ''가 falsy라 D이고, null ?? 'D'는 null이라 D입니다."
+/>
+
+### 예제 7: 기본값의 평가 시점
+
+```js file=./examples/default-lazy.js
+
+```
+
+<PredictQuiz
+  question="예제 7의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'given 2 2 / 1 10',
+    'given 1 1 / 1 NaN',
+    'given 1 1 / 1 10',
+    'given undefined 0 / 1 10',
+  ]}
+  answer={2}
+  explanation="p에는 given이 읽혔으므로 기본값 식 next()가 평가되지 않고, q에서만 next()가 한 번 불려 count와 q는 1입니다. 요소는 왼쪽부터 초기화되므로 first가 1이 된 뒤 second의 기본값 first * 10이 평가되어 10입니다."
+/>
+
+### 예제 8: rest
+
+```js file=./examples/rest.js
+
+```
+
+<PredictQuiz
+  question="예제 8의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '1 [2,3] true / P 1 {"box":{"n":1}} P / 2 true',
+    '1 [2,3] true / P 1 {"box":{"n":1}} undefined / 2 true',
+    '1 [2,3] true / P 1 {"box":{"n":1}} undefined / 1 false',
+    '1 [2,3] true / undefined 1 {"box":{"n":1}} undefined / 2 true',
+  ]}
+  answer={1}
+  explanation="배열 rest는 남은 값으로 만든 새 배열이고 객체 rest는 CopyDataProperties라 자기 열거 가능 프로퍼티 중 꺼내지 않은 box만 담깁니다. 패턴에 직접 쓴 inherited는 GetV가 프로토타입 체인을 따라 읽어 P이지만 others.inherited는 undefined입니다. others.box와 src.box에는 같은 객체가 들어 있어 others.box.n을 바꾸면 src.box.n도 2입니다."
+/>
+
+### 예제 9: null과 원시 값 디스트럭처링
+
+```js file=./examples/primitive-source.js
+
+```
+
+<PredictQuiz
+  question="예제 9의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '5 hi undefined / function',
+    '5 h i / undefined',
+    'undefined h i / function',
+    '5 h i / function',
+  ]}
+  answer={3}
+  explanation="객체 패턴은 null과 undefined만 막고 원시 값은 GetV가 ToObject로 래퍼 객체를 만들어 읽습니다. 문자열 래퍼의 length는 5이고, 숫자 5의 래퍼는 Number.prototype의 toFixed를 상속해 typeof가 function입니다. 배열 패턴은 문자열의 이터레이터에서 글자를 하나씩 꺼내 h와 i가 됩니다."
+/>
+
+### 예제 10: 매개변수, 스왑, 할당 디스트럭처링
+
+```js file=./examples/params-swap.js
+
+```
+
+<PredictQuiz
+  question="예제 10의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={['3 3 1 / 2 1 / X Y', '3 0 1 / 1 2 / X Y', '3 0 NaN / 2 1 / X Y', '3 0 1 / 2 1 / X Y']}
+  answer={3}
+  explanation="height가 null이면 undefined가 아니라서 기본값 1이 쓰이지 않고, *가 null을 0으로 바꾸므로 3 * null은 0입니다. 인수 없이 부르면 매개변수 기본값 {}가 쓰여 두 요소가 모두 기본값 1이 됩니다. [a, b] = [b, a]는 오른쪽 배열을 먼저 만든 뒤 대입하므로 값이 바뀌고, 객체 패턴 할당은 괄호로 감싸야 합니다."
+/>
+
+## 결과와 이유
+
+### 예제 1
+
+3번 줄은 `[0, ...nums, 4]`가 이터레이터에서 꺼낸 값을 새 배열의 요소로 정의한 `[0,3,1,2,4]`와 그 길이 `5`입니다. 4번 줄은 `Math.max(...nums)`가 값 셋을 인수로 펼쳐 `3`이고, `Math.max(nums)`는 배열 하나가 인수로 전달되고 ToNumber가 이를 문자열 `'3,1,2'`로 바꾼 뒤 숫자로 해석하지 못해 `NaN`이라 `3 NaN`입니다. 8번 줄은 `{ ...base, b: 20 }`이 `b`를 `20`으로 다시 정의해 `{"a":1,"b":20}`이고, `{ b: 20, ...base }`는 먼저 정의한 `b`의 값이 `2`로 바뀌되 키의 자리는 그대로여서 `{"b":2,"a":1}`입니다.
+
+### 예제 2
+
+5번 줄은 3번 줄의 `copy.name = 'Lee'`가 `copy`의 프로퍼티만 재할당하므로 `Kim Lee`입니다. 6번 줄은 4번 줄의 `copy.tags.push('b')`가 `user.tags`와 `copy.tags`에 들어 있는 같은 배열을 변경한 결과라 `["a","b"] true`입니다. 10번 줄은 9번 줄에서 `listCopy[0]`의 객체를 변경하면 `list[0]`과 같은 객체이므로 `list[0].n`이 `2`이고, 배열 `listCopy`는 새 배열이라 `listCopy === list`는 `false`, 0번 요소는 같은 객체라 `listCopy[0] === list[0]`은 `true`여서 `2 false true`입니다.
+
+### 예제 3
+
+9번 줄은 8번 줄의 `Object.assign`이 `source`의 getter(`get`)를 실행한 뒤 읽은 값을 `target`에 대입해 setter(`set 1`)를 불렀기 때문에 `get,set 1`이고, `target`의 `value`는 접근자 프로퍼티 그대로라 `typeof ... .set`이 `function`입니다. 13번 줄은 11번 줄의 객체 스프레드가 getter만 실행하고 새 객체에 값 `1`을 데이터 프로퍼티로 정의하므로 `calls`는 `get`, `desc.value`는 `1`, `typeof desc.get`은 `undefined`입니다.
+
+### 예제 4
+
+6번 줄은 `copy`의 키가 자기 열거 가능 프로퍼티 `own` 하나뿐이라 `["own"]`이고, 상속한 `inherited`는 펼쳐지지 않아 `copy.inherited`가 `undefined`이며 열거 불가인 `hidden`도 빠져 `'hidden' in copy`가 `false`입니다. 7번 줄은 출처가 `null`, `undefined`일 때 CopyDataProperties가 아무것도 하지 않아 `{} {}`입니다. 8번 줄은 문자열의 래퍼 객체의 인덱스 키를 펼친 `{"0":"h","1":"i"}`와, 문자열의 이터레이터가 돌려준 글자를 펼친 `["h","i"]`입니다.
+
+### 예제 5
+
+3번 줄은 `[x, , z]`가 첫째 값 `10`과 셋째 값 `30`을 꺼내므로 `10 30`입니다. 6번 줄은 `name`이 `Kim`, `age: years`가 `age`를 읽은 `30`, `user`에 없는 `email`은 읽은 값이 `undefined`라 `Kim 30 undefined`입니다. 8번 줄은 중첩 패턴 `{ address: { city } }`가 `address`의 값에 다시 패턴을 적용해 `city`만 `Seoul`로 만든 결과입니다.
+
+### 예제 6
+
+2번 줄은 `a`(`undefined`를 직접 넣음)와 `d`(키가 없어 읽은 값이 `undefined`)에서 기본값 `D`가 쓰이고 `b`는 `null`, `c`는 `0`이 그대로 쓰여 `D null 0 D`입니다. 4번 줄은 배열 패턴에서도 `undefined`인 `e`만 `D`이고 `null`인 `f`는 그대로라 `D null`입니다. 6번 줄은 5번 줄의 `g`가 `''`라 기본값이 쓰이지 않아 `""`이고, `'' || 'D'`는 `''`가 falsy라 `"D"`, `null ?? 'D'`는 `null`이라 `"D"`여서 `"" "D" "D"`입니다.
+
+### 예제 7
+
+7번 줄은 6번 줄에서 `p`가 `'given'`이 읽혀 기본값 식을 평가하지 않고, `q`에서만 `next()`가 한 번 불려 `q`와 `count`가 `1`이라 `given 1 1`입니다. 9번 줄은 8번 줄에서 `first`가 기본값 `1`로 먼저 초기화된 뒤 `second`의 기본값 `first * 10`이 평가되어 `1 10`입니다.
+
+### 예제 8
+
+2번 줄은 `head`가 `1`, `tail`이 남은 값으로 만든 새 배열 `[2,3]`이라 `1 [2,3] true`입니다. 8번 줄은 `inherited`가 체인을 따라 읽혀 `P`, `a`가 `1`이고, `others`는 자기 열거 가능 프로퍼티 중 꺼내지 않은 `box`만 담아 `{"box":{"n":1}}`이며, `others.inherited`는 `undefined`라 `P 1 {"box":{"n":1}} undefined`입니다. 10번 줄은 9번 줄에서 `others.box`의 객체를 변경했는데 `src.box`에도 같은 객체가 들어 있어서 `src.box.n`이 `2`이고 `others.box === src.box`가 `true`입니다.
+
+### 예제 9
+
+3번 줄은 1번 줄에서 문자열 `'hello'`의 래퍼 객체에서 읽은 `length`가 `5`이고, 2번 줄에서 이터레이터가 돌려준 `'h'`, `'i'`가 `c1`, `c2`가 되어 `5 h i`입니다. 5번 줄은 4번 줄에서 숫자 `5`의 래퍼 객체가 상속한 `toFixed`를 읽어 `typeof toFixed`가 `function`입니다.
+
+### 예제 10
+
+4번 줄은 `area({ width: 3 })`에서 `height`를 읽은 값이 `undefined`라 기본값 `1`이 쓰여 `3`, `height: null`은 `null`이 그대로 쓰이고 `*`가 `null`을 `0`으로 바꿔 `3 * null`이 `0`, 인수 없는 `area()`는 매개변수 기본값 `{}`가 쓰이고 두 요소 모두 기본값이라 `1`이어서 `3 0 1`입니다. 8번 줄은 7번 줄에서 오른쪽의 새 배열 `[b, a]`가 먼저 만들어진 뒤 `a`, `b`에 대입되어 `2 1`입니다. 11번 줄은 10번 줄의 괄호 친 객체 패턴 할당이 `x`, `y`에 값을 넣은 결과로 `X Y`입니다.
+
+### 흔한 오해
+
+<Callout type="misconception" title="스프레드하면 중첩 객체까지 새로 만들어진다">
+
+스프레드가 새로 만드는 것은 가장 바깥의 배열이나 객체 하나뿐입니다. 읽은 값이 객체이면 새 객체의 프로퍼티와 원본의 프로퍼티에 같은 객체가 들어가서, 그 객체를 변경하면 양쪽에서 보입니다(예제 2의 4번 줄과 9번 줄). 객체 rest도 같습니다(예제 8의 9번 줄). 새 객체의 프로퍼티를 재할당하는 것은 원본에 영향을 주지 않으므로, 영향이 있는지는 재할당인지 변경인지로 가려야 합니다.
+
+</Callout>
+
+<Callout type="misconception" title="기본값은 값이 없거나 falsy일 때 쓰인다">
+
+기본값 조건은 읽은 값이 `undefined`인지 하나뿐입니다. 키가 없는 경우는 읽은 값이 `undefined`라서 기본값이 쓰이는 것이고, `0`, `''`, `false`, `NaN`처럼 falsy여도 `undefined`가 아니면 그대로 쓰입니다(예제 6, 기본값 표). falsy일 때 오른쪽 값을 고르는 것은 `||`입니다.
+
+</Callout>
+
+<Callout type="misconception" title="객체 스프레드와 Object.assign은 같다">
+
+두 방법 모두 출처의 자기 열거 가능 프로퍼티를 `Get`으로 읽으므로 출처의 getter는 둘 다 실행됩니다. 하지만 `Object.assign`은 기존 `target`에 대입(`Set`)해서 `target`의 setter를 부르고, 객체 스프레드는 새 객체에 프로퍼티를 정의해서 setter를 부르지 않으며 결과는 getter가 아닌 데이터 프로퍼티입니다(예제 3). 객체 스프레드는 새 객체를 만들고, `Object.assign`은 넘겨 준 `target`을 바꿉니다.
+
+</Callout>
+
+<Callout type="misconception" title="디스트럭처링은 null이면 기본값을 쓴다">
+
+`null`은 `undefined`가 아니므로 `var { v = 'D' } = { v: null }`의 `v`는 `null`입니다(예제 6). `null`에서 기본값을 고르는 것은 `??`입니다. 그리고 이것은 패턴에서 읽은 값이 `null`일 때의 이야기이고, 디스트럭처링하는 우변 전체가 `null`이면 기본값과 상관없이 객체 패턴은 TypeError입니다(동작 원리의 "null과 원시 값을 디스트럭처링하면" 절).
+
+</Callout>

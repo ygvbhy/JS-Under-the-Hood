@@ -957,6 +957,21 @@ describe('시뮬레이터 프리렌더 (iterable-for-of)', () => {
   })
 })
 
+// 25~37장 로드맵 10번(spread-destructuring)의 기본값 비교 표와 퀴즈도 프리렌더 HTML에 정적으로 들어 있어야 한다.
+describe('프리렌더 (spread-destructuring)', () => {
+  const html = read('concepts/spread-destructuring/index.html')
+  const text = htmlToText(html)
+
+  it('입력값별 기본값 비교 표 region이 HTML에 있다', () => {
+    expect(html).toContain('aria-label="입력값마다 디스트럭처링 기본값과 ??·||의 결과를 비교한 표')
+    expect(text).toContain('값 ?? ')
+  })
+
+  it('퀴즈 정답이 <details>로 10개 이상 프리렌더된다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(10)
+  })
+})
+
 // 학습 순서 이전/다음: 관련 개념 링크와 섞이지 않도록 nav 영역만 잘라 검사한다.
 describe('학습 순서 pager', () => {
   const ordered = sortByOrder(concepts)

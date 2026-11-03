@@ -1,0 +1,10 @@
+var user = { name: 'Kim', tags: ['a'] };
+var copy = { ...user };
+copy.name = 'Lee';
+copy.tags.push('b');
+console.log(user.name, copy.name);
+console.log(JSON.stringify(user.tags), copy.tags === user.tags);
+var list = [{ n: 1 }];
+var listCopy = [...list];
+listCopy[0].n = 2;
+console.log(list[0].n, listCopy === list, listCopy[0] === list[0]);

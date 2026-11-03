@@ -52,6 +52,7 @@ import {
   STRING_UTF16_VIEW_NAME,
   ITERABLE_FOR_OF_PATH,
   ITERABLE_FOR_OF_SIMULATOR_NAME,
+  SPREAD_DESTRUCTURING_PATH,
   SYMBOL_PATH,
   SWITCH_PATH,
   SWITCH_SIMULATOR_NAME,
@@ -783,6 +784,13 @@ for (const colorScheme of ['light', 'dark'] as const) {
       ).toBeVisible()
       await expect(region.getByRole('list', { name: '이번 단계의 호출' })).toHaveText('return()')
       await expect(next).toBeDisabled()
+    })
+
+    test('개념 페이지: 스프레드와 디스트럭처링', async ({ page }) => {
+      await page.goto(SPREAD_DESTRUCTURING_PATH)
+      await waitForHydration(page)
+      await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
+      await expectNoSeriousViolations(page)
     })
 
     test('개념 페이지: 배열 length 시뮬레이터 5단계에서 length가 5이고 구멍이 보인다', async ({

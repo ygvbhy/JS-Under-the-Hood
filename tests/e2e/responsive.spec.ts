@@ -50,6 +50,7 @@ import {
   STRING_UTF16_VIEW_NAME,
   ITERABLE_FOR_OF_PATH,
   ITERABLE_FOR_OF_SIMULATOR_NAME,
+  SPREAD_DESTRUCTURING_PATH,
   SYMBOL_PATH,
   SWITCH_PATH,
   SWITCH_SIMULATOR_NAME,
@@ -888,10 +889,20 @@ test('이터러블과 for...of 개념 페이지: 시뮬레이터를 끝까지 �
   }
 })
 
+test(`${SPREAD_DESTRUCTURING_PATH}: 가로 스크롤이 없다`, async ({ page }) => {
+  await page.goto(SPREAD_DESTRUCTURING_PATH)
+  await waitForHydration(page)
+  const { scrollWidth, innerWidth } = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    innerWidth: window.innerWidth,
+  }))
+  expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
+})
+
 test('홈 학습 순서 보기: 가로 스크롤이 없다', async ({ page }) => {
   await page.goto('/?view=order')
   await waitForHydration(page)
-  await expect(page.getByRole('article')).toHaveCount(33)
+  await expect(page.getByRole('article')).toHaveCount(34)
   const { scrollWidth, innerWidth } = await page.evaluate(() => ({
     scrollWidth: document.documentElement.scrollWidth,
     innerWidth: window.innerWidth,

@@ -1,0 +1,10 @@
+var [head, ...tail] = [1, 2, 3];
+console.log(head, JSON.stringify(tail), Array.isArray(tail));
+var proto = { inherited: 'P' };
+var src = Object.create(proto);
+src.a = 1;
+src.box = { n: 1 };
+var { inherited, a, ...others } = src;
+console.log(inherited, a, JSON.stringify(others), others.inherited);
+others.box.n = 2;
+console.log(src.box.n, others.box === src.box);
