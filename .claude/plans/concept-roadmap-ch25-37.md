@@ -1,6 +1,6 @@
 # 개념 로드맵 (Deep Dive 25~37장 범위)
 
-- 상태: 진행 중
+- 상태: 완료
 - 작성일: 2026-10-30
 - 기준: `main` @ `4afa898`
 
@@ -34,7 +34,7 @@
 | 8 | 심벌: 충돌하지 않는 프로퍼티 키 | 33 | `Symbol('x') === Symbol('x')`는 false, `Symbol.for`는 true. 심벌 키는 `Object.keys`·`JSON.stringify`·`for...in`에 나타나지 않음. well-known 심벌 | 표 + 퀴즈 | 완료(`symbol.md`) |
 | 9 | 이터러블과 for...of | 34 | 일반 객체에 `for...of`를 쓰면 TypeError. 이터레이션 프로토콜(`Symbol.iterator`, `next`). 스프레드와 배열 디스트럭처링도 이 프로토콜을 씀 | 이터레이터 `next` 단계 시뮬레이터 | 완료(`iterable-for-of.md`) |
 | 10 | 스프레드와 디스트럭처링 | 35·36 | 스프레드 복사는 얕은 복사. 디스트럭처링 기본값은 `undefined`일 때만 쓰이고 `null`이면 쓰이지 않음 | 표 + 퀴즈 | 완료(`spread-destructuring.md`) |
-| 11 | Set과 Map: 키는 어떻게 같다고 판단할까 | 37 | `new Set([NaN, NaN, 0, -0]).size`는 2(SameValueZero). 모양이 같은 객체 두 개는 다른 키. 일반 객체에 객체를 키로 넣으면 `'[object Object]'` 하나로 합쳐짐 | 표 + 퀴즈 | 대기 |
+| 11 | Set과 Map: 키는 어떻게 같다고 판단할까 | 37 | `new Set([NaN, NaN, 0, -0]).size`는 2(SameValueZero). 모양이 같은 객체 두 개는 다른 키. 일반 객체에 객체를 키로 넣으면 `'[object Object]'` 하나로 합쳐짐 | 표 + 퀴즈 | 완료(`set-map.md`) |
 
 - 시각화는 각 계획에서 사용자와 다시 정한다. 위 칸은 출발점이다.
 - 위 "핵심 오해 포인트"의 결과는 2026-10-30 Node v24.22.1 vm `runInNewContext`로 확인했다. 페이지에 쓸 때는 각 계획에서 예제로 다시 실행하고 명세와 대조한다.
@@ -79,3 +79,5 @@
 - 2026-11-03: 9번 `iterable-for-of` 구현·리뷰(구현 중 3건 수정)·외부 콘텐츠 검토 2회(5건·2건, 배열 이터레이터 내부 슬롯의 판 이력과 ES2025판 경계는 원문으로 확인해 문구 조정) 반영 완료, 사용자 검토 승인(`reviewedAt` 2026-11-03), 커밋·배포.
 - 2026-11-03: 10번 '스프레드와 디스트럭처링'(`spread-destructuring`, order 320, category `objects`) 계획 작성(사용자 결정: 스프레드 vs Object.assign·null 디스트럭처링과 원시 값·rest와 기본값 평가 시점·매개변수·스왑·할당 디스트럭처링 포함, 기본값 비교표 + 퀴즈, 제목 "스프레드와 디스트럭처링: 기본값은 왜 null일 때 쓰이지 않을까"). 구현·리뷰 완료.
 - 2026-11-03: 10번 `spread-destructuring` 구현·리뷰·외부 콘텐츠 검토 1회(8건, 모두 실행·명세로 확인 후 반영 — 기본값 규칙의 이유는 명세 용어 정의를 근거로 한 해석임을 명시) 반영 완료, 사용자 검토 승인(`reviewedAt` 2026-11-03), 커밋·배포.
+- 2026-11-03: 11번 'Set과 Map'(`set-map`, order 330, category `objects`) 계획 작성(사용자 결정: 삽입 순서·순회 중 추가와 삭제·Map을 일반 객체처럼 쓸 때의 함정·WeakMap과 WeakSet 포함, 같음 비교표 + 퀴즈, 제목 "Set과 Map: NaN은 왜 한 번만 들어갈까"). 구현·리뷰 완료.
+- 2026-11-03: 11번 `set-map` 구현·리뷰·외부 콘텐츠 검토 2회(8건·3건, 판별 원문으로 확인 — `getOrInsert`는 ES2026판, ES2025판부터 `get`·`has`·`delete`도 정규화 후 SameValue, WeakMap 엔트리 제거는 ES2020판 "must"·ES2021판부터 "may", Set 정의 문장은 ES2026판에서 바뀜) 반영 완료, 사용자 검토 승인(`reviewedAt` 2026-11-03), 커밋·배포. 25~37장 로드맵 11개 모두 완료.

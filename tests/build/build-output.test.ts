@@ -972,6 +972,21 @@ describe('프리렌더 (spread-destructuring)', () => {
   })
 })
 
+// 25~37장 로드맵 11번(set-map)의 같음 비교표와 퀴즈도 프리렌더 HTML에 정적으로 들어 있어야 한다.
+describe('프리렌더 (set-map)', () => {
+  const html = read('concepts/set-map/index.html')
+  const text = htmlToText(html)
+
+  it('값 쌍별 같음 비교 표 region이 HTML에 있다', () => {
+    expect(html).toContain('aria-label="값 쌍마다 ===, Object.is, Set·Map, 일반 객체 키가')
+    expect(text).toContain('SameValueZero')
+  })
+
+  it('퀴즈 정답이 <details>로 8개 이상 프리렌더된다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(8)
+  })
+})
+
 // 학습 순서 이전/다음: 관련 개념 링크와 섞이지 않도록 nav 영역만 잘라 검사한다.
 describe('학습 순서 pager', () => {
   const ordered = sortByOrder(concepts)

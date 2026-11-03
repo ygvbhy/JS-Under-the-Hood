@@ -1,0 +1,12 @@
+var cache = {};
+var a = { id: 1 };
+var b = { id: 2 };
+cache[a] = 'A';
+cache[b] = 'B';
+console.log(JSON.stringify(Object.keys(cache)), cache[a]);
+var store = {};
+store[1] = 'number';
+store['1'] = 'string';
+console.log(Object.keys(store).length, store[1]);
+var map = new Map([[a, 'A'], [b, 'B'], [1, 'number'], ['1', 'string']]);
+console.log(map.size, map.get(a), map.get(1));

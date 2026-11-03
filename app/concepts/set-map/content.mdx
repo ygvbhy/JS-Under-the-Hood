@@ -1,0 +1,307 @@
+import { columns, rows } from './sameness-table'
+
+## 동작 원리
+
+`new Set([NaN, NaN, 0, -0])`의 `size`는 왜 4가 아니라 2일까요? `NaN === NaN`은 `false`인데 Set에는 `NaN`이 한 번만 들어가고, `0 === -0`은 `true`인데 `Object.is(0, -0)`은 `false`입니다. 이 페이지는 Set과 Map이 키를 어떤 기준으로 같다고 판단하는지를 명세의 SameValueZero로 따라갑니다. 먼저 Set과 Map의 기본 사용, 키 비교 기준, 객체 키, 키를 문자열로 바꾸는 일반 객체와의 차이, 삽입 순서, 순회 중 추가와 삭제, Map을 일반 객체처럼 쓸 때의 함정, WeakMap과 WeakSet을 보고, 예제 여덟 개로 확인한 뒤 마지막에 같음 비교표로 정리합니다. 동등 비교 연산자는 [동등 비교](/concepts/equality-operators), 객체 키가 문자열로 바뀌는 규칙은 [프로퍼티 키](/concepts/property-keys), Set과 Map이 이터러블이라는 점은 [이터러블과 for...of](/concepts/iterable-for-of)와 [스프레드와 디스트럭처링](/concepts/spread-destructuring), `includes`가 쓰는 같은 비교는 [배열 메서드의 함정](/concepts/array-method-pitfalls), 심벌 키는 [심벌](/concepts/symbol), 재할당과 변경의 구분은 [원시 값과 객체](/concepts/primitives-and-objects)에서 본 것을 전제합니다. ES2025의 Set 메서드(`union` 등), 성능, 가비지 컬렉션과 `try...catch`는 별도 개념입니다.
+
+### Set과 Map의 기본
+
+명세는 Set을 같은 값을 최대 한 번만 담는 컬렉션("A Set may contain each distinct value at most once"), Map을 키와 값의 쌍을 담는 컬렉션이라고 정의합니다. Set의 값과 Map의 키와 값은 어떤 ECMAScript 값이든 될 수 있습니다. 생성자는 이터러블을 받고, 인수를 생략하거나 `undefined`·`null`을 넘기면 빈 Set·Map을 만듭니다. `new Set(['js', 'css', 'js'])`는 값을 하나씩 꺼내 `add`하고, `new Map(...)`은 `[키, 값]` 쌍의 이터러블을 받아 쌍마다 `set`을 부릅니다(AddEntriesFromIterable). `new` 없이 `Map()`을 부르거나 이터러블이 아닌 `new Set(5)`를 만들면 TypeError입니다.
+
+`add`와 `set`은 그 Set·Map 자신을 돌려주므로 `tags.add('html').add('css')`처럼 이어 부를 수 있습니다. 이미 있는 값을 `add`하면 아무것도 바뀌지 않고, 이미 있는 키를 `set`하면 값만 바뀝니다. `delete`는 Set의 값이나 Map의 엔트리를 지웠으면 `true`, 없어서 지울 게 없으면 `false`를 돌려줍니다. `Set.prototype`과 `Map.prototype`의 `size`는 `get` 함수만 있는 접근자 프로퍼티이고, 지워지지 않은 값이나 엔트리의 수를 돌려줍니다(`get Set.prototype.size`, `get Map.prototype.size`). Set의 `forEach` 콜백은 `(값, 값, set)`을 인수로 받으며, `Set.prototype.keys`와 `Set.prototype.values`는 같은 함수입니다. Set과 Map은 이터러블이라 스프레드와 `for...of`로 돌 수 있고, Set은 값을, Map은 `[키, 값]` 쌍을 내놓습니다.
+
+### 키는 SameValueZero로 구분한다
+
+명세는 "Distinct values are discriminated using the semantics of the SameValueZero comparison algorithm"이라고 정합니다. SameValueZero는 두 값의 타입이 다르면 `false`이고, 둘 다 Number이면 `Number::sameValueZero`로, 아니면 SameValueNonNumber로 비교합니다. `===`와 다른 점은 `NaN`을 `NaN`과 같다고 본다는 것이고, `Object.is`(SameValue)와 다른 점은 `+0`과 `-0`을 같다고 본다는 것입니다. `includes`가 쓰는 비교와 같습니다. 그래서 `new Set([NaN, NaN, 0, -0])`에는 `NaN` 하나와 `0` 하나만 들어갑니다. 타입이 다르면 같지 않으므로 `1`, `'1'`, `true`, `'true'`는 서로 다른 값 네 개입니다.
+
+`-0`은 `+0`으로 바뀌어 저장됩니다. 이 서술은 명세 판마다 다릅니다. [ES2024판](https://tc39.es/ecma262/2024/#sec-set.prototype.add)의 `Set.prototype.add`는 SameValueZero로 기존 값과 비교한 뒤 값이 `-0`이면 `+0`으로 바꿔 넣고, ES2025판부터는 먼저 CanonicalizeKeyedCollectionKey로 `-0`을 `+0`으로 바꾼 뒤 SameValue로 비교합니다. `Map.prototype.set`도 같은 구조이고, 값이나 키를 찾는 `has`·`get`·`delete`도 ES2024판까지는 SameValueZero로, ES2025판부터는 `-0`을 `+0`으로 바꾼 뒤 SameValue로 찾습니다. 알고리즘의 모양은 다르지만 관찰할 수 있는 결과는 같아서, 어느 쪽에서든 `-0`과 `+0`은 같은 키이고 저장된 값은 `+0`입니다. Set·Map 머리말은 지금도 SameValueZero의 의미로 값을 구분한다고 적습니다.
+
+### 객체 키는 동일성으로 구분한다
+
+객체끼리의 SameValueZero는 SameValueNonNumber, 곧 같은 객체인지를 따지는 동일성 비교입니다. 프로퍼티가 모두 같아도 따로 만든 객체는 서로 다른 키입니다. 키로 쓴 객체의 프로퍼티를 바꿔도(변경) 여전히 같은 객체이므로 그 객체로는 그대로 찾을 수 있고, 모양이 같은 새 객체 리터럴로는 찾을 수 없습니다. 객체를 변수에 재할당하는 것과 객체를 변경하는 것의 차이는 [원시 값과 객체](/concepts/primitives-and-objects)에서 본 그대로입니다.
+
+### 일반 객체의 키는 문자열로 바뀐다
+
+일반 객체의 `obj[키]`는 키를 ToPropertyKey로 바꿉니다. 객체는 ToPrimitive를 거쳐 보통 문자열이 되고, 평범한 객체는 모두 `'[object Object]'`가 됩니다. 숫자 `1`은 `'1'`이 됩니다. 그래서 서로 다른 두 객체를 키로 쓴 대입이 같은 프로퍼티 하나를 가리키고, 나중 대입이 앞의 값을 덮어씁니다. `store[1]`과 `store['1']`도 같은 프로퍼티입니다([프로퍼티 키](/concepts/property-keys)). Map은 키를 문자열로 바꾸지 않고 SameValueZero로 비교하므로 이 넷이 모두 다른 엔트리입니다. 심벌은 문자열로 바뀌지 않아 일반 객체에서도 심벌끼리 구분됩니다([심벌](/concepts/symbol)). 같음 비교표의 심벌 행이 그 경우입니다.
+
+### 삽입 순서
+
+Set과 Map의 이터레이터는 엔트리를 넣은 순서대로 돕니다. 명세는 엔트리를 `[[SetData]]`·`[[MapData]]` 목록 끝에 덧붙이는 것으로 설명하고 이터레이터가 그 목록을 앞에서부터 읽는다고 정합니다. 이미 있는 키를 `set`하면 값만 바뀌므로 자리가 그대로이고, `delete`한 키를 다시 `set`하면 새 엔트리라 맨 뒤에 놓입니다. 일반 객체의 키 나열(OrdinaryOwnPropertyKeys)은 순서가 다릅니다. 배열 인덱스 형태의 문자열 키를 오름차순으로 먼저, 그다음 다른 문자열 키를 만든 순서대로 돌려줍니다. 그래서 `{ b: 1, a: 2, 10: 3, 2: 4 }`의 키는 `["2","10","b","a"]`인데, 같은 쌍을 같은 순서로 넣은 Map의 키는 넣은 순서 `["b","a",10,2]`이고 숫자 키도 숫자 그대로입니다.
+
+### 순회 중 추가와 삭제
+
+Set·Map의 이터레이터(CreateSetIterator, CreateMapIterator)는 인덱스를 하나씩 올리며 목록을 읽고, 값을 하나 내놓은 뒤에는 목록의 길이를 다시 읽습니다. 명세는 이를 "The number of elements in entries may have increased …"라고 적어 둡니다. 그래서 순회 중에 `add`한 값은 나중에 방문됩니다. 반대로 `delete`는 명세에서 그 엔트리를 `empty`로 바꾸는 것으로 정의되고, 이터레이터는 `empty`인 자리를 건너뜁니다. 그래서 아직 방문하지 않은 값을 순회 중에 지우면 그 값은 방문되지 않습니다. `Set.prototype.forEach`의 Note도 같은 내용을 적고, 이미 방문한 값을 지웠다가 순회가 끝나기 전에 다시 넣으면 다시 방문된다는 점도 밝힙니다. 다시 넣은 값은 목록 끝에 새로 덧붙기 때문이며, `for...of`도 같아서 `new Set([1, 2])`를 돌며 `1`을 처음 방문할 때 한 번만 지웠다 다시 넣으면 `1`, `2`, `1` 순서로 방문합니다. `1`을 방문할 때마다 다시 넣으면 매번 끝에 다시 붙어 순회가 끝나지 않습니다. `empty`는 삭제를 설명하려는 명세의 표기 장치이고, 명세는 구현이 엔트리를 실제로 지우는 등 다른 방식을 써도 된다고 밝힙니다. 순회 중 추가가 끝없이 이어지면 순회도 끝나지 않으므로 예제에는 멈추는 조건이 있습니다.
+
+### Map을 일반 객체처럼 쓰면
+
+Map의 엔트리는 프로퍼티가 아닙니다. 명세는 엔트리를 `[[MapData]]`에 둔다고 설명하고, `m.b = 2`는 Map 객체에 일반 프로퍼티 `b`를 만들 뿐입니다. 그래서 `size`와 `has('b')`, `get('b')`에는 잡히지 않습니다. `JSON.stringify`는 객체의 자기 열거 가능 프로퍼티를 보기 때문에 Map에서는 엔트리가 아니라 `b`가 나옵니다. 일반 객체를 Map으로 바꿀 때는 `new Map(Object.entries(obj))`, Map을 일반 객체로 바꿀 때는 `Object.fromEntries(map)`을 씁니다. 객체가 된 뒤의 키는 일반 객체의 프로퍼티 키이므로 위의 ToPropertyKey 규칙을 따라 문자열로 바뀝니다. Map의 엔트리를 보려면 스프레드나 `for...of`를 씁니다.
+
+### WeakMap과 WeakSet
+
+WeakMap의 키와 WeakSet의 값은 CanBeHeldWeakly가 `true`인 값이어야 합니다. 객체이거나, `Symbol.for`로 등록하지 않은 심벌입니다. 심벌이 아닌 원시 값이나 `Symbol.for`로 등록한 심벌을 넣으면 TypeError입니다. 심벌을 키로 쓸 수 있게 된 것은 ES2023판부터이고, ES2022판까지는 객체만 키가 될 수 있었습니다. 명세는 WeakMap에 특정 키가 있는지 물어볼 수는 있어도 키를 나열하는 수단은 제공하지 않는다고 적고, 구현이 "must not provide any means to observe a key of a WeakMap that does not require the observer to present the observed key"라고 요구합니다. 명세에는 `size`, `keys`, `forEach`와 이터레이터가 정의되어 있지 않습니다. 현재 명세는 더는 살아 있지 않은(live가 아닌) 키의 엔트리를 구현이 제거할 수 있다("may perform")고 정하고, 그 시점은 구현에 맡깁니다. ES2020판까지는 살아 있음(liveness)이라는 개념 없이, 닿을 수 없게 된(inaccessible) 키의 엔트리를 구현이 반드시 찾아 제거해야 한다("must detect and remove")고 적었고, ES2021판부터 지금의 서술로 바뀌었습니다. 어느 판이든 그 시점은 프로그램에서 관찰할 수 없습니다. 그래서 이 페이지는 그 시점을 예제로 보이지 않습니다.
+
+### 같음 비교표로 정리
+
+아래 표는 값 쌍마다 `a === b`, `Object.is(a, b)`, Set·Map, 일반 객체 키가 두 값을 같다고 보는지 정리한 것입니다. 모든 칸은 값 쌍을 정의하는 준비 코드(`var a = NaN, b = NaN;` 같은 코드) 뒤에 짧은 코드를 붙여 새 실행 환경에서 실제로 실행한 결과와 대조해 두었습니다. Set·Map 열의 기준은 두 값을 넣은 Set의 `size`가 1인지입니다. Map도 두 값을 키로 넣은 `size`가 1인지로 같은 결과가 나오는 것을 모든 행에서 확인했습니다. 일반 객체 키 열의 기준은 두 값을 키로 대입한 뒤 키가 하나뿐인지(문자열 키와 심벌 키를 합쳐 셉니다)입니다.
+
+<div
+  className="focus-visible:outline-accent my-6 overflow-x-auto focus-visible:outline-2"
+  tabIndex={0}
+  role="region"
+  aria-label="값 쌍마다 ===, Object.is, Set·Map, 일반 객체 키가 같다고 보는지 비교한 표(좁은 화면에서는 가로로 스크롤할 수 있습니다)"
+>
+  <table className="w-full border-collapse text-left [&_code]:whitespace-nowrap">
+    <thead>
+      <tr>
+        <th scope="col" className="border-border border px-3 py-2">
+          값 쌍
+        </th>
+        {columns.map((column) => (
+          <th key={column.key} scope="col" className="border-border border px-3 py-2">
+            {column.code ? <code>{column.label}</code> : column.label}
+          </th>
+        ))}
+      </tr>
+    </thead>
+    <tbody>
+      {rows.map((row) => (
+        <tr key={row.pair}>
+          <th scope="row" className="border-border border px-3 py-2">
+            <code>{row.pair}</code>
+          </th>
+          {row.same.map((same, i) => (
+            <td key={columns[i].key} className="border-border border px-3 py-2">
+              {same ? '같음' : '다름'}
+            </td>
+          ))}
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
+
+`NaN` 행과 `0, -0` 행에서 `===`, `Object.is`, SameValueZero(Set·Map)가 서로 갈립니다. `NaN` 행은 `===`만 다르고, `0, -0` 행은 `Object.is`만 다릅니다. 일반 객체 키는 문자열로 바뀌기 때문에 `1`과 `'1'`, `true`와 `'true'`, 서로 다른 두 객체가 모두 같은 키가 됩니다. 이 열에서 다르게 남는 것은 문자열로 바뀌지 않는 심벌 행뿐입니다.
+
+## 예제
+
+예제의 `console.log`는 값을 출력하는 호스트 API이며 ECMAScript 언어의 일부가 아닙니다. 예제 코드는 `'use strict'`가 없는 sloppy mode 스크립트입니다. 객체와 배열은 `JSON.stringify`로 출력합니다. 여러 줄 출력은 퀴즈에서 ' / '로 이어 적었습니다.
+
+### 예제 1: Set과 Map의 기본
+
+```js file=./examples/basics.js
+
+```
+
+<PredictQuiz
+  question="예제 1의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '4 true true 3 / 2 31 undefined true / ["js","css","html"] [["kim",31],["lee",25]]',
+    '3 true true 2 / 2 30 undefined true / ["js","html"] [["kim",30],["lee",25]]',
+    '3 true true 2 / 2 31 undefined true / ["js","html"] [["kim",31],["lee",25]]',
+    '3 true false 3 / 2 31 undefined true / ["js","css","html"] [["kim",31],["lee",25]]',
+  ]}
+  answer={2}
+  explanation={
+    '같은 값을 다시 add하면 아무것도 바뀌지 않아 Set은 js, css, html 세 개이고, 인수는 왼쪽부터 평가되므로 size는 delete 전에 3, delete가 true를 돌려준 뒤에 2입니다. 이미 있는 키 kim을 set하면 값만 31로 바뀌고 엔트리는 늘지 않아 Map의 size는 2입니다. 없는 키 park의 get은 undefined입니다. delete한 css가 빠져 Set은 js, html만 남습니다.'
+  }
+/>
+
+### 예제 2: 키는 SameValueZero로 구분한다
+
+```js file=./examples/same-value-zero.js
+
+```
+
+<PredictQuiz
+  question="예제 2의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '4 false false / true false / undefined 4',
+    '2 true true / true false / not a number 4',
+    '2 true false / false true / not a number 2',
+    '2 true false / true false / not a number 4',
+  ]}
+  answer={3}
+  explanation={
+    'SameValueZero는 NaN을 NaN과 같다고, 0과 -0을 같다고 보므로 Set에는 NaN 하나와 0 하나가 들어가 size는 2이고 has(NaN)도 true입니다. 하지만 NaN === NaN은 false입니다. 이 Set에는 0이 먼저 들어갔고 저장된 0은 +0이라 Object.is(stored[1], 0)이 true입니다. Map의 get(NaN)도 같은 비교로 키를 찾습니다. 숫자 1과 문자열 1, true와 문자열 true는 타입이 달라 같지 않으므로 4개입니다.'
+  }
+/>
+
+### 예제 3: 객체 키는 동일성으로 구분한다
+
+```js file=./examples/object-keys.js
+
+```
+
+<PredictQuiz
+  question="예제 3의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '1 true true / first first true',
+    '2 true false / first undefined false',
+    '2 true true / first undefined true',
+    '2 true false / undefined undefined false',
+  ]}
+  answer={1}
+  explanation={
+    'a와 b는 모양이 같지만 서로 다른 객체이고 객체끼리의 SameValueZero는 같은 객체인지만 따지므로 Set의 size는 2입니다. 세 번째 a는 첫 a와 같은 객체라 늘지 않습니다. 모양이 같은 새 객체 리터럴은 어느 쪽과도 다른 객체라 has는 false입니다. a.id = 99는 a의 프로퍼티를 바꾸는 변경이라 a는 여전히 같은 객체이고 meta.get(a)는 first입니다. b는 다른 객체라 undefined이고, 새 객체 {id: 99}로도 찾을 수 없습니다.'
+  }
+/>
+
+### 예제 4: 일반 객체는 키를 문자열로 바꾼다
+
+```js file=./examples/plain-object-keys.js
+
+```
+
+<PredictQuiz
+  question="예제 4의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '["[object Object]","[object Object]"] A / 2 number / 4 A number',
+    '["[object Object]"] A / 1 number / 4 A number',
+    '["[object Object]"] B / 1 string / 4 A number',
+    '["[object Object]"] B / 1 string / 2 A number',
+  ]}
+  answer={2}
+  explanation={
+    'cache[a]와 cache[b]의 키는 모두 ToPropertyKey를 거쳐 문자열 [object Object]가 되므로 같은 프로퍼티 하나이고, 나중 대입 B가 A를 덮어씁니다. 숫자 1도 문자열 1이 되어 store[1]과 문자열 키 store의 1은 같은 프로퍼티이므로 키는 하나이고 값은 나중 대입 string입니다. Map은 키를 문자열로 바꾸지 않고 a, b, 1, 1 문자열이 모두 다른 키라 size는 4이고 get(a)는 A, get(1)은 number입니다.'
+  }
+/>
+
+### 예제 5: 삽입 순서
+
+```js file=./examples/insertion-order.js
+
+```
+
+<PredictQuiz
+  question="예제 5의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '["b","a","10","2"] / ["b","a",10,2] / [["b",100],[10,3],[2,4],["a",200]]',
+    '["2","10","b","a"] / ["b","a",10,2] / [["b",100],["a",200],[10,3],[2,4]]',
+    '["2","10","b","a"] / ["2","10","b","a"] / [["b",100],[10,3],[2,4],["a",200]]',
+    '["2","10","b","a"] / ["b","a",10,2] / [["b",100],[10,3],[2,4],["a",200]]',
+  ]}
+  answer={3}
+  explanation={
+    '일반 객체의 키 나열은 배열 인덱스 형태의 키를 오름차순으로 먼저 돌려주므로 2, 10, b, a입니다. Map은 넣은 순서 b, a, 10, 2이고 숫자 키는 숫자 그대로입니다. 이미 있는 b를 set하면 값만 100으로 바뀌고 자리는 그대로이며, a를 delete한 뒤 set하면 새 엔트리라 맨 뒤에 놓입니다.'
+  }
+/>
+
+### 예제 6: 순회 중 추가와 삭제
+
+```js file=./examples/mutate-while-iterating.js
+
+```
+
+<PredictQuiz
+  question="예제 6의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '[1] 1 / ["a","b","c"] 2',
+    '[1,2,3] 3 / ["a","b","c"] 2',
+    '[1] 3 / ["a","c"] 2',
+    '[1,2,3] 3 / ["a","c"] 2',
+  ]}
+  answer={3}
+  explanation={
+    '순회 중에 add한 값은 이터레이터가 목록의 길이를 다시 읽으므로 나중에 방문되어 1, 2, 3을 모두 방문하고 n이 3이면 더 넣지 않아 끝납니다. a를 방문하는 동안 아직 방문하지 않은 b를 delete하면 그 엔트리는 empty가 되어 건너뛰므로 a, c만 방문하고 size는 2입니다.'
+  }
+/>
+
+### 예제 7: Map은 일반 객체가 아니다
+
+```js file=./examples/not-a-plain-object.js
+
+```
+
+<PredictQuiz
+  question="예제 7의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '2 true 2 2 / {"a":1,"b":2} ["a","b"] / 1 {"x":1,"y":2} / [["a",1],["b",2]]',
+    '1 false undefined 2 / {} [] / 1 {"x":1,"y":2} / [["a",1]]',
+    '1 false undefined 2 / {"b":2} ["b"] / 1 {"x":1,"y":2} / [["a",1]]',
+    '1 true 2 2 / {"b":2} ["b"] / 1 {"x":1,"y":2} / [["a",1],["b",2]]',
+  ]}
+  answer={2}
+  explanation={
+    'm.b = 2는 Map 객체에 일반 프로퍼티 b를 만들 뿐 엔트리가 아니라서 size는 1, has(b)는 false, get(b)는 undefined이고 m.b는 2입니다. JSON.stringify와 Object.keys는 자기 열거 가능 프로퍼티를 보므로 엔트리 a는 빠지고 b만 나옵니다. Object.entries로 만든 Map에서 x를 get하면 1이고, Object.fromEntries로 되돌린 객체는 x, y를 가집니다. 스프레드는 엔트리를 돌려주므로 [["a",1]]입니다.'
+  }
+/>
+
+### 예제 8: WeakMap과 WeakSet
+
+```js file=./examples/weak.js
+
+```
+
+<PredictQuiz
+  question="예제 8의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'data true false / undefined undefined undefined / true undefined',
+    'data true true / number function function / true function',
+    'data true false / number function function / true function',
+    'data true false / 0 function function / true undefined',
+  ]}
+  answer={0}
+  explanation={
+    'has({})의 {}는 key와 다른 새 객체라 false입니다. WeakMap에는 size, keys, 이터레이터가 정의되어 있지 않아 typeof가 모두 undefined이고, WeakSet에도 forEach가 없어 undefined입니다. ws.has(key)는 true입니다.'
+  }
+/>
+
+## 결과와 이유
+
+### 예제 1
+
+3번 줄은 1번 줄에서 `'js'`가 두 번 넘어와도 Set에 한 번만 들어가 `js`, `css`가 있고, 2번 줄에서 `add('html')`이 `html`을 더하고 이미 있는 `add('css')`는 아무것도 바꾸지 않아 세 개가 된 상태입니다. 인수는 왼쪽부터 평가되므로 `size`는 `delete` 전에 `3`, `has('css')`는 `true`, `delete('css')`는 지웠으니 `true`, 마지막 `size`는 `2`여서 `3 true true 2`입니다. 6번 줄은 5번 줄에서 `set('lee', 25)`가 새 엔트리를 더하고 `set('kim', 31)`이 이미 있는 키의 값만 바꿔 `size`가 `2`, `get('kim')`이 `31`, 없는 키 `'park'`의 `get`이 `undefined`, `has('lee')`가 `true`라 `2 31 undefined true`입니다. 7번 줄은 스프레드가 Set에서 값 `["js","html"]`을, Map에서 `[키, 값]` 쌍 `[["kim",31],["lee",25]]`을 꺼낸 결과입니다.
+
+### 예제 2
+
+2번 줄은 1번 줄의 Set에 `NaN` 하나와 `0` 하나(`-0`은 `0`과 같은 값으로 봅니다)만 들어가 `size`가 `2`이고, `has(NaN)`도 같은 비교를 쓰므로 `true`이며, `NaN === NaN`은 `false`라 `2 true false`입니다. 4번 줄의 `stored[1]`은 `+0`이라 `Object.is(stored[1], 0)`은 `true`, `Object.is(stored[1], -0)`은 `false`입니다. 이 예제에서는 `0`이 `-0`보다 먼저 들어갔기 때문에 `+0`인 것이므로, `-0` 자체가 `+0`으로 저장되는지는 이 예제만으로 보이지 않습니다. 명세가 `-0`을 `+0`으로 바꿔 저장하도록 정하는 것은 위 설명대로이고, `new Set([-0])`과 `new Map([[-0, 1]])`의 키가 `+0`인 것은 이 저장소의 테스트가 직접 확인합니다. 6번 줄은 `get(NaN)`이 `NaN` 키를 찾아 `not a number`이고, `1`, `'1'`, `true`, `'true'`는 타입이 달라 서로 다르므로 `size`가 `4`입니다.
+
+### 예제 3
+
+4번 줄은 `a`와 `b`가 모양은 같아도 따로 만든 객체라 `[a, b, a]`에서 마지막 `a`만 이미 있는 값이어서 `size`가 `2`이고, `has(a)`는 `true`, 모양이 같은 새 객체 `{ id: 1 }`은 어느 쪽과도 같은 객체가 아니라 `has`가 `false`입니다. 8번 줄은 7번 줄의 `a.id = 99`가 `a`가 가리키는 객체의 프로퍼티를 바꾸는 변경이라 `a`는 같은 객체이므로 `meta.get(a)`가 `first`이고, `b`는 다른 객체라 `undefined`, 모양이 같은 새 객체 `{ id: 99 }`로는 찾을 수 없어 `false`입니다.
+
+### 예제 4
+
+6번 줄은 4번과 5번 줄에서 `cache[a]`, `cache[b]`의 키가 ToPropertyKey로 모두 문자열 `'[object Object]'`가 되어 같은 프로퍼티 하나를 가리키므로 키는 하나이고 값은 나중에 대입한 `'B'`이며, `cache[a]`도 같은 키라 `["[object Object]"] B`입니다. 10번 줄은 8번 줄의 `store[1]`과 9번 줄의 `store['1']`이 같은 키 `'1'`이어서 키가 하나이고 값은 나중에 대입한 `string`이라 `1 string`입니다. 12번 줄은 Map이 키를 문자열로 바꾸지 않고 `a`, `b`, `1`, `'1'`을 모두 다른 키로 보아 `size`가 `4`, `get(a)`가 `A`, `get(1)`이 `number`라 `4 A number`입니다.
+
+### 예제 5
+
+3번 줄은 객체 `obj`의 키 나열이 배열 인덱스 형태의 문자열 키 `'2'`, `'10'`을 오름차순으로 먼저, 그다음 `'b'`, `'a'`를 만든 순서대로 돌려주어 `["2","10","b","a"]`입니다. 4번 줄은 Map이 넣은 순서 `b`, `a`, `10`, `2`대로 키를 돌려주고 숫자 키도 숫자 그대로라 `["b","a",10,2]`입니다. 8번 줄은 5번 줄의 `set('b', 100)`이 이미 있는 키의 값만 바꿔 `b`의 자리가 그대로이고, 6번 줄에서 `a`를 지운 뒤 7번 줄의 `set('a', 200)`이 새 엔트리를 맨 뒤에 더해 `[["b",100],[10,3],[2,4],["a",200]]`입니다.
+
+### 예제 6
+
+7번 줄은 3번 줄의 `for...of`가 `1`을 방문하며 `queue.add(2)`를 하면 이터레이터가 목록의 길이를 다시 읽어 `2`도 방문하고, `2`를 방문하며 `add(3)`을 하면 `3`도 방문하며, `n`이 `3`이면 더하지 않아 끝나므로 `[1,2,3]`이고 `size`는 `3`이라 `[1,2,3] 3`입니다. 14번 줄은 10번 줄의 `for...of`가 `'a'`를 방문하는 동안 12번 줄의 `delete('b')`가 아직 방문하지 않은 `'b'`의 자리를 `empty`로 바꾸고 이터레이터가 그 자리를 건너뛰어 `"a"`, `"c"`만 방문하므로 `["a","c"]`이고 `size`는 `2`라 `["a","c"] 2`입니다.
+
+### 예제 7
+
+4번 줄은 2번 줄의 `set('a', 1)`이 엔트리를 만들고 3번 줄의 `m.b = 2`가 Map 객체에 프로퍼티 `b`를 만들 뿐이라 `size`가 `1`, `has('b')`가 `false`, `get('b')`가 `undefined`, 프로퍼티를 읽은 `m.b`가 `2`여서 `1 false undefined 2`입니다. 5번 줄은 `JSON.stringify(m)`과 `Object.keys(m)`이 자기 열거 가능 프로퍼티만 보아 엔트리 `a`는 빠지고 `b`만 나온 `{"b":2} ["b"]`입니다. 8번 줄은 `Object.entries`가 만든 `[키, 값]` 쌍으로 만든 Map에서 `get('x')`가 `1`이고, `Object.fromEntries`가 그 Map을 일반 객체로 되돌려 `1 {"x":1,"y":2}`입니다. 9번 줄은 스프레드가 Map의 엔트리를 꺼내 `[["a",1]]`이고 프로퍼티 `b`는 나오지 않습니다.
+
+### 예제 8
+
+4번 줄은 `wm.get(key)`가 `data`, `wm.has(key)`가 `true`이고, `wm.has({})`의 `{}`는 `key`와 다른 새 객체라 `false`여서 `data true false`입니다. 5번 줄은 WeakMap에 `size`, `keys`, `Symbol.iterator`가 정의되어 있지 않아 `typeof`가 모두 `undefined`라 `undefined undefined undefined`입니다. 7번 줄은 `new WeakSet([key])`에 `key`가 있어 `ws.has(key)`가 `true`, WeakSet에는 `forEach`가 없어 `typeof ws.forEach`가 `undefined`이므로 `true undefined`입니다.
+
+### 흔한 오해
+
+<Callout type="misconception" title="Set과 Map은 ===로 값을 비교한다">
+
+Set과 Map은 `===`도 `Object.is`도 아닌 SameValueZero로 비교합니다. `===`와 달리 `NaN`을 `NaN`과 같다고 보고(예제 2), `Object.is`와 달리 `0`과 `-0`을 같다고 봅니다(같음 비교표의 `NaN`, `0, -0` 행). `1`과 `'1'`처럼 타입이 다른 값을 같다고 보지 않는 점은 `===`와 같습니다.
+
+</Callout>
+
+<Callout type="misconception" title="모양이 같은 객체는 같은 키다">
+
+객체끼리의 비교는 프로퍼티가 같은지가 아니라 같은 객체인지를 따집니다. `{ id: 1 }`을 두 번 쓰면 서로 다른 객체이므로 다른 키이고, 모양이 같은 새 객체로는 찾을 수 없습니다(예제 3). 키로 쓴 객체를 변경해도 같은 객체이므로 그 객체로는 계속 찾을 수 있습니다. 일반 객체에서 객체 키가 하나로 합쳐지는 것(예제 4)은 이 비교 때문이 아니라 키가 문자열로 바뀌기 때문입니다.
+
+</Callout>
+
+<Callout type="misconception" title="Map에 m.key = value로 넣어도 된다">
+
+`m.key = value`는 Map의 엔트리가 아니라 Map 객체의 일반 프로퍼티를 만듭니다. `size`, `has`, `get`, 순회에는 나타나지 않고 `JSON.stringify`에는 프로퍼티만 나옵니다(예제 7). 엔트리를 넣으려면 `set`을 부릅니다. 객체와 주고받을 때는 `Object.entries`와 `Object.fromEntries`로 변환합니다.
+
+</Callout>
+
+<Callout type="misconception" title="WeakMap은 키가 지워지는 순간을 확인할 수 있다">
+
+명세는 엔트리가 제거되는 시점을 정하지 않고, 키를 내놓지 않고는 키를 관찰할 수 없게 하라고 요구합니다. 그래서 WeakMap에는 `size`, `keys`, 이터레이터가 없고(예제 8), 프로그램에서 엔트리가 언제 사라졌는지 확인하는 수단이 없습니다. 객체와 `Symbol.for`로 등록하지 않은 심벌만 키가 될 수 있고, 살아 있지 않은 키의 엔트리를 구현이 제거할 수 있다는 것까지가 현재 명세가 정한 범위입니다.
+
+</Callout>

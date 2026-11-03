@@ -50,6 +50,7 @@ import {
   STRING_UTF16_VIEW_NAME,
   ITERABLE_FOR_OF_PATH,
   ITERABLE_FOR_OF_SIMULATOR_NAME,
+  SET_MAP_PATH,
   SPREAD_DESTRUCTURING_PATH,
   SYMBOL_PATH,
   SWITCH_PATH,
@@ -899,10 +900,20 @@ test(`${SPREAD_DESTRUCTURING_PATH}: 가로 스크롤이 없다`, async ({ page }
   expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
 })
 
+test(`${SET_MAP_PATH}: 가로 스크롤이 없다`, async ({ page }) => {
+  await page.goto(SET_MAP_PATH)
+  await waitForHydration(page)
+  const { scrollWidth, innerWidth } = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    innerWidth: window.innerWidth,
+  }))
+  expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
+})
+
 test('홈 학습 순서 보기: 가로 스크롤이 없다', async ({ page }) => {
   await page.goto('/?view=order')
   await waitForHydration(page)
-  await expect(page.getByRole('article')).toHaveCount(34)
+  await expect(page.getByRole('article')).toHaveCount(35)
   const { scrollWidth, innerWidth } = await page.evaluate(() => ({
     scrollWidth: document.documentElement.scrollWidth,
     innerWidth: window.innerWidth,
