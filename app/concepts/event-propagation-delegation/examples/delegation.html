@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<ul id="menu">
+  <li><button data-action="copy"><b>복사</b></button></li>
+  <li><button data-action="paste">붙여넣기</button></li>
+  <li id="note">구분선</li>
+</ul>
+<script>
+var menu = document.getElementById('menu');
+menu.addEventListener('click', function (e) {
+  var button = e.target.closest('button');
+  if (button === null) {
+    console.log(e.target.id, '버튼 아님');
+    return;
+  }
+  console.log(e.target.tagName, button.dataset.action);
+});
+menu.querySelector('b').click();
+document.getElementById('note').click();
+var li = document.createElement('li');
+li.innerHTML = '<button data-action="cut">잘라내기</button>';
+menu.append(li);
+li.querySelector('button').click();
+</script>
+</body>
+</html>

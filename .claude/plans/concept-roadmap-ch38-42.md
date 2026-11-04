@@ -26,7 +26,7 @@
 | 2 | DOM 트리와 노드 종류 | 39 | 줄바꿈이 있는 `<ul>`의 `childNodes.length` 3·`children.length` 1, `firstChild.nodeType` 3(텍스트 노드), `firstElementChild`는 `LI` | 트리 그림 | 완료 |
 | 3 | HTMLCollection은 살아 있다 | 39 | `getElementsByClassName('r')` 4개를 돌며 클래스를 바꾸면 2개가 남음(살아 있는 컬렉션이 줄어들며 건너뜀). `querySelectorAll`의 정적 NodeList로는 4개 모두 바뀜 | 단계 시뮬레이터 후보 | 완료 |
 | 4 | 어트리뷰트와 프로퍼티 | 39 | `value="init"`인 input에 `.value = 'typed'` 뒤 `getAttribute('value')`·`defaultValue`는 `init`. 그 뒤 `setAttribute('value', …)`는 `defaultValue`만 바꾸고 `.value`는 `typed` 그대로 | 표 + 퀴즈 | 완료 |
-| 5 | 이벤트 전파와 위임 | 40 | 바깥 캡처(eventPhase 1) → 타깃(2) → 바깥 버블(3) 순서, 바깥 핸들러의 `target`은 버튼·`currentTarget`은 바깥. 위임 | 실제 DOM 클릭 시뮬레이터 후보 | 대기 |
+| 5 | 이벤트 전파와 위임 | 40 | 바깥 캡처(eventPhase 1) → 타깃(2) → 바깥 버블(3) 순서, 바깥 핸들러의 `target`은 버튼·`currentTarget`은 바깥. 위임 | 실제 DOM 클릭 시뮬레이터 후보 | 완료 |
 | 6 | 기본 동작과 전파 막기 | 40 | 체크박스 `click`에서 `preventDefault()`는 체크를 막지만 부모 핸들러는 그대로 불림. `stopPropagation()`은 부모 핸들러를 막음. 같은 함수를 두 번 `addEventListener`하면 한 번만 불림 | 표 + 퀴즈 | 대기 |
 | 7 | 타이머 | 41 | `setTimeout(fn, 0)`은 동기 코드 뒤에 실행, 동기 코드가 50ms 막으면 그만큼 늦어짐, 지연이 같은 타이머는 등록 순서, `clearTimeout`. 브라우저의 타이머 id는 숫자(Node는 객체 — 호스트 차이) | 표 + 퀴즈 | 대기 |
 | 8 | 이벤트 루프와 태스크 큐 | 42 | 동기 코드 → 타이머 콜백 순서, 블로킹. 마이크로태스크(프로미스)는 45장 별도 개념 | 큐 시뮬레이터 후보 | 대기 |
@@ -49,3 +49,4 @@
 - 2026-11-03: 2번 `dom-tree-nodes`(order 350, browser, 37번째·마지막, 실행 출력에서 그린 노드 트리 + 퀴즈 10개, 브라우저 예제 7개) 완료. 외부 검토 두 차례 반영. 다음은 3번 HTMLCollection은 살아 있다.
 - 2026-11-04: 3번 `live-html-collection`(order 360, browser, 38번째·마지막, 단계마다 Chromium 출력과 대조되는 반복 시뮬레이터 live 12단계·static 18단계 + 퀴즈 10개, 브라우저 예제 9개) 완료. 외부 검토 세 차례 반영(3차는 현재 표준 원문 확인으로 변경 없음). 다음은 4번 어트리뷰트와 프로퍼티.
 - 2026-11-04: 4번 `html-attribute-dom-property`(order 370, browser, 39번째·마지막, 어트리뷰트·프로퍼티 대응 표 13행(칸마다 예제 출력 줄과 테스트로 대조) + 퀴즈 14개, 브라우저 예제 11개) 완료. 외부 검토 두 차례 반영. 다음은 5번 이벤트 전파와 위임.
+- 2026-11-04: 5번 `event-propagation-delegation`(order 380, browser, 40번째·마지막, 전파 단계 시뮬레이터 아이콘 16단계·버튼 13단계 + 퀴즈 12개, 브라우저 예제 8개) 완료. 외부 검토 두 차례 반영(인용 어휘 'struct' 지적은 현재 표준 `item`·`pathItem` 확인으로 두 번 모두 미반영). 다음은 6번 기본 동작과 전파 막기.

@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<div id="card"><button id="save">저장</button></div>
+<script>
+var saved;
+document.getElementById('card').addEventListener('click', function (e) {
+  saved = e;
+  console.log(e.eventPhase, e.currentTarget.id, e.composedPath().length);
+});
+document.getElementById('save').click();
+console.log(saved.eventPhase, saved.currentTarget, saved.target.id, saved.composedPath().length);
+</script>
+</body>
+</html>

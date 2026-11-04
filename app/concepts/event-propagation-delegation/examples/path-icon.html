@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<div id="card"><button id="save"><span id="icon">★</span> 저장</button></div>
+<script>
+function name(node) {
+  if (node === window) return 'window';
+  if (node === document) return 'document';
+  return node.id || node.nodeName.toLowerCase();
+}
+function show(label) {
+  return function (e) {
+    console.log(label, e.eventPhase, name(e.target), name(e.currentTarget));
+  };
+}
+var card = document.getElementById('card');
+var save = document.getElementById('save');
+var last;
+window.addEventListener('click', function (e) {
+  last = e;
+  console.log(JSON.stringify(e.composedPath().map(name)));
+}, true);
+card.addEventListener('click', show('card 캡처'), true);
+save.addEventListener('click', show('save 캡처'), true);
+save.addEventListener('click', show('save 버블'));
+card.addEventListener('click', show('card 버블'));
+document.addEventListener('click', show('document 버블'));
+document.getElementById('icon').click();
+console.log('끝', last.eventPhase, last.currentTarget);
+</script>
+</body>
+</html>

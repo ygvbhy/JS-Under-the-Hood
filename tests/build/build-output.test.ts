@@ -1076,6 +1076,26 @@ describe('프리렌더 (html-attribute-dom-property)', () => {
   })
 })
 
+// 38~42장 로드맵 5번(event-propagation-delegation): 전파 시뮬레이터의 첫 단계와 퀴즈가 프리렌더 HTML에 정적으로 있어야 한다.
+describe('시뮬레이터 프리렌더 (event-propagation-delegation)', () => {
+  const html = read('concepts/event-propagation-delegation/index.html')
+  const text = htmlToText(html)
+
+  it('이벤트 전파 시뮬레이터 region과 첫 단계가 HTML에 있다', () => {
+    expect(html).toMatch(/role="region"[^>]*aria-label="이벤트 전파 시뮬레이터"/)
+    expect(text).toContain('단계 1: 실행 전')
+  })
+
+  it('첫 단계에 등록된 리스너가 정적으로 보인다', () => {
+    expect(text).toContain('card 캡처')
+    expect(text).toContain('save 버블')
+  })
+
+  it('퀴즈 정답이 <details>로 10개 이상 프리렌더된다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(10)
+  })
+})
+
 // 학습 순서 이전/다음: 관련 개념 링크와 섞이지 않도록 nav 영역만 잘라 검사한다.
 describe('학습 순서 pager', () => {
   const ordered = sortByOrder(concepts)

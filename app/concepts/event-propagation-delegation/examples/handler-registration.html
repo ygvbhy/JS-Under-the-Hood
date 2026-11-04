@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<button id="save" onclick="log.push('어트리뷰트')">저장</button>
+<script>
+var log = [];
+var save = document.getElementById('save');
+save.addEventListener('click', function () { log.push('리스너1'); });
+console.log(typeof save.onclick);
+save.onclick = function () { log.push('프로퍼티A'); };
+save.addEventListener('click', function () { log.push('리스너2'); });
+save.onclick = function () { log.push('프로퍼티B'); };
+save.click();
+console.log(JSON.stringify(log));
+console.log(save.getAttribute('onclick'));
+save.onclick = null;
+log = [];
+save.click();
+console.log(JSON.stringify(log));
+save.onclick = function () { log.push('프로퍼티C'); };
+log = [];
+save.click();
+console.log(JSON.stringify(log));
+</script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<form id="form"><input id="email"></form>
+<script>
+var form = document.getElementById('form');
+var log = [];
+form.addEventListener('focus', function () { log.push('focus 버블'); });
+form.addEventListener('focusin', function () { log.push('focusin 버블'); });
+form.addEventListener('focus', function () { log.push('focus 캡처'); }, true);
+document.getElementById('email').focus();
+console.log(JSON.stringify(log));
+var e1 = new Event('ping');
+var e2 = new Event('ping', { bubbles: true });
+console.log(e1.bubbles, e2.bubbles);
+var got = [];
+form.addEventListener('ping', function (e) { got.push(e.bubbles + ':' + e.eventPhase); });
+document.getElementById('email').dispatchEvent(e1);
+document.getElementById('email').dispatchEvent(e2);
+console.log(JSON.stringify(got));
+</script>
+</body>
+</html>

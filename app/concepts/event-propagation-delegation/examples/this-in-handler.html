@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<div id="box"><button id="go">이동</button></div>
+<script>
+var box = document.getElementById('box');
+box.addEventListener('click', function (e) {
+  console.log(this === e.currentTarget, this.id, e.target.id);
+});
+box.addEventListener('click', (e) => {
+  console.log(this === window, this === e.currentTarget);
+});
+document.getElementById('go').click();
+</script>
+</body>
+</html>

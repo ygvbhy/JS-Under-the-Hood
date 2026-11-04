@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<button id="like" data-id="42"><span id="heart">♥</span> 좋아요</button>
+<script>
+var like = document.getElementById('like');
+like.addEventListener('click', function (e) {
+  console.log(e.target.id, e.target.dataset.id, e.currentTarget.dataset.id);
+});
+document.getElementById('heart').click();
+like.click();
+</script>
+</body>
+</html>
