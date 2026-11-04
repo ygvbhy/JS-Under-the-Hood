@@ -58,6 +58,8 @@ import {
   EVENT_PROPAGATION_DELEGATION_SIMULATOR_NAME,
   PREVENT_DEFAULT_STOP_PROPAGATION_PATH,
   TIMERS_PATH,
+  EVENT_LOOP_PATH,
+  EVENT_LOOP_SIMULATOR_NAME,
   SCRIPT_ASYNC_DEFER_PATH,
   SET_MAP_PATH,
   SPREAD_DESTRUCTURING_PATH,
@@ -1022,10 +1024,36 @@ test(`${TIMERS_PATH}: 가로 스크롤이 없다`, async ({ page }) => {
   expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
 })
 
+test(`${EVENT_LOOP_PATH}: 가로 스크롤이 없다`, async ({ page }) => {
+  await page.goto(EVENT_LOOP_PATH)
+  await waitForHydration(page)
+  const { scrollWidth, innerWidth } = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    innerWidth: window.innerWidth,
+  }))
+  expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
+})
+
+test('이벤트 루프 개념 페이지: 첫 시나리오를 끝까지 진행해도 가로 스크롤이 없다', async ({
+  page,
+}) => {
+  await page.goto(EVENT_LOOP_PATH)
+  await waitForHydration(page)
+  const region = page.getByRole('region', { name: EVENT_LOOP_SIMULATOR_NAME })
+  const next = region.getByRole('button', { name: '다음' })
+  for (let i = 0; i < 11; i++) await next.click()
+  await expect(region.getByText(/^단계 12 \/ 12$/)).toBeVisible()
+  const { scrollWidth, innerWidth } = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    innerWidth: window.innerWidth,
+  }))
+  expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
+})
+
 test('홈 학습 순서 보기: 가로 스크롤이 없다', async ({ page }) => {
   await page.goto('/?view=order')
   await waitForHydration(page)
-  await expect(page.getByRole('article')).toHaveCount(42)
+  await expect(page.getByRole('article')).toHaveCount(43)
   const { scrollWidth, innerWidth } = await page.evaluate(() => ({
     scrollWidth: document.documentElement.scrollWidth,
     innerWidth: window.innerWidth,

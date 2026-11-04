@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<script>
+window.addEventListener('message', function (e) {
+  console.log('message ' + e.data);
+});
+setTimeout(function () {
+  console.log('타이머 1');
+}, 0);
+window.postMessage('m', '*');
+setTimeout(function () {
+  console.log('타이머 2');
+}, 0);
+</script>
+</body>
+</html>

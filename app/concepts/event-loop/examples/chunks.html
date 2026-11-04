@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<script>
+function work(i) {
+  console.log('조각 ' + i);
+  if (i < 3) {
+    setTimeout(function () {
+      work(i + 1);
+    }, 0);
+  }
+}
+setTimeout(function () {
+  work(1);
+}, 0);
+setTimeout(function () {
+  console.log('다른 타이머');
+}, 0);
+</script>
+</body>
+</html>

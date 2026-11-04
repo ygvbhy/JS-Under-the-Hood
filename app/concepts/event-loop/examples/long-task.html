@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<script>
+var start;
+setTimeout(function () {
+  start = performance.now();
+  while (performance.now() - start < 50) {}
+  console.log('a 끝');
+}, 0);
+setTimeout(function () {
+  console.log('b, a가 50ms 이상 붙잡음 ' + (performance.now() - start >= 50));
+}, 0);
+</script>
+</body>
+</html>

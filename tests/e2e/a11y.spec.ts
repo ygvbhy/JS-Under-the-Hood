@@ -60,6 +60,8 @@ import {
   EVENT_PROPAGATION_DELEGATION_SIMULATOR_NAME,
   PREVENT_DEFAULT_STOP_PROPAGATION_PATH,
   TIMERS_PATH,
+  EVENT_LOOP_PATH,
+  EVENT_LOOP_SIMULATOR_NAME,
   SCRIPT_ASYNC_DEFER_PATH,
   SET_MAP_PATH,
   SPREAD_DESTRUCTURING_PATH,
@@ -878,6 +880,24 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await page.goto(TIMERS_PATH)
       await waitForHydration(page)
       await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
+      await expectNoSeriousViolations(page)
+    })
+
+    test('개념 페이지: 이벤트 루프와 태스크 큐', async ({ page }) => {
+      await page.goto(EVENT_LOOP_PATH)
+      await waitForHydration(page)
+      await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
+      await expectNoSeriousViolations(page)
+    })
+
+    test('개념 페이지: 이벤트 루프 시뮬레이터를 진행한 뒤', async ({ page }) => {
+      await page.goto(EVENT_LOOP_PATH)
+      await waitForHydration(page)
+      const region = page.getByRole('region', { name: EVENT_LOOP_SIMULATOR_NAME })
+      const next = region.getByRole('button', { name: '다음' })
+      for (let i = 0; i < 5; i++) await next.click()
+      await expect(region).toBeVisible()
+      await expect(region.getByText(/^단계 6 \/ 12$/)).toBeVisible()
       await expectNoSeriousViolations(page)
     })
 

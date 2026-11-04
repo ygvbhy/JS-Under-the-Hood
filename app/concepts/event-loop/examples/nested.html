@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<script>
+setTimeout(function () {
+  console.log('a 시작');
+  setTimeout(function () {
+    console.log('c');
+  }, 0);
+  console.log('a 끝');
+}, 0);
+setTimeout(function () {
+  console.log('b');
+}, 0);
+console.log('스크립트 끝');
+</script>
+</body>
+</html>

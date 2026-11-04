@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<script>
+console.log('스크립트 시작');
+setTimeout(function () {
+  console.log('a 0ms');
+}, 0);
+setTimeout(function () {
+  console.log('b 10ms');
+}, 10);
+var start = performance.now();
+while (performance.now() - start < 50) {}
+console.log('스크립트 끝');
+</script>
+</body>
+</html>
