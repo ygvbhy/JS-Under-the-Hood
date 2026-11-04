@@ -55,6 +55,7 @@ import {
   DOM_TREE_NODES_PATH,
   LIVE_HTML_COLLECTION_PATH,
   LIVE_HTML_COLLECTION_SIMULATOR_NAME,
+  HTML_ATTRIBUTE_DOM_PROPERTY_PATH,
   SCRIPT_ASYNC_DEFER_PATH,
   SET_MAP_PATH,
   SPREAD_DESTRUCTURING_PATH,
@@ -834,6 +835,13 @@ for (const colorScheme of ['light', 'dark'] as const) {
       for (let i = 0; i < 6; i++) await next.click()
       await expect(region).toBeVisible()
       await expect(region.getByText(/^단계 7 \/ 12$/)).toBeVisible()
+      await expectNoSeriousViolations(page)
+    })
+
+    test('개념 페이지: HTML 어트리뷰트와 DOM 프로퍼티', async ({ page }) => {
+      await page.goto(HTML_ATTRIBUTE_DOM_PROPERTY_PATH)
+      await waitForHydration(page)
+      await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
       await expectNoSeriousViolations(page)
     })
 

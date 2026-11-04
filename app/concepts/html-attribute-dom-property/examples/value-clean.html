@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<input id="nick" value="손님">
+<script>
+var nick = document.getElementById('nick');
+function show(label) {
+  console.log(label, JSON.stringify([nick.value, nick.getAttribute('value'), nick.defaultValue]));
+}
+nick.setAttribute('value', '영희');
+show('setAttribute');
+nick.defaultValue = '민수';
+show('defaultValue 대입');
+nick.removeAttribute('value');
+show('removeAttribute');
+</script>
+</body>
+</html>

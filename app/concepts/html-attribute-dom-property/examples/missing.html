@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<input id="plain">
+<a id="empty">링크 없음</a>
+<script>
+var plain = document.getElementById('plain');
+var empty = document.getElementById('empty');
+console.log(plain.getAttribute('class'), plain.hasAttribute('class'), JSON.stringify(plain.className));
+console.log(plain.getAttribute('disabled'), plain.disabled);
+console.log(plain.getAttribute('maxlength'), plain.maxLength);
+console.log(empty.getAttribute('href'), JSON.stringify(empty.href));
+</script>
+</body>
+</html>

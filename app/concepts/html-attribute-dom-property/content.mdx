@@ -1,0 +1,516 @@
+import { concept } from './meta'
+import { columns, rows } from './attribute-table'
+
+## 동작 원리
+
+닉네임 입력칸 `<input id="nick" value="손님">`에서 `nick.value = '철수'`로 값을 바꾼 다음 `nick.getAttribute('value')`를 읽으면 왜 여전히 `"손님"`일까요? 이 페이지는 그 이유를 어트리뷰트(HTML 요소에 적힌 문자열)와 DOM 프로퍼티(자바스크립트에서 읽고 쓰는 프로퍼티)가 어떤 관계인지에서 찾습니다. 먼저 `value`와 `checked`처럼 "기본값"과 "현재 값"이 갈라지는 경우를 보고, 이것이 모든 프로퍼티의 규칙이 아니라 어트리뷰트와 짝을 이루는 프로퍼티는 대부분 그 어트리뷰트를 그대로 읽고 쓴다는 점(반영)을 이어서 확인합니다. 그 밖에 타입이 바뀌는 경우, 없는 어트리뷰트의 값, `attributes`, 이름의 대소문자, `dataset`, 비표준 어트리뷰트도 다룹니다. 이 모든 것은 ECMAScript가 아니라 WHATWG HTML·DOM 표준과 Web IDL이 정하는 호스트(브라우저)의 동작입니다. 예제의 출력은 모두 테스트가 Chromium에서 실제로 열어 `console.log` 출력을 모은 값이며, 다른 브라우저는 이 페이지에서 확인하지 않았습니다. 요소와 노드가 무엇인지는 [DOM 트리와 노드 종류](/concepts/dom-tree-nodes)에서 본 것을 전제합니다.
+
+### 어트리뷰트와 프로퍼티는 다른 곳에 있다
+
+HTML 요소에는 `id="nick"`, `value="손님"`처럼 태그에 적는 어트리뷰트가 있습니다. DOM 표준은 요소가 어트리뷰트 목록(attribute list)을 가지며, 각 어트리뷰트는 이름과 문자열 값을 가진다고 정의합니다. 반면 `nick.value`, `nick.id`처럼 자바스크립트에서 읽고 쓰는 것은 DOM 프로퍼티입니다. 표준은 이것을 Web IDL의 attribute로 정의하고, 자바스크립트에서는 프로퍼티로 보입니다. 두 쪽이 서로 어떻게 연결되는지는 프로퍼티마다 표준이 따로 정합니다. 연결 방식 중 가장 흔한 것이 어트리뷰트를 그대로 읽고 쓰는 반영(reflect)이고, 이 페이지에서 확인하는 것 중에는 텍스트 입력의 `value`와 체크박스의 `checked`만 어트리뷰트와 별도의 현재 값을 가집니다.
+
+이 페이지의 "어트리뷰트"는 HTML 어트리뷰트(콘텐츠 어트리뷰트)입니다. [프로퍼티 어트리뷰트](/concepts/property-attributes)에서 본 `[[Writable]]`, `[[Enumerable]]` 같은 자바스크립트 프로퍼티의 속성과는 이름만 비슷한 전혀 다른 개념입니다. Web IDL의 attribute도 같은 단어를 쓰지만 이 페이지에서는 "DOM 프로퍼티"라고 부르겠습니다.
+
+### value는 기본값만 어트리뷰트에서 온다
+
+HTML 표준은 `input`의 `value` 어트리뷰트를 이렇게 정의합니다.
+
+> The value content attribute gives the default value of the input element. When the value content attribute is added, set, or removed, if the control's dirty value flag is false, the user agent must set the value of the element to the value of the value content attribute, if there is one, or the empty string otherwise
+
+`value` 어트리뷰트는 입력칸의 현재 값이 아니라 기본값입니다. 어트리뷰트가 추가되거나 바뀌거나 지워질 때 요소의 값을 그 어트리뷰트에 맞추는 것은 dirty value flag가 false일 때뿐입니다. 이 플래그는 폼 컨트롤 인프라가 이렇게 설명합니다.
+
+> input and textarea elements have a dirty value flag. This is used to track the interaction between the value and default value. If it is false, value mirrors the default value. If it is true, the default value is ignored.
+
+플래그가 false이면 값이 기본값을 따라가고, true이면 기본값은 무시됩니다. 그렇다면 플래그는 언제 true가 될까요? 표준은 사용자가 값을 바꾸었을 때, 그리고 스크립트로 값을 바꾸었을 때라고 정합니다.
+
+> (It is also set to true when the value is programmatically changed, as described in the definition of the value IDL attribute.)
+
+텍스트 입력의 `value` 프로퍼티(value 모드)의 setter는 다음 단계를 포함합니다.
+
+> Set the element's value to the new value. Set the element's dirty value flag to true.
+
+이 페이지의 예제는 사용자 입력 대신 스크립트로 값을 바꿉니다. 사용자가 직접 입력해도 플래그가 true가 되는 것은 표준이 정한 대로이지만, 그 경로는 이 페이지에서 실행해 보지 않았습니다.
+
+예제 1이 이 순서를 그대로 보입니다. 처음에는 플래그가 false라서 `value`, `getAttribute('value')`, `defaultValue`가 모두 `"손님"`입니다. `nick.value = '철수'`는 요소의 값을 바꾸고 플래그를 true로 만듭니다. 어트리뷰트는 건드리지 않으므로 `getAttribute('value')`와 `defaultValue`는 `"손님"`입니다. 그 뒤 `setAttribute('value', '영희')`는 어트리뷰트를 바꾸지만, 플래그가 true라서 요소의 값은 그대로 `"철수"`입니다. `defaultValue`는 어트리뷰트를 따라 `"영희"`가 됩니다.
+
+`defaultValue`는 IDL에서 `[CEReactions, Reflect="value"] attribute DOMString defaultValue`로 정의되어 `value` 어트리뷰트를 반영합니다(반영과 이 IDL 표기는 아래 반영 절에서 설명합니다). 반대로 값을 바꾸기 전에는 플래그가 false라서 어트리뷰트를 바꾸는 것만으로 `.value`도 따라 바뀝니다. 예제 2에서 `setAttribute('value', '영희')`와 `defaultValue = '민수'`, `removeAttribute('value')`가 모두 `.value`까지 바꾸는 것이 이 경우입니다. `removeAttribute` 뒤에는 어트리뷰트가 없으니 `getAttribute`는 `null`이고, 값은 표준의 "the empty string otherwise"에 따라 빈 문자열입니다.
+
+### checked도 같은 구조다
+
+체크박스의 `checked`도 같은 구조입니다. HTML 표준은 `checked` 어트리뷰트를 기본 체크 상태로, `checked` 프로퍼티를 현재 체크 상태(checkedness)로 구분하고, 현재 상태에는 dirty checkedness flag가 있습니다.
+
+> The checked content attribute is a boolean attribute that gives the default checkedness of the input element. When the checked content attribute is added, if the control does not have dirty checkedness, the user agent must set the checkedness of the element to true
+
+`checked` 프로퍼티의 setter는 이렇게 정의됩니다.
+
+> set the element's checkedness to the new value and set the element's dirty checkedness flag to true
+
+`defaultChecked`는 IDL의 `[CEReactions, Reflect="checked"] attribute boolean defaultChecked`로 `checked` 어트리뷰트를 반영합니다. 예제 3에서 `agree.checked = false`를 한 뒤에는 `checked`는 `false`이지만 `defaultChecked`와 `hasAttribute('checked')`는 `true`입니다. 어트리뷰트를 지웠다 다시 넣어도 이미 dirty checkedness가 true여서 `checked`는 `false`로 남습니다.
+
+체크박스에는 한 가지 더 알아 둘 것이 있습니다. `value`와 `defaultValue`가 갈라지는 동작은 value 모드인 텍스트 입력류의 것입니다. 체크박스의 `value` 프로퍼티는 default/on 모드로, 표준은 이렇게 정의합니다.
+
+> if the element has a value content attribute, return that attribute's value; otherwise, return the string "on"
+
+> On setting, set the value of the element's value content attribute to the new value
+
+읽을 때는 `value` 어트리뷰트가 있으면 그 값을, 없으면 `"on"`을 돌려주고, 쓰면 `value` 어트리뷰트를 바꿉니다. 아래에서 볼 반영(`[Reflect]`)으로 선언된 것은 아니지만, 이 모드의 getter와 setter가 어트리뷰트를 직접 읽고 씁니다. 그래서 예제 3의 `on null`은 어트리뷰트가 없을 때 `agree.value`가 `"on"`, `getAttribute('value')`가 `null`이라는 뜻이고, `agree.value = '동의'` 뒤에는 둘 다 `"동의"`입니다. 같은 이름 `value`라도 입력 유형에 따라 규칙이 다르므로 "value는 항상 어트리뷰트와 따로 논다"고 일반화하면 안 됩니다.
+
+### form.reset()은 어트리뷰트로 되돌린다
+
+폼의 `reset()`은 먼저 `reset` 이벤트를 일으키고, 그 이벤트가 취소되지 않으면 컨트롤마다 reset 알고리즘을 실행합니다. `input`의 reset 알고리즘은 이렇게 정의됩니다.
+
+> set its user validity, dirty value flag, and dirty checkedness flag back to false, set the value of the element to the value of the value content attribute, if there is one, or the empty string otherwise
+
+체크 상태는 이어서 이렇게 정합니다.
+
+> set the checkedness of the element to true if the element has a checked content attribute and false if it does not
+
+즉 두 dirty 플래그를 false로 되돌리고, 값과 체크 상태를 어트리뷰트(기본값) 기준으로 다시 정합니다. 예제 4에서 `nick.value = '철수'`, `agree.checked = true`로 바꾼 뒤 `form.reset()`을 호출하면 `손님 false`로 돌아갑니다. 어트리뷰트 `value="손님"`이 있고 `checked` 어트리뷰트는 없기 때문입니다. 플래그가 false로 돌아갔으니, 그 뒤의 `setAttribute('value', '영희')`는 다시 `.value`를 바꿉니다. 이벤트와 그 취소는 40장의 별도 개념이므로 이 페이지에서는 다루지 않습니다(예제 4에는 `reset` 이벤트를 취소하는 코드가 없습니다).
+
+### 짝이 있는 프로퍼티는 대부분 어트리뷰트를 반영한다
+
+`value`와 `checked`가 특별한 경우입니다. DOM 프로퍼티에는 `textContent`, `children`처럼 짝이 되는 어트리뷰트가 없는 것도 많지만, 어트리뷰트와 짝을 이루는 프로퍼티는 대부분 그 어트리뷰트를 반영합니다. HTML 표준은 반영을 이렇게 설명합니다.
+
+> In general this means that the IDL attribute getter returns the current value of the content attribute, and the setter changes the value of the content attribute to the given value.
+
+읽으면 어트리뷰트의 현재 값을 돌려주고, 쓰면 어트리뷰트를 그 값으로 바꾼다는 뜻입니다. getter가 읽을 때마다 그 시점의 어트리뷰트를 돌려주므로, `value`·`checked`처럼 어트리뷰트와 다른 현재 값이 생기지 않습니다. `id`와 `className`은 DOM 표준이 이렇게 정합니다.
+
+> The id attribute must reflect "id". The className attribute must reflect "class".
+
+`label`의 `htmlFor`도 IDL에서 `[CEReactions, Reflect="for"] attribute DOMString htmlFor`로 `for` 어트리뷰트를 반영합니다. 예제 5에서 `tag.className = 'hint error'`와 `tag.htmlFor = 'email'`은 곧바로 `getAttribute('class')`, `getAttribute('for')`에 보이고, 거꾸로 `setAttribute('id', 'nick-label')`은 `tag.id`에 보입니다. 어트리뷰트와 같은 이름의 `tag.class`나 `tag.for`라는 프로퍼티는 없어서 `typeof`가 `"undefined"`입니다.
+
+여기 쓰인 `[Reflect="for"]`처럼 IDL에 붙은 `Reflect` 계열 표기(이 페이지에는 `[Reflect]`, `[ReflectSetter]`, `[ReflectNonNegative]`도 나옵니다)는 Web IDL 표준의 표기가 아니라, HTML 표준이 반영 규칙을 IDL 안에 적으려고 직접 정의한 확장 어트리뷰트입니다. 그래서 Web IDL 문서에서는 찾을 수 없습니다.
+
+### 반영하면서 타입이 바뀐다
+
+반영은 문자열을 그대로 돌려주는 것만이 아닙니다. 프로퍼티의 IDL 타입에 따라 표준의 변환 단계가 붙습니다. 불리언 프로퍼티는 이렇게 정의됩니다.
+
+> If contentAttributeValue is null, then return false. Return true.
+
+> If the given value is false, then run this's delete the content attribute. If the given value is true, then run this's set the content attribute with the empty string.
+
+어트리뷰트가 있으면(값이 무엇이든) `true`, 없으면 `false`를 돌려줍니다. `true`를 쓰면 빈 문자열을 값으로 어트리뷰트를 만들고, `false`를 쓰면 어트리뷰트를 지웁니다. HTML 표준은 불리언 어트리뷰트에 대해 이렇게도 말합니다.
+
+> The values "true" and "false" are not allowed on boolean attributes. To represent a false value, the attribute has to be omitted altogether.
+
+그래서 `disabled="false"`는 표준이 허용하지 않는 작성이며, 예제 6은 "있으면 true"라는 동작을 보이려고 일부러 썼습니다. 예제 6에서 `send.disabled`는 `true`이고 `getAttribute('disabled')`는 `"false"` 문자열입니다. `send.disabled = false`를 하면 어트리뷰트가 지워져 `hasAttribute('disabled')`가 `false`가 되고, `send.disabled = true`를 하면 어트리뷰트 값이 빈 문자열이 됩니다(`""`).
+
+`maxLength`는 IDL에서 `[CEReactions, ReflectNonNegative] attribute long`이라 숫자로 바뀝니다. `maxlength="4"`면 `maxLength`는 숫자 `4`이고 `getAttribute('maxlength')`는 문자열입니다(`number 4 string`). 어트리뷰트를 `'넷'`처럼 정수로 읽을 수 없게 만들면 `maxLength`는 `-1`이 됩니다. 표준의 해당 단계는 다음과 같습니다.
+
+> If the reflected IDL attribute is limited to only non-negative numbers, then return −1.
+
+링크의 `href`는 IDL에서 `[CEReactions, ReflectSetter] stringifier attribute USVString href`로 선언됩니다. 쓰기만 반영(`ReflectSetter`)이고, 읽기는 HTML 표준이 따로 정한 getter가 `href` 어트리뷰트를 URL로 해석해 돌려줍니다. 그 getter는 마지막에 이렇게 돌려줍니다.
+
+> Return url, serialized.
+
+다만 그 바로 앞 단계는 URL로 해석하지 못한 경우를 이렇게 정합니다.
+
+> Otherwise, if url is null, return this's href content attribute's value.
+
+`href` 어트리뷰트가 있어도 URL로 해석할 수 없는 값이면 어트리뷰트 문자열을 그대로 돌려준다는 뜻입니다. 이 페이지의 예제는 해석할 수 있는 `help.html`만 씁니다.
+
+그래서 `href="help.html"`인 링크의 `help.href`는 절대 URL입니다. 예제 6의 출력이 `http://example.test/`로 시작하는 것은 테스트가 예제를 그 주소에서 열기 때문입니다. `getAttribute('href')`는 쓴 그대로의 `help.html`입니다.
+
+### 없는 어트리뷰트의 값
+
+어트리뷰트가 없을 때 무엇을 돌려주는지도 표준이 정합니다. `getAttribute`는 이렇게 정의됩니다.
+
+> If attr is null, return null. Return attr's value.
+
+메서드는 `null`이지만, 반영 프로퍼티는 타입에 따라 다릅니다. 문자열 프로퍼티는 이렇게 처리합니다.
+
+> If contentAttributeValue is null, then return the empty string.
+
+불리언은 `false`, `ReflectNonNegative` 숫자는 앞에서 본 대로 `-1`입니다. `href`는 이렇게 정의됩니다.
+
+> If url is null and this has no href content attribute, return the empty string.
+
+예제 7에서 `class`가 없는 `input`은 `getAttribute('class')`가 `null`, `hasAttribute('class')`가 `false`, `className`이 빈 문자열입니다. `disabled`는 `null`과 `false`, `maxlength`는 `null`과 `-1`, `href`가 없는 `a`는 `null`과 빈 문자열입니다. 그래서 `getAttribute`가 `null`이면 어트리뷰트가 없는 것이지만, 프로퍼티가 빈 문자열이나 `false`, `-1`인 것만으로는 어트리뷰트가 없는지 알 수 없습니다(`hasAttribute`로 확인합니다).
+
+### 어트리뷰트를 다루는 메서드와 attributes
+
+`getAttribute`, `setAttribute`, `hasAttribute`, `removeAttribute`는 프로퍼티를 거치지 않고 어트리뷰트 목록을 직접 다룹니다. `element.attributes`는 `NamedNodeMap`을 돌려주고, 표준은 그 어트리뷰트 목록이 곧 요소의 어트리뷰트 목록이라고 정합니다.
+
+> A NamedNodeMap object's attribute list is its element's attribute list.
+
+따라서 `attributes`로 미리 받아 둔 `NamedNodeMap`의 `length`와 항목은 이후 어트리뷰트를 추가하거나 지울 때마다 그 시점의 목록을 따릅니다. 예제 8에서 처음 받아 둔 `attrs`의 `length`는 4였다가, `placeholder`를 더한 뒤 5, `required`를 지운 뒤 다시 4입니다. `attributes`가 돌려주는 `NamedNodeMap`은 복사본이 아니라 요소의 어트리뷰트 목록 자체를 보므로, [HTMLCollection은 살아 있다](/concepts/live-html-collection)에서 본 `HTMLCollection`처럼 이후 변경이 그대로 보입니다.
+
+`getAttributeNames()`는 어트리뷰트 목록의 이름을 순서대로 돌려줍니다.
+
+> return the qualified names of the attributes in this's attribute list, in order
+
+예제 8에서 `placeholder`가 목록 끝에 붙는 것이 보입니다. `<input ... required>`처럼 값 없이 적은 `required`는 값이 빈 문자열이어서 첫 줄에 `required=`로 나옵니다.
+
+### 어트리뷰트 이름은 대소문자를 가리지 않는다 (HTML 요소에서)
+
+HTML 문서의 HTML 요소에서는 어트리뷰트 이름의 대소문자를 가리지 않습니다. 예제 8은 `getAttribute('VALUE')`로 `value` 어트리뷰트를 읽고, `hasAttribute('Required')`로 `required`를 확인하며, `setAttribute('Placeholder', '이름')`은 `placeholder`라는 이름으로 저장합니다. DOM 표준이 이름으로 어트리뷰트를 찾는 단계가 이렇게 시작하기 때문입니다.
+
+> If element is in the HTML namespace and its node document is an HTML document, then set qualifiedName to qualifiedName in ASCII lowercase.
+
+`setAttribute`와 `hasAttribute`도 같은 이름 소문자화 단계를 갖습니다. 이 단계는 HTML 문서 안의 HTML 요소에만 적용됩니다. SVG 같은 다른 네임스페이스의 요소나 XML 문서에는 해당하지 않으므로, 이 페이지는 HTML 문서 안의 HTML 요소만 다룹니다.
+
+### `data-*`와 dataset
+
+`data-`로 시작하는 어트리뷰트는 `dataset`으로 읽고 쓸 수 있습니다. `dataset`은 반영(`[Reflect]`)이 아니라, `dataset`이 돌려주는 `DOMStringMap`이 이름을 바꿔 가며 요소의 어트리뷰트를 직접 읽고 씁니다. `dataset`의 이름은 하이픈 이름을 카멜 케이스로 바꿔 정해집니다. 표준은 어트리뷰트에서 `dataset`의 키를 만드는 방법을 이렇게 정의합니다.
+
+> whose first five characters are the string "data-"
+
+첫 다섯 글자가 `data-`인 어트리뷰트를 찾고, 그 뒤에 이어지는 이름을 다음 규칙으로 바꿉니다.
+
+> for each U+002D HYPHEN-MINUS character (-) in the name that is followed by an ASCII lower alpha, remove the U+002D HYPHEN-MINUS character (-) and replace the character that followed it by the same character converted to ASCII uppercase
+
+그래서 `data-item-id`는 `dataset.itemId`가 됩니다. 반대로 `dataset`에 값을 쓸 때는 이름을 이렇게 되돌립니다.
+
+> For each ASCII upper alpha in name, insert a U+002D HYPHEN-MINUS character (-) before the character and replace the character with the same character converted to ASCII lowercase. Insert the string data- at the front of name.
+
+예제 9에서 `card.dataset.lastSeen = '오늘'`은 `data-last-seen` 어트리뷰트를 만듭니다. `dataset`의 값은 어트리뷰트의 값이므로 항상 문자열입니다. `data-item-id="42"`의 `dataset.itemId`는 숫자 `42`가 아니라 문자열 `"42"`(`typeof`가 `string`)이고, `data-in-stock="false"`의 `dataset.inStock`은 문자열 `"false"`라서 `Boolean`에 넘기면 `true`입니다. `Object.keys(card.dataset)`는 어트리뷰트 목록의 순서대로 키를 돌려주고, `delete card.dataset.inStock`은 `data-in-stock` 어트리뷰트를 지웁니다. 지운 뒤에 없는 키를 읽으면 `undefined`입니다.
+
+### DOM 프로퍼티는 프로토타입의 접근자 프로퍼티다
+
+`nick.value`는 `nick`이라는 요소 객체가 따로 가진 프로퍼티가 아닙니다. Web IDL은 일반 attribute를 이렇게 노출한다고 정합니다.
+
+> Regular attributes are exposed on the interface prototype object
+
+따라서 자바스크립트에서는 인터페이스의 프로토타입 객체에 접근자 프로퍼티(getter와 setter)가 있고, 요소에서 읽으면 [프로토타입 체인](/concepts/prototype-chain)을 따라 그 접근자가 실행됩니다. 접근자 프로퍼티가 무엇인지는 [프로퍼티 어트리뷰트](/concepts/property-attributes)에서 다룹니다. 예제 10은 `HTMLInputElement.prototype`의 `value`에 `get`과 `set`이 함수로 있고 데이터 프로퍼티의 `value` 항목은 없으며, `nick` 자신은 `value`를 own 프로퍼티로 갖지 않지만 `in` 연산자로는 보인다는 것을 출력합니다. `Element.prototype`의 `id` 접근자 프로퍼티는 `enumerable`과 `configurable`이 모두 `true`로 출력됩니다. Web IDL이 이런 프로퍼티의 세부 속성을 정하는 규칙은 이 페이지에서 다루지 않습니다.
+
+### 비표준 어트리뷰트는 프로퍼티가 되지 않는다
+
+요소 자신의 인터페이스에 그 이름의 IDL 어트리뷰트가 없으면, 어트리뷰트를 적는 것만으로 같은 이름의 프로퍼티가 생기지는 않습니다. 예제 11에서 `<div color="red">`의 `getAttribute('color')`는 `"red"`이지만 `typeof box.color`는 `"undefined"`입니다. 반대로 `box.size = 'big'`은 `box` 객체에 평범한 자바스크립트 프로퍼티를 만들 뿐이어서, `hasAttribute('size')`는 `false`이고 `getAttribute('size')`는 `null`입니다. 한편 `title`은 `HTMLElement`가 `[CEReactions, Reflect] attribute DOMString title`로 정의하는 표준 어트리뷰트라서 `box.title = '안내'`가 `title` 어트리뷰트를 만듭니다. 자기만의 값을 요소에 달고 싶다면 앞에서 본 `data-*`와 `dataset`이 표준이 마련한 방법입니다.
+
+### 어트리뷰트와 프로퍼티 대응 표
+
+아래 표는 위에서 본 어트리뷰트와 DOM 프로퍼티의 짝을 한 줄씩 정리한 것입니다. "관계"는 반영인지, 기본값만 반영하는지를, "프로퍼티 값"은 프로퍼티가 돌려주는 값의 종류를, "어트리뷰트가 없을 때"는 어트리뷰트가 없을 때 프로퍼티가 돌려주는 값을 나타냅니다. 각 행의 칸은 마지막 열 "근거 예제"의 출력 줄과 맞는지 테스트가 대조해 두었고, 출력으로 직접 보이지 않는 칸은 위에서 인용한 표준의 규칙(반영 규칙, `defaultChecked`의 반영 등)에서 가져왔습니다.
+
+<Wide>
+  <div
+    className="focus-visible:outline-accent my-6 overflow-x-auto focus-visible:outline-2"
+    tabIndex={0}
+    role="region"
+    aria-label="어트리뷰트마다 대응하는 DOM 프로퍼티, 관계, 프로퍼티 값, 어트리뷰트가 없을 때의 값을 정리한 표(좁은 화면에서는 가로로 스크롤할 수 있습니다)"
+  >
+    <table className="w-full border-collapse text-left [&_code]:whitespace-nowrap">
+      <thead>
+        <tr>
+          <th scope="col" className="border-border border px-3 py-2">
+            어트리뷰트
+          </th>
+          <th scope="col" className="border-border border px-3 py-2">
+            프로퍼티
+          </th>
+          {columns.map((column) => (
+            <th key={column.key} scope="col" className="border-border border px-3 py-2">
+              {column.label}
+            </th>
+          ))}
+          <th scope="col" className="border-border border px-3 py-2">
+            근거 예제
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((row) => (
+          <tr key={`${row.attribute}${row.element}${row.property}`}>
+            <th scope="row" className="border-border border px-3 py-2">
+              <code>{row.attribute}</code>
+              {` (${row.element})`}
+            </th>
+            <td className="border-border border px-3 py-2">
+              {row.property === '없음' ? row.property : <code>{row.property}</code>}
+            </td>
+            {row.cells.map((cell, i) => (
+              <td key={columns[i].key} className="border-border border px-3 py-2">
+                {cell}
+              </td>
+            ))}
+            <td className="border-border border px-3 py-2">
+              {row.evidence
+                .map(
+                  (item) =>
+                    `예제 ${concept.examples.findIndex((example) => example.id === item.example) + 1}`,
+                )
+                .join(', ')}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+</Wide>
+
+## 예제
+
+예제의 `console.log`는 값을 출력하는 호스트 API이며 ECMAScript 언어의 일부가 아닙니다. 모든 예제는 테스트가 Chromium에서 실제로 열어 얻은 출력이고, 타이머 같은 지연은 쓰지 않습니다.
+
+### 예제 1: value를 바꾼 뒤 어트리뷰트를 바꾼다
+
+`value`, `getAttribute('value')`, `defaultValue`를 배열로 묶어 단계마다 출력합니다. 값을 대입한 뒤에 어트리뷰트를 바꿉니다.
+
+```html file=./examples/value-dirty.html
+
+```
+
+<PredictQuiz
+  question="예제 1의 마지막 줄(setAttribute 뒤)에서 배열의 첫 번째 값, 즉 nick.value는 무엇일까요?"
+  choices={['영희', '철수', '손님', '빈 문자열']}
+  answer={1}
+  explanation="nick.value = '철수'가 dirty value flag를 true로 만들었기 때문에, 이후 value 어트리뷰트를 바꿔도 요소의 값은 따라 바뀌지 않아 철수입니다. 어트리뷰트와 defaultValue만 영희가 됩니다."
+/>
+
+<PredictQuiz
+  question="예제 1의 'value 대입' 줄에서 getAttribute('value')는 무엇일까요?"
+  choices={['철수', '손님', 'null', '영희']}
+  answer={1}
+  explanation="value 프로퍼티에 값을 대입해도 value 어트리뷰트는 바뀌지 않습니다. 이 줄은 [철수, 손님, 손님]이고 가운데가 어트리뷰트입니다."
+/>
+
+### 예제 2: 값을 바꾸기 전에 어트리뷰트를 바꾼다
+
+예제 1과 같은 입력칸에서 value를 대입하지 않고 어트리뷰트와 `defaultValue`만 바꿉니다.
+
+```html file=./examples/value-clean.html
+
+```
+
+<PredictQuiz
+  question="예제 2의 마지막 줄(removeAttribute 뒤)은 무엇일까요?"
+  choices={[
+    'removeAttribute ["영희","영희","영희"]',
+    'removeAttribute ["민수","null","민수"]',
+    'removeAttribute ["",null,""]',
+    'removeAttribute ["민수",null,"민수"]',
+  ]}
+  answer={2}
+  explanation="value를 대입한 적이 없어 dirty value flag가 false이므로, value 어트리뷰트가 지워지면 요소의 값은 빈 문자열이 됩니다. getAttribute는 어트리뷰트가 없으니 null이고 defaultValue는 빈 문자열입니다."
+/>
+
+### 예제 3: checked와 defaultChecked, 체크박스의 value
+
+`checked` 어트리뷰트가 있는 체크박스에서 `checked`, `defaultChecked`, `hasAttribute('checked')`를 단계마다 찍고, 마지막에 체크박스의 `value`를 봅니다.
+
+```html file=./examples/checked.html
+
+```
+
+<PredictQuiz
+  question="예제 3의 '어트리뷰트 다시 추가' 줄은 무엇일까요? (checked defaultChecked hasAttribute 순서)"
+  choices={[
+    '어트리뷰트 다시 추가 true true true',
+    '어트리뷰트 다시 추가 false true true',
+    '어트리뷰트 다시 추가 false false true',
+    '어트리뷰트 다시 추가 true false false',
+  ]}
+  answer={1}
+  explanation="checked를 false로 대입한 시점에 dirty checkedness가 true가 되었으므로, 어트리뷰트를 지웠다 다시 넣어도 checked는 false로 남습니다. defaultChecked와 hasAttribute는 어트리뷰트를 따라 true입니다."
+/>
+
+### 예제 4: form.reset() 뒤의 값
+
+값과 체크 상태를 스크립트로 바꾼 뒤 `form.reset()`을 호출하고, 다시 어트리뷰트를 바꿉니다.
+
+```html file=./examples/reset.html
+
+```
+
+<PredictQuiz
+  question="예제 4의 마지막 줄은 무엇일까요?"
+  choices={['영희', '손님', '철수', '빈 문자열']}
+  answer={0}
+  explanation="reset이 dirty value flag를 false로 되돌렸으므로, 그 뒤 setAttribute('value', '영희')는 다시 요소의 값을 바꿉니다."
+/>
+
+### 예제 5: id, className, htmlFor는 어트리뷰트를 반영한다
+
+`label`의 `id`, `class`, `for`를 프로퍼티로 읽고 쓰고, 어트리뷰트 쪽에서도 확인합니다.
+
+```html file=./examples/reflect.html
+
+```
+
+<PredictQuiz
+  question="예제 5의 마지막 줄 typeof tag.class, typeof tag.for는 무엇일까요?"
+  choices={['string string', 'undefined undefined', 'string undefined', 'object object']}
+  answer={1}
+  explanation="label 요소에는 class나 for라는 이름의 DOM 프로퍼티가 없습니다. 어트리뷰트 class와 for는 className과 htmlFor 프로퍼티로 반영되므로, tag.class와 tag.for는 undefined입니다."
+/>
+
+### 예제 6: 반영하면서 타입이 바뀐다
+
+`disabled`, `maxlength`, `href` 어트리뷰트를 프로퍼티와 `getAttribute`로 읽습니다.
+
+```html file=./examples/types.html
+
+```
+
+<PredictQuiz
+  question="예제 6의 첫 줄에서 disabled='false'로 적은 버튼의 send.disabled는 무엇일까요?"
+  choices={['false', 'true', 'null', '문자열 false']}
+  answer={1}
+  explanation="불리언 프로퍼티는 어트리뷰트가 있으면 값과 상관없이 true입니다. 첫 줄의 앞쪽 값이 send.disabled이고, 뒤쪽은 getAttribute가 돌려준 문자열 false입니다."
+/>
+
+<PredictQuiz
+  question="예제 6에서 maxlength를 '넷'으로 바꾼 뒤 code.maxLength를 출력하면?"
+  choices={['0', '4', 'NaN', '-1']}
+  answer={3}
+  explanation="maxLength는 음이 아닌 정수로 해석하는 반영 프로퍼티이고, 정수로 읽을 수 없으면 -1을 돌려줍니다."
+/>
+
+### 예제 7: 어트리뷰트가 없을 때
+
+`id` 말고는 어트리뷰트가 없는 `input`과 `a`에서 `getAttribute`와 프로퍼티를 비교합니다.
+
+```html file=./examples/missing.html
+
+```
+
+<PredictQuiz
+  question="예제 7의 세 번째 줄에서 maxlength 어트리뷰트가 없는 입력칸의 getAttribute('maxlength')와 maxLength는?"
+  choices={['null -1', '"" 0', 'null 0', 'undefined -1']}
+  answer={0}
+  explanation="getAttribute는 어트리뷰트가 없으면 null이고, 음이 아닌 정수를 반영하는 maxLength는 어트리뷰트가 없을 때 -1입니다."
+/>
+
+### 예제 8: attributes와 어트리뷰트 이름의 대소문자
+
+`attributes`로 어트리뷰트 목록을 읽고, 대소문자를 섞은 이름으로 읽고 쓰고 지웁니다.
+
+```html file=./examples/attributes.html
+
+```
+
+<PredictQuiz
+  question="예제 8의 두 번째 줄 getAttribute('VALUE'), hasAttribute('Required')는?"
+  choices={['null false', '손님 true', '손님 false', 'null true']}
+  answer={1}
+  explanation="HTML 문서 안의 HTML 요소에서는 이름을 ASCII 소문자로 바꿔 어트리뷰트를 찾으므로 VALUE는 value, Required는 required를 찾습니다."
+/>
+
+<PredictQuiz
+  question="예제 8에서 처음에 받아 둔 attrs의 length는 placeholder를 더한 세 번째 줄에서 얼마일까요?"
+  choices={['4', '5', '0', '1']}
+  answer={1}
+  explanation="NamedNodeMap의 어트리뷰트 목록은 요소의 어트리뷰트 목록 자체라서, 미리 받아 둔 attrs도 placeholder가 더해진 뒤 5를 돌려줍니다. required를 지운 마지막 줄에서는 다시 4입니다."
+/>
+
+### 예제 9: data-\*와 dataset
+
+`data-item-id`, `data-in-stock`을 `dataset`으로 읽고, `dataset`으로 새 값을 쓰고 지웁니다.
+
+```html file=./examples/dataset.html
+
+```
+
+<PredictQuiz
+  question="예제 9의 두 번째 줄 card.dataset.inStock과 Boolean(card.dataset.inStock)은?"
+  choices={['false false', 'false true', 'true true', 'undefined false']}
+  answer={1}
+  explanation="dataset의 값은 어트리뷰트의 문자열이라 inStock은 문자열 false이고, 비어 있지 않은 문자열은 Boolean으로 바꾸면 true입니다."
+/>
+
+### 예제 10: 프로토타입의 접근자 프로퍼티
+
+`HTMLInputElement.prototype`의 `value`와 `Element.prototype`의 `id` 프로퍼티 디스크립터를 확인합니다.
+
+```html file=./examples/accessor.html
+
+```
+
+<PredictQuiz
+  question="예제 10의 두 번째 줄 hasOwnProperty.call(nick, 'value')와 'value' in nick은?"
+  choices={['true true', 'true false', 'false true', 'false false']}
+  answer={2}
+  explanation="value 접근자는 HTMLInputElement.prototype에 있어 nick의 own 프로퍼티는 아니지만, 프로토타입 체인에 있으므로 in 연산자는 true입니다."
+/>
+
+### 예제 11: 비표준 어트리뷰트
+
+`color`와 `size`는 표준 IDL에 없는 이름이고, `title`은 있는 이름입니다.
+
+```html file=./examples/custom.html
+
+```
+
+<PredictQuiz
+  question="예제 11의 두 번째 줄 box.size, hasAttribute('size'), getAttribute('size')는?"
+  choices={['big true big', 'big false null', 'undefined false null', 'big true null']}
+  answer={1}
+  explanation="box.size = 'big'은 box 객체에 평범한 자바스크립트 프로퍼티를 만들 뿐 size 어트리뷰트를 만들지 않으므로 big false null입니다."
+/>
+
+## 결과와 이유
+
+### 예제 1
+
+두 번째 줄 `value 대입 ["철수","손님","손님"]`은 `value` 프로퍼티를 대입한 결과로, 요소의 값은 `"철수"`이지만 어트리뷰트와 `defaultValue`는 `"손님"`입니다. 이 대입이 dirty value flag를 true로 만들었기 때문에, 세 번째 줄 `setAttribute ["철수","영희","영희"]`에서도 어트리뷰트를 `"영희"`로 바꿨을 때 요소의 값은 `"철수"`로 남습니다. `defaultValue`는 반영 프로퍼티라서 어트리뷰트를 따라 `"영희"`입니다.
+
+### 예제 2
+
+값을 대입한 적이 없으므로 dirty value flag가 false이고, 세 줄 모두 요소의 값이 기본값을 따릅니다. `setAttribute`로 `"영희"`, `defaultValue` 대입으로 `"민수"`(`defaultValue`가 `value` 어트리뷰트를 바꾸므로 셋이 함께 바뀝니다)가 되고, `removeAttribute` 뒤에는 `["",null,""]`입니다. 어트리뷰트가 없어서 `getAttribute`는 `null`, 값은 빈 문자열입니다.
+
+### 예제 3
+
+`checked 대입 false true true`는 `checked` 프로퍼티만 `false`이고 `defaultChecked`와 어트리뷰트 유무는 그대로라는 뜻입니다. 이 대입이 dirty checkedness flag를 true로 만들었으므로 `어트리뷰트 다시 추가 false true true`처럼 어트리뷰트를 지웠다 다시 추가해도 `checked`는 `false`로 남습니다. `on null`은 체크박스의 `value`가 default/on 모드라서 어트리뷰트가 없으면 `"on"`을 돌려주고 `getAttribute('value')`는 `null`이라는 뜻이고, 마지막 줄 `동의 동의`는 `value`를 대입하면 `value` 어트리뷰트가 바뀐다는 뜻입니다. 텍스트 입력의 `value`와 달리 어트리뷰트와 프로퍼티가 갈라지지 않습니다.
+
+### 예제 4
+
+`철수 true`는 스크립트로 바꾼 값과 체크 상태이고, `form.reset()` 뒤 `손님 false`는 reset 알고리즘이 어트리뷰트를 기준으로 값과 체크 상태를 정했기 때문입니다. 값은 `value` 어트리뷰트 `"손님"`, 체크 상태는 `checked` 어트리뷰트가 없으므로 `false`입니다. 마지막 줄 `영희`는 reset이 dirty value flag를 false로 되돌려서 `setAttribute('value', '영희')`가 다시 요소의 값에 반영된 결과입니다.
+
+### 예제 5
+
+`tag hint nick`은 `id`, `className`, `htmlFor`가 어트리뷰트 `id`, `class`, `for`의 값을 그대로 돌려준 것입니다. 두 번째 줄 `hint error email`은 프로퍼티에 쓴 값이 곧바로 `getAttribute('class')`, `getAttribute('for')`에서 읽힌다는 뜻입니다. 세 번째 줄 `nick-label`은 반대 방향, 즉 `setAttribute('id', ...)`가 `id` 프로퍼티에서 보인다는 뜻입니다. 마지막 줄 `undefined undefined`는 `class`와 `for`라는 이름의 프로퍼티가 없다는 뜻입니다.
+
+### 예제 6
+
+`true "false"`는 `disabled="false"`가 어트리뷰트가 있는 것으로 읽혀 `disabled`가 `true`라는 뜻입니다. 어트리뷰트의 값 `"false"`는 프로퍼티의 불리언 getter가 보지 않습니다. `false`는 `disabled = false`가 어트리뷰트를 지웠다는 뜻이고, `""`는 `disabled = true`가 어트리뷰트를 빈 문자열 값으로 만들었다는 뜻입니다. `number 4 string`은 `maxLength`는 숫자, `getAttribute`는 문자열이라는 뜻입니다. `-1`은 `'넷'`을 정수로 읽을 수 없어서 `maxLength`가 -1이 된 것이고, 마지막 줄 `help.html http://example.test/help.html`은 `getAttribute('href')`는 쓴 그대로, `href` 프로퍼티는 예제를 연 주소를 기준으로 해석한 절대 URL이라는 뜻입니다.
+
+### 예제 7
+
+네 줄 모두 첫 값이 `null`입니다. `getAttribute`는 어트리뷰트가 없으면 `null`을 돌려줍니다. 프로퍼티 쪽은 타입마다 다릅니다. 첫 줄의 `false ""`는 `hasAttribute('class')`가 `false`이고 `className`이 빈 문자열이라는 뜻입니다. `null false`는 `disabled`가 `false`, `null -1`은 `maxLength`가 `-1`, `null ""`은 `href`가 빈 문자열입니다.
+
+### 예제 8
+
+첫 줄 `4 [...]`은 `attributes`에 `id`, `type`, `value`, `required` 네 개가 있고 `required`의 값은 빈 문자열이라는 뜻입니다. 두 번째 줄 `손님 true`는 `getAttribute('VALUE')`와 `hasAttribute('Required')`가 이름을 소문자로 바꿔 찾아낸다는 뜻입니다. 세 번째 줄은 `setAttribute('Placeholder', '이름')`이 소문자 `placeholder`로 저장되어 목록 끝에 붙었고, 처음에 받아 둔 `attrs`의 `length`도 5가 되었다는 뜻입니다. 마지막 줄 `4 false`는 `required`를 지운 뒤 같은 `attrs`의 `length`가 4로 줄고 `required` 프로퍼티가 `false`라는 뜻입니다. `NamedNodeMap`의 어트리뷰트 목록이 요소의 어트리뷰트 목록 자체이기 때문입니다.
+
+### 예제 9
+
+`42 string`은 `dataset.itemId`가 숫자가 아닌 문자열 `"42"`라는 뜻이고, `false true`는 `dataset.inStock`이 문자열 `"false"`여서 `Boolean`으로는 `true`가 된다는 뜻입니다. `오늘`은 `dataset.lastSeen`에 쓴 값이 `data-last-seen` 어트리뷰트에 들어갔다는 뜻이고, 네 번째 줄은 키가 카멜 케이스 이름으로 나타난다는 뜻입니다. 마지막 줄 `false undefined`는 `delete`가 `data-in-stock` 어트리뷰트를 지웠고 키도 `undefined`가 되었다는 뜻입니다.
+
+### 예제 10
+
+`function function false`는 `HTMLInputElement.prototype`의 `value`가 `get`, `set` 함수를 가진 접근자 프로퍼티라서 디스크립터에 `value` 항목이 없다는 뜻입니다. `false true`는 `nick`이 `value`를 자기 프로퍼티로 갖지는 않지만 프로토타입 체인을 통해 `in`으로는 보인다는 뜻입니다. 마지막 줄 `function true true`는 `Element.prototype`의 `id`도 `get` 함수가 있는 접근자 프로퍼티이며 `enumerable`과 `configurable`이 `true`라는 뜻입니다.
+
+### 예제 11
+
+`red undefined`는 `color` 어트리뷰트가 있어도 같은 이름의 프로퍼티는 생기지 않는다는 뜻입니다. `big false null`은 `box.size = 'big'`이 `box` 객체의 평범한 프로퍼티일 뿐 `size` 어트리뷰트를 만들지 않았다는 뜻입니다. `안내`는 표준 어트리뷰트인 `title`에 쓴 값이 어트리뷰트에 반영되었다는 뜻입니다.
+
+### 흔한 오해
+
+<Callout type="misconception" title="어트리뷰트는 초기값이고 프로퍼티는 현재값이다">
+
+이 페이지에서 본 것 중에 이 말이 맞는 것은 dirty 플래그를 가진 텍스트 입력류의 `value`와 체크박스의 `checked`입니다(예제 1~4). `option`의 `selected` 어트리뷰트와 `selected` 프로퍼티도 dirtiness를 두는, `checked`와 같은 구조입니다. `textarea`도 dirty value flag를 갖지만 기본값(`defaultValue`)은 어트리뷰트가 아니라 자식 텍스트에서 옵니다(둘 다 이 페이지에서는 다루지 않습니다). 반면 `id`, `className`, `htmlFor`, `disabled`, `maxLength`처럼 어트리뷰트와 짝을 이루는 프로퍼티는 대부분 그 어트리뷰트를 반영하고, `href`(읽기)와 체크박스의 `value`, `dataset`도 어트리뷰트를 직접 읽으므로 따로 보관하는 현재 값이 없습니다(예제 3, 5, 6, 9). 프로퍼티마다 표준이 정한 규칙을 확인해야 합니다.
+
+</Callout>
+
+<Callout type="misconception" title="setAttribute('value', ...)로 입력값을 바꿀 수 있다">
+
+dirty value flag가 true가 되면 어트리뷰트를 바꿔도 요소의 값은 바뀌지 않습니다(예제 1). 값을 바꾸려면 `value` 프로퍼티에 대입합니다. 어트리뷰트를 바꾸는 것은 입력칸의 기본값을 바꾸는 일이고, 값을 바꾼 적이 없거나 `form.reset()`으로 되돌렸을 때만 입력값에 영향을 줍니다(예제 2, 4).
+
+</Callout>
+
+<Callout type="misconception" title="disabled='false'면 버튼이 켜진다">
+
+불리언 어트리뷰트는 값이 아니라 있는지 여부가 의미를 정합니다. `disabled="false"`도 `disabled` 프로퍼티는 `true`입니다(예제 6). 표준은 불리언 어트리뷰트에 `"true"`와 `"false"` 같은 값을 쓰지 못하게 하고, 끄려면 어트리뷰트를 없애라고 합니다. 스크립트에서는 `disabled = false`로 어트리뷰트를 지웁니다.
+
+</Callout>
+
+<Callout type="misconception" title="dataset 값은 숫자나 불리언으로 바뀐다">
+
+`dataset`의 값은 어트리뷰트 값 그대로 항상 문자열입니다(예제 9). `data-item-id="42"`는 숫자 `42`가 아니라 `"42"`이고, `data-in-stock="false"`는 불리언 `false`가 아니라 `"false"`라서 `Boolean`에 넘기면 `true`입니다. 필요하면 직접 변환해야 합니다.
+
+</Callout>
+
+<Callout type="misconception" title="아무 프로퍼티나 넣으면 어트리뷰트가 된다">
+
+`box.size = 'big'`처럼 요소에 임의의 프로퍼티를 넣으면 그 객체의 자바스크립트 프로퍼티일 뿐 어트리뷰트는 생기지 않습니다(예제 11). 반대로 HTML에 적은 비표준 어트리뷰트 `color`도 프로퍼티가 되지 않습니다. 어트리뷰트는 `setAttribute`나 반영되는 표준 프로퍼티(`title` 등), `dataset`으로 다룹니다.
+
+</Callout>

@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<div id="box" color="red">상자</div>
+<script>
+var box = document.getElementById('box');
+console.log(box.getAttribute('color'), typeof box.color);
+box.size = 'big';
+console.log(box.size, box.hasAttribute('size'), box.getAttribute('size'));
+box.title = '안내';
+console.log(box.getAttribute('title'));
+</script>
+</body>
+</html>

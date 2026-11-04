@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<input id="nick" value="손님">
+<script>
+var nick = document.getElementById('nick');
+var desc = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+console.log(typeof desc.get, typeof desc.set, 'value' in desc);
+console.log(Object.prototype.hasOwnProperty.call(nick, 'value'), 'value' in nick);
+var idDesc = Object.getOwnPropertyDescriptor(Element.prototype, 'id');
+console.log(typeof idDesc.get, idDesc.enumerable, idDesc.configurable);
+</script>
+</body>
+</html>

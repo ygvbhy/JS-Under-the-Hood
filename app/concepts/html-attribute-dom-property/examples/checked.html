@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<input id="agree" type="checkbox" checked>
+<script>
+var agree = document.getElementById('agree');
+function show(label) {
+  console.log(label, agree.checked, agree.defaultChecked, agree.hasAttribute('checked'));
+}
+show('처음');
+agree.checked = false;
+show('checked 대입');
+agree.removeAttribute('checked');
+agree.setAttribute('checked', '');
+show('어트리뷰트 다시 추가');
+console.log(agree.value, agree.getAttribute('value'));
+agree.value = '동의';
+console.log(agree.value, agree.getAttribute('value'));
+</script>
+</body>
+</html>

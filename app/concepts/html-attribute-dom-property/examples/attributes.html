@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<input id="nick" type="text" value="손님" required>
+<script>
+var nick = document.getElementById('nick');
+var attrs = nick.attributes;
+console.log(attrs.length, JSON.stringify(Array.from(attrs, function (a) { return a.name + '=' + a.value; })));
+console.log(nick.getAttribute('VALUE'), nick.hasAttribute('Required'));
+nick.setAttribute('Placeholder', '이름');
+console.log(attrs.length, JSON.stringify(nick.getAttributeNames()));
+nick.removeAttribute('required');
+console.log(attrs.length, nick.required);
+</script>
+</body>
+</html>

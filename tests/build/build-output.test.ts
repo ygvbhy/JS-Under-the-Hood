@@ -1060,6 +1060,22 @@ describe('시뮬레이터 프리렌더 (live-html-collection)', () => {
   })
 })
 
+// 38~42장 로드맵 4번(html-attribute-dom-property): 어트리뷰트·프로퍼티 대응 표와 퀴즈가 프리렌더 HTML에 정적으로 있어야 한다.
+describe('프리렌더 (html-attribute-dom-property)', () => {
+  const html = read('concepts/html-attribute-dom-property/index.html')
+  const text = htmlToText(html)
+
+  it('어트리뷰트·프로퍼티 대응 표 region이 HTML에 있다', () => {
+    expect(html).toContain('aria-label="어트리뷰트마다 대응하는 DOM 프로퍼티')
+    expect(text).toContain('defaultValue')
+    expect(text).toContain('htmlFor')
+  })
+
+  it('퀴즈 정답이 <details>로 10개 이상 프리렌더된다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(10)
+  })
+})
+
 // 학습 순서 이전/다음: 관련 개념 링크와 섞이지 않도록 nav 영역만 잘라 검사한다.
 describe('학습 순서 pager', () => {
   const ordered = sortByOrder(concepts)

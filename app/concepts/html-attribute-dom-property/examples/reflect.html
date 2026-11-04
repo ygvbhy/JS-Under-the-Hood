@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<label id="tag" class="hint" for="nick">닉네임</label>
+<input id="nick">
+<script>
+var tag = document.getElementById('tag');
+console.log(tag.id, tag.className, tag.htmlFor);
+tag.className = 'hint error';
+tag.htmlFor = 'email';
+console.log(tag.getAttribute('class'), tag.getAttribute('for'));
+tag.setAttribute('id', 'nick-label');
+console.log(tag.id);
+console.log(typeof tag.class, typeof tag.for);
+</script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<button id="send" disabled="false">보내기</button>
+<input id="code" maxlength="4">
+<a id="help" href="help.html">도움말</a>
+<script>
+var send = document.getElementById('send');
+var code = document.getElementById('code');
+var help = document.getElementById('help');
+console.log(send.disabled, JSON.stringify(send.getAttribute('disabled')));
+send.disabled = false;
+console.log(send.hasAttribute('disabled'));
+send.disabled = true;
+console.log(JSON.stringify(send.getAttribute('disabled')));
+console.log(typeof code.maxLength, code.maxLength, typeof code.getAttribute('maxlength'));
+code.setAttribute('maxlength', '넷');
+console.log(code.maxLength);
+console.log(help.getAttribute('href'), help.href);
+</script>
+</body>
+</html>

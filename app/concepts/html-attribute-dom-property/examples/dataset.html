@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<div id="card" data-item-id="42" data-in-stock="false">사과</div>
+<script>
+var card = document.getElementById('card');
+console.log(card.dataset.itemId, typeof card.dataset.itemId);
+console.log(card.dataset.inStock, Boolean(card.dataset.inStock));
+card.dataset.lastSeen = '오늘';
+console.log(card.getAttribute('data-last-seen'));
+console.log(JSON.stringify(Object.keys(card.dataset)));
+delete card.dataset.inStock;
+console.log(card.hasAttribute('data-in-stock'), card.dataset.inStock);
+</script>
+</body>
+</html>
