@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<script>
+setTimeout(function (a, b) {
+  console.log('인수 ' + a + ' ' + b);
+}, 0, 'x', 'y');
+function strictDirect() {
+  'use strict';
+  console.log('strict 직접 호출 this ' + this);
+}
+strictDirect();
+setTimeout(function () {
+  'use strict';
+  console.log('strict 콜백 this는 window ' + (this === window));
+}, 0);
+var user = {
+  nick: 'kim',
+  hello: function () {
+    console.log('hello ' + this.nick);
+  }
+};
+setTimeout(user.hello, 0);
+setTimeout(function () {
+  user.hello();
+}, 0);
+setTimeout(user.hello.bind(user), 0);
+</script>
+</body>
+</html>

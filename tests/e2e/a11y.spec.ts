@@ -59,6 +59,7 @@ import {
   EVENT_PROPAGATION_DELEGATION_PATH,
   EVENT_PROPAGATION_DELEGATION_SIMULATOR_NAME,
   PREVENT_DEFAULT_STOP_PROPAGATION_PATH,
+  TIMERS_PATH,
   SCRIPT_ASYNC_DEFER_PATH,
   SET_MAP_PATH,
   SPREAD_DESTRUCTURING_PATH,
@@ -868,6 +869,13 @@ for (const colorScheme of ['light', 'dark'] as const) {
 
     test('개념 페이지: 기본 동작과 전파 막기', async ({ page }) => {
       await page.goto(PREVENT_DEFAULT_STOP_PROPAGATION_PATH)
+      await waitForHydration(page)
+      await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
+      await expectNoSeriousViolations(page)
+    })
+
+    test('개념 페이지: 타이머', async ({ page }) => {
+      await page.goto(TIMERS_PATH)
       await waitForHydration(page)
       await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
       await expectNoSeriousViolations(page)

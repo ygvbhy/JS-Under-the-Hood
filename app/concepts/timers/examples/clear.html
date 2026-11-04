@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<script>
+var a = setTimeout(function () { console.log('a 실행'); }, 0);
+var b = setTimeout(function () { console.log('b 실행'); }, 0);
+console.log('id ' + typeof a + ' ' + (a > 0) + ' ' + (a !== b));
+clearTimeout(a);
+var c;
+setTimeout(function () {
+  clearTimeout(c);
+  console.log('d가 c를 지움');
+}, 0);
+c = setTimeout(function () { console.log('c 실행'); }, 50);
+clearTimeout(0);
+clearTimeout(-1);
+console.log('없는 id를 지워도 오류 없음');
+</script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<script>
+function debounce(fn, ms) {
+  var timer;
+  return function (value) {
+    clearTimeout(timer);
+    timer = setTimeout(function () {
+      fn(value);
+    }, ms);
+  };
+}
+var calls = 0;
+var save = debounce(function (value) {
+  calls++;
+  console.log('저장 ' + value + ' ' + calls + '번째');
+}, 50);
+for (var i = 1; i <= 5; i++) {
+  save('초안' + i);
+}
+console.log('반복 끝');
+setTimeout(function () {
+  save('최종');
+}, 120);
+</script>
+</body>
+</html>

@@ -1,0 +1,422 @@
+import { rows, columns } from './case-table'
+
+`setTimeout(fn, 0)`은 '0ms 뒤에 실행하라'는 뜻으로 보이는데, 바로 다음 줄의 `console.log`보다 늦게 실행되는 이유는 무엇일까요? 이 페이지는 이 질문에서 출발해 타이머 콜백이 언제, 어떤 순서로, 어떤 `this`와 인수로 실행되는지 확인합니다. 이어서 `clearTimeout`과 `clearInterval`이 같은 id 목록을 지우는 이유, 지연 값이 변환되는 규칙과 아주 큰 지연 값이 곧바로 실행되는 이유, 그리고 `clearTimeout`으로 만드는 디바운스를 하나씩 살펴봅니다. 타이머는 ECMAScript가 아니라 호스트(브라우저)가 제공하는 API이고, 규칙은 WHATWG HTML 표준이 정합니다. 지연 값 변환은 HTML 표준이 쓰는 Web IDL 규칙을 따릅니다. 예제의 출력은 모두 테스트가 Chromium에서 실제로 열어 `console.log` 출력을 모은 값이며, 다른 브라우저는 이 페이지에서 확인하지 않았습니다. 이 페이지는 [this 바인딩](/concepts/this-binding)에서 본 `this`의 결정 방식과 [클로저](/concepts/closure)에서 본 함수가 바깥 변수를 기억하는 방식을 전제합니다.
+
+## 동작 원리
+
+### 타이머는 콜백을 태스크로 예약한다
+
+`setTimeout`은 콜백을 지금 부르지 않고 '나중에 실행할 일'로 예약합니다. HTML 표준의 timer initialization steps는 예약한 일을 이렇게 정합니다.
+
+> Let completionStep be an algorithm step which queues a global task on the timer task source given global to run task.
+
+지연이 끝나면 콜백을 실행하는 일이 태스크(task)로 큐에 들어갑니다. 그 태스크는 지금 실행 중인 스크립트가 끝나야 실행될 수 있습니다. 그래서 지연이 `0`이어도 같은 스크립트의 다음 줄들이 먼저 실행되고, 예제 1에서 `타이머 0ms`는 `스크립트 끝` 뒤에 나옵니다. 큐가 태스크를 어떤 순서로 고르는지 등 이벤트 루프의 자세한 규칙은 이 페이지에서 다루지 않고 이벤트 루프를 다루는 별도 개념(작성 예정)으로 남겨 둡니다. 이 페이지는 '콜백은 태스크로 큐에 들어가 지금 실행 중인 코드가 끝난 뒤 실행된다'까지만 사용합니다.
+
+### 동기 코드가 길면 늦어진다
+
+지연 값은 '정확히 이때 실행한다'는 약속이 아닙니다. 표준은 `setTimeout`의 note에서 이렇게 밝힙니다.
+
+> This API does not guarantee that timers will run exactly on schedule. Delays due to CPU load, other tasks, etc, are to be expected.
+
+예제 2는 10ms 타이머를 예약한 뒤 `while` 문으로 50ms 동안 스크립트를 붙잡아 둡니다. 스크립트가 끝나기 전에는 태스크가 실행될 수 없으므로 타이머 콜백은 50ms가 지난 뒤에야 실행됩니다. 출력의 두 줄은 모두 '50ms 이상 지남 `true`'이고, 이 페이지는 정확한 밀리초 값이 아니라 이 하한만 확인합니다. 지연 값은 '최소한 이만큼 기다린다'는 뜻입니다.
+
+### 먼저 등록했고 지연이 같거나 짧으면 먼저 실행된다
+
+타이머를 실행하는 run steps after a timeout은 실행 전에 이렇게 기다리라고 정합니다.
+
+> Wait until any invocations of this algorithm that had the same global and orderingIdentifier, that started before this one, and whose milliseconds is less than or equal to this one's, have completed.
+
+orderingIdentifier는 같은 순서 규칙을 적용할 호출을 묶는 이름인데, `setTimeout`과 `setInterval`은 둘 다 `"setTimeout/setInterval"`을 넘기므로 이 규칙은 두 메서드에 함께 적용됩니다. 같은 전역 객체에서 먼저 시작했고 지연이 같거나 짧은 타이머의 이 알고리즘이 모두 끝나야, 즉 그 타이머들의 콜백 태스크가 먼저 큐에 들어가야 이 타이머도 콜백 태스크를 큐에 넣는다는 뜻입니다. 같은 타이머 태스크 소스의 태스크는 큐에 들어간 순서대로 실행됩니다(큐에서 태스크를 고르는 규칙은 이벤트 루프 개념의 몫입니다). 그래서 예제 3에서 지연이 모두 50ms인 `a`, `b`, `d`는 등록한 순서대로 `a 50ms`, `b 50ms`, `d 50ms`가 나옵니다. 지연이 달라도 같은 규칙이 적용됩니다. `d`(50ms)는 `c`(0ms)보다 나중에 등록했고 지연이 더 길므로 `c 0ms`가 `d 50ms`보다 먼저인 것도 표준이 보장합니다.
+
+그런데 예제 3의 출력은 `c 0ms`로 시작합니다. `c`는 `a`와 `b` 뒤에 등록했지만 지연이 0입니다. 위 단계는 먼저 등록했고 지연이 같거나 짧은 타이머를 기다리게 할 뿐인데, `a`와 `b`는 `c`보다 먼저 등록했지만 지연이 더 깁니다. 그래서 이 단계는 `c`가 `a`·`b`보다 먼저 실행되어야 한다거나 나중에 실행되어야 한다고 정하지 않습니다. 같은 알고리즘에는 이런 단계도 있습니다.
+
+> Optionally, wait a further implementation-defined length of time.
+
+그래서 `c 0ms`가 먼저 나온 것은 이 페이지가 Chromium에서 관찰한 결과이지 표준이 보장하는 순서가 아닙니다. 보장이 없는 경우는 나중에 등록한 타이머의 지연이 더 짧을 때뿐입니다. 이 경우의 순서에 기대는 코드는 다른 환경에서 다르게 동작할 수 있습니다.
+
+### 타이머 id와 clearTimeout
+
+`setTimeout`이 돌려주는 값은 타이머 id입니다. 브라우저에서 이 값은 숫자이고, 표준은 id를 이렇게 정합니다.
+
+> an implementation-defined integer that is greater than zero and does not already exist in global's map of setTimeout and setInterval IDs
+
+0보다 큰 정수이면서 전역 객체가 가진 '`setTimeout`과 `setInterval`의 id 맵'에 아직 없는 값입니다. 예제 4의 첫 줄 `id number true true`는 id의 타입이 `number`, 0보다 크고, 두 타이머의 id가 서로 다르다는 뜻입니다. 정확한 숫자는 구현이 정하므로 출력하지 않았습니다.
+
+`clearTimeout(id)`는 기다리고 있는 지연이나 태스크를 직접 취소하지 않고, 이 맵에서 해당 id만 지웁니다. 지연이 끝나 큐에 들어간 태스크는 실행을 시작할 때 맵을 확인합니다. 그래서 `clearTimeout`을 지연이 끝나기 전에 부르든, 태스크가 큐에 들어간 뒤 부르든 결과가 같습니다.
+
+> If id does not exist in global's map of setTimeout and setInterval IDs, then abort these steps.
+
+id가 맵에 없으면 콜백을 부르지 않고 중단합니다. 그래서 예제 4에서 `clearTimeout(a)`를 부른 `a`는 `a 실행`이 나오지 않고 `b 실행`만 나옵니다. 아직 실행되지 않은 타이머는 다른 타이머의 콜백 안에서도 지울 수 있습니다. 예제 4는 0ms 타이머 `d`를 50ms 타이머 `c`보다 먼저 등록하므로, 앞의 순서 규칙에 따라 `d`가 먼저 실행된다는 것을 표준이 보장합니다. `d`의 콜백이 `c`를 지워서 `c 실행`은 나오지 않고 `d가 c를 지움`만 나옵니다. `c`라는 변수는 `d`를 등록한 다음 줄에서 대입되지만, `d`의 콜백은 스크립트가 끝난 뒤 실행되므로 그때는 이미 id가 들어 있습니다. id는 0보다 큰 정수이므로 `clearTimeout(0)`이나 `clearTimeout(-1)`은 맵에서 지울 항목이 없고, 오류도 나지 않습니다(`없는 id를 지워도 오류 없음`).
+
+Node에서는 반환값이 다릅니다. Node 공식 문서에 따르면 `setTimeout`은 숫자 대신 `Timeout` 객체를 돌려주고, 그 값을 `clearTimeout()`에 넘겨 지웁니다. 이 내용은 호스트마다 다른 부분이고, 이 페이지는 Node를 실행으로 확인하지 않았습니다.
+
+### setInterval과 clear는 같은 맵을 쓴다
+
+`setInterval`로 만든 타이머도 같은 id 맵에 들어갑니다. 표준은 두 clear 메서드를 같은 단계로 정의합니다.
+
+> The clearTimeout(id) and clearInterval(id) method steps are to remove this's map of setTimeout and setInterval IDs[id].
+
+그리고 note로 이렇게 덧붙입니다.
+
+> Because clearTimeout() and clearInterval() clear entries from the same map, either method can be used to clear timers created by setTimeout() or setInterval().
+
+그래서 예제 5에서 `clearInterval(once)`로 `setTimeout`이 만든 타이머를 지울 수 있고(`once 실행`은 나오지 않습니다), 반대로 세 번째 콜백 안에서 `clearTimeout(id)`로 `setInterval`이 만든 반복을 멈출 수 있습니다(`tick 1`부터 `tick 3`까지만 나옵니다).
+
+반복 타이머가 같은 id로 멈추는 이유는 콜백이 실행된 뒤 같은 id로 다시 예약되기 때문입니다. 표준은 timer initialization steps를 반복할 때 이렇게 씁니다.
+
+> If repeat is true, then perform the timer initialization steps again, given global, handler, timeout, arguments, true, and id.
+
+새 id를 만들지 않고 처음 받은 `id`를 다시 쓰므로 몇 번째 실행에서든 처음 받은 id 하나로 멈출 수 있습니다. 다음 실행까지의 실제 간격은 이 페이지에서 다루지 않습니다.
+
+타이머 콜백 안에서 만든 타이머에는 지연 하한이 하나 붙습니다. 타이머 콜백 안에서 다시 예약할 때마다(`setInterval`의 반복은 그 한 경우입니다) 중첩 단계(nesting level)가 1씩 올라가고, timer initialization steps는 이렇게 정합니다.
+
+> If nestingLevel is greater than 5, and timeout is less than 4, then set timeout to 4.
+
+중첩 단계가 5를 넘으면 4ms보다 짧은 지연은 4ms로 올라갑니다. 예제 5의 지연은 10ms이고 예제 8은 50ms라서 이 단계에 걸리지 않습니다. 이 페이지는 4ms로 올라가는 경우를 실행으로 확인하지 않았습니다.
+
+### 추가 인수와 this
+
+`setTimeout(f, 0, 'x', 'y')`처럼 세 번째 인수부터는 콜백을 부를 때 인수로 전달됩니다(예제 6의 `인수 x y`). 콜백의 `this`는 표준이 정합니다. 핸들러가 함수일 때 표준은 이렇게 호출하라고 합니다.
+
+> If handler is a Function, then invoke handler given arguments and "report", and with callback this value set to thisArg.
+
+`thisArg`는 이렇게 정해집니다.
+
+> Let thisArg be global if that is a WorkerGlobalScope object; otherwise let thisArg be the WindowProxy that corresponds to global.
+
+워커 경우는 이 페이지가 다루지 않으므로, 페이지에서는 `window`가 `this`로 지정된다고 읽으면 됩니다. [this 바인딩](/concepts/this-binding)에서 본 것처럼 호출 방식이 `this`를 정하는데, 타이머 콜백은 호스트(브라우저)가 `this` 값을 지정해 부르는 경우입니다. 그래서 strict mode 함수도 결과가 다릅니다. 예제 6에서 strict mode 함수를 그냥 부르면 `this`는 `undefined`이지만(`strict 직접 호출 this undefined`), 같은 strict mode 함수가 타이머 콜백으로 불리면 표준이 `this`를 `window`로 지정하므로 `this === window`가 `true`입니다(`strict 콜백 this는 window true`).
+
+이 때문에 `setTimeout(user.hello, 0)`처럼 메서드를 그대로 넘기면 객체를 잃습니다. 넘어가는 것은 `user.hello`가 가리키는 함수뿐이고 `user`는 함께 가지 않으므로, 콜백이 불릴 때의 `this`는 `window`입니다. 그래서 예제 6은 `hello undefined`를 찍습니다. `setTimeout(function () { user.hello() }, 0)`처럼 감싸는 함수를 쓰거나 `user.hello.bind(user)`를 넘기면 `user`를 지킬 수 있고, 두 경우 모두 `hello kim`을 찍습니다.
+
+### 지연 값은 long으로 변환된다
+
+HTML 표준은 `setTimeout`의 IDL을 이렇게 적습니다.
+
+> long setTimeout(TimerHandler handler, optional long timeout = 0, any... arguments);
+
+지연 인수 `timeout`의 타입이 `long`이므로, 값은 Web IDL의 `long` 변환을 거칩니다. 변환의 핵심 단계는 이렇습니다.
+
+> Let x be ? ConvertToInt(V, 32, "signed").
+
+문자열은 먼저 숫자로 바뀝니다. 그래서 `'30'`은 30이 되고 30ms 뒤 실행됩니다(`문자열 30`). `NaN`과 `Infinity`는 이 변환이 정의한 단계로 0이 됩니다.
+
+> If x is NaN, +0, +∞, or −∞, then return +0.
+
+그다음 IntegerPart 단계에서 소수부를 버리고(그래서 `10.7`은 `10`), 2의 32제곱으로 나눈 나머지를 구한 뒤 부호 있는 32비트 정수 범위로 맞춥니다. 이 계산에서 `2 ** 31`은 `-2147483648`이 되고, `2 ** 32 + 30`은 `30`이 됩니다. 소수 지연은 이 페이지에서 실행으로 확인하지 않았습니다. 그다음 timer initialization steps가 음수를 0으로 바꿉니다.
+
+> If timeout is less than 0, then set timeout to 0.
+
+그래서 예제 7에서 `2 ** 31`, `-100`, `NaN`, `Infinity`는 모두 0ms처럼 곧바로 실행됩니다. 지연이 아주 큰 값이 아주 늦게 실행되는 것이 아니라, 오히려 곧바로 실행되는 경우입니다. 다만 큰 값이 모두 0이 되는 것은 아닙니다. `2 ** 32 + 30`은 30ms 타이머가 되어 `문자열 30` 다음에 나옵니다. 반면 `2 ** 31 - 1`(약 24.8일)은 32비트 부호 있는 정수 범위 안이라 변환으로 바뀌지 않습니다. 예제 7은 이 타이머를 맨 마지막에 등록하고 200ms 타이머의 콜백에서 지워서 실행되지 않게 하며, 이 페이지는 그 타이머가 실제로 24.8일 뒤에 실행되는지 확인하지 않았습니다.
+
+예제 7의 출력 순서는 앞서 본 순서 규칙이 보장합니다. 각 타이머보다 먼저 등록한 타이머는 모두 지연이 같거나 짧으므로(`2 ** 31`, `-100`, `NaN`, `Infinity`는 0, `'30'`과 `2 ** 32 + 30`은 30, 그다음은 200) 콜백 태스크가 등록한 순서대로 큐에 들어가고, 출력도 그 순서입니다. 맨 마지막에 등록한 `2 ** 31 - 1` 타이머는 먼저 등록한 200ms 타이머보다 지연이 길어서, 200ms 타이머가 먼저 실행되어 자신을 지운다는 것도 같은 규칙이 보장합니다.
+
+Node에서는 다릅니다. Node 공식 문서에 따르면 지연이 일정 범위를 벗어날 때 이렇게 바뀝니다.
+
+> When delay is larger than 2147483647 or less than 1 or NaN, the delay will be set to 1.
+
+브라우저에서 `2 ** 31`이 음수를 거쳐 0이 되는 것과 달리 Node 문서는 2147483647보다 큰 값을 1로 바꾼다고 적습니다. 이 페이지는 Node를 실행으로 확인하지 않았습니다.
+
+### 디바운스는 이전 타이머를 지우고 다시 예약한다
+
+디바운스(debounce)는 짧은 시간 안에 여러 번 불린 호출을 한 번으로 줄이는 방법입니다. 첫 호출에서 바로 실행하는 방식도 디바운스라고 부르지만, 여기서는 마지막 호출 뒤 일정 시간이 지나면 실행하는 방식만 다룹니다. 예제 8의 `debounce`는 호출될 때마다 `clearTimeout(timer)`로 이전 타이머를 지우고 새 타이머를 예약합니다. 첫 호출에서는 `timer`가 아직 `undefined`인데, `clearTimeout`의 인수는 생략하거나 `undefined`이면 기본값 `0`이 되므로 앞에서 본 `clearTimeout(0)`처럼 아무것도 지우지 않고 오류도 나지 않습니다. 반복문이 `save`를 5번 불러도 앞의 4개는 실행되기 전에 지워져서, 마지막 값으로 한 번만 실행됩니다(`저장 초안5 1번째`). 이후 120ms 뒤에 다시 부르면 새 타이머가 실행되어 `저장 최종 2번째`가 나옵니다.
+
+`debounce`가 돌려준 함수가 `timer` 변수를 계속 읽고 쓸 수 있는 것은 [클로저](/concepts/closure) 때문입니다. 호출이 끝나도 안쪽 함수가 바깥의 `timer`를 기억하고 있으므로, 다음 호출에서 이전 타이머의 id로 `clearTimeout`을 부를 수 있습니다. 스로틀(throttle)은 비슷한 목적이지만 일정 간격마다 최대 한 번 실행한다는 점이 디바운스와 다르며, 이 페이지에서는 예제를 두지 않습니다.
+
+## 예제
+
+예제의 `setTimeout`, `console.log`, `performance.now()`는 호스트가 제공하는 API이며 ECMAScript 언어의 일부가 아닙니다. 모든 예제는 테스트가 Chromium에서 실제로 열어 얻은 출력입니다.
+
+### 예제 1: 0ms 타이머도 동기 코드 뒤에 실행된다
+
+`setTimeout`을 부르는 줄 앞뒤로 `console.log`를 둡니다. 타이머 콜백이 언제 찍히는지 비교해 보세요.
+
+```html file=./examples/sync-first.html
+
+```
+
+<PredictQuiz
+  question="예제 1의 출력 순서는 무엇일까요?"
+  choices={[
+    '스크립트 시작, 타이머 0ms, setTimeout 다음 줄, 스크립트 끝',
+    '스크립트 시작, setTimeout 다음 줄, 타이머 0ms, 스크립트 끝',
+    '스크립트 시작, setTimeout 다음 줄, 스크립트 끝, 타이머 0ms',
+    '타이머 0ms, 스크립트 시작, setTimeout 다음 줄, 스크립트 끝',
+  ]}
+  answer={2}
+  explanation="타이머 콜백은 태스크로 큐에 들어가 지금 실행 중인 스크립트가 끝나야 실행됩니다. 지연이 0이어도 나머지 줄이 먼저 실행됩니다(스크립트 시작, setTimeout 다음 줄, 스크립트 끝, 타이머 0ms)."
+/>
+
+### 예제 2: 동기 코드가 50ms 막으면 타이머도 늦어진다
+
+10ms 타이머를 예약한 뒤 `while` 문으로 50ms 동안 스크립트를 붙잡습니다. 각 줄은 시작한 뒤 50ms 이상 지났는지만 찍습니다.
+
+```html file=./examples/blocking.html
+
+```
+
+<PredictQuiz
+  question="예제 2에서 10ms 타이머의 콜백이 실행될 때 찍히는 줄은 무엇일까요?"
+  choices={[
+    '타이머 실행, 50ms 이상 지남 false',
+    '타이머 실행, 50ms 이상 지남 true',
+    '찍히지 않는다',
+    '동기 코드 끝보다 먼저 찍힌다',
+  ]}
+  answer={1}
+  explanation="스크립트가 끝나기 전에는 타이머 태스크가 실행될 수 없습니다. 지연 값은 최소한 기다리는 시간이므로, 콜백은 10ms가 아니라 50ms 이상 지난 뒤 실행됩니다(타이머 실행, 50ms 이상 지남 true)."
+/>
+
+### 예제 3: 같은 지연은 등록 순서, 나중에 등록한 더 짧은 타이머는 보장 없음
+
+지연이 50ms인 `a`, `b`, `d`와 0ms인 `c`를 `a`, `b`, `c`, `d` 순서로 등록합니다.
+
+```html file=./examples/same-delay.html
+
+```
+
+<PredictQuiz
+  question="예제 3의 출력에서 표준이 보장하는 순서는 어느 것일까요?"
+  choices={[
+    'c 0ms가 항상 첫 줄이다',
+    'a 50ms가 항상 c 0ms보다 먼저다',
+    'a 50ms, b 50ms, d 50ms를 등록한 순서대로 찍는다는 것',
+    '지연이 같은 타이머도 순서가 정해져 있지 않다',
+  ]}
+  answer={2}
+  explanation="먼저 등록했고 지연이 같거나 짧은 타이머보다 먼저 큐에 들어가지 않으므로 지연이 같은 a, b, d는 등록 순서를 지킵니다(a 50ms, b 50ms, d 50ms). c 0ms가 d 50ms보다 먼저인 것도 보장됩니다(d가 나중에 등록했고 지연이 더 김). 다만 c 0ms가 a 50ms보다 먼저 나온 것은 Chromium에서 관찰한 결과이며 표준이 보장하지 않습니다."
+/>
+
+### 예제 4: clearTimeout과 타이머 id
+
+`a`는 등록 직후 지웁니다. 0ms 타이머 `d`를 먼저 등록하고 50ms 타이머 `c`를 그다음에 등록한 뒤, `d`의 콜백에서 `c`를 지웁니다. 마지막으로 존재할 수 없는 id 0과 -1을 지웁니다.
+
+```html file=./examples/clear.html
+
+```
+
+<PredictQuiz
+  question="다음 중 예제 4의 출력에 나오지 않는 줄은 무엇일까요?"
+  choices={['b 실행', 'd가 c를 지움', 'c 실행', 'id number true true']}
+  answer={2}
+  explanation="d는 c보다 먼저 등록했고 지연이 짧으므로 먼저 실행됩니다. c는 d의 콜백이 id로 지웠으므로 맵에 없고, 실행되는 시점에 태스크가 중단합니다. 출력은 id number true true, 없는 id를 지워도 오류 없음, b 실행, d가 c를 지움이며 a 실행도 없습니다."
+/>
+
+<PredictQuiz
+  question="예제 4에서 clearTimeout(0)과 clearTimeout(-1)을 부르면 어떻게 될까요?"
+  choices={[
+    '아무 일도 없고 다음 줄이 실행된다(없는 id를 지워도 오류 없음)',
+    '가장 먼저 등록한 타이머가 지워진다',
+    'RangeError가 발생해 스크립트가 멈춘다',
+    '모든 타이머가 지워진다',
+  ]}
+  answer={0}
+  explanation="id는 0보다 큰 정수이므로 0과 -1은 맵에 없는 값입니다. 지울 항목이 없을 뿐 오류는 나지 않고 다음 줄이 실행되어 없는 id를 지워도 오류 없음이 찍힙니다."
+/>
+
+### 예제 5: setInterval과 clear 메서드 섞어 쓰기
+
+10ms마다 반복하는 `setInterval`의 세 번째 콜백에서 `clearTimeout(id)`로 반복을 멈춥니다. `setTimeout`으로 만든 `once`는 `clearInterval`로 지웁니다.
+
+```html file=./examples/interval.html
+
+```
+
+<PredictQuiz
+  question="예제 5의 출력 전체는 무엇일까요?"
+  choices={[
+    '등록 끝, once 실행, tick 1, tick 2, tick 3',
+    '등록 끝, tick 1, tick 2, tick 3',
+    'tick 1, tick 2, tick 3, 등록 끝',
+    '등록 끝, tick 1',
+  ]}
+  answer={1}
+  explanation="clearInterval(once)는 같은 id 맵에서 항목을 지우므로 setTimeout으로 만든 once도 지워져 once 실행이 나오지 않습니다. 타이머 콜백은 스크립트가 끝난 뒤 실행되므로 등록 끝이 먼저입니다(등록 끝, tick 1, tick 2, tick 3)."
+/>
+
+<PredictQuiz
+  question="예제 5에서 clearTimeout(id)가 setInterval의 반복을 멈출 수 있는 이유는 무엇일까요?"
+  choices={[
+    'clearTimeout이 setInterval 타이머를 위해 따로 만들어졌기 때문',
+    'tick 3 이후에는 콜백이 더 이상 예약되지 않는 것이 setInterval의 기본 동작이기 때문',
+    '두 메서드가 같은 id 맵에서 항목을 지우기 때문',
+    'id가 매번 새로 만들어져 이전 id는 의미가 없기 때문',
+  ]}
+  answer={2}
+  explanation="clearTimeout과 clearInterval은 같은 맵에서 항목을 지웁니다. 반복은 콜백이 끝난 뒤 같은 id로 다시 예약되므로 처음 받은 id로 지우면 더 이상 예약되지 않아 tick 3이 마지막입니다."
+/>
+
+### 예제 6: 추가 인수와 this
+
+세 번째 인수 `'x'`, `'y'`를 넘기고, strict mode 함수를 직접 부를 때와 타이머 콜백으로 넘길 때의 `this`를 비교합니다. `user.hello`는 그대로, 감싸서, `bind`로 각각 넘깁니다.
+
+```html file=./examples/args-this.html
+
+```
+
+<PredictQuiz
+  question="예제 6에서 strict mode 함수가 타이머 콜백으로 불릴 때 찍히는 줄은 무엇일까요?"
+  choices={[
+    'strict 콜백 this는 window false',
+    'strict 콜백 this는 window true',
+    'strict 콜백 this undefined',
+    'strict 콜백 this null',
+  ]}
+  answer={1}
+  explanation="타이머는 콜백을 부를 때 this 값을 window로 지정합니다. strict mode여도 이 지정은 바뀌지 않아 this === window는 true입니다(strict 콜백 this는 window true). 직접 부른 경우만 undefined입니다."
+/>
+
+<PredictQuiz
+  question="예제 6에서 setTimeout(user.hello, 0)이 찍는 줄은 무엇일까요?"
+  choices={['hello kim', 'hello null', 'hello undefined', 'TypeError로 아무것도 찍히지 않는다']}
+  answer={2}
+  explanation="함수만 넘어가 user 없이 불리므로 this는 window이고 window에는 nick이 없어 undefined입니다(hello undefined). 감싸거나 bind로 user를 지키면 hello kim이 두 줄 나옵니다."
+/>
+
+### 예제 7: 지연 값 변환
+
+`2 ** 31`, `-100`, `NaN`, `Infinity`, `'30'`, `2 ** 32 + 30`을 지연으로 넘기고 200ms 타이머를 등록합니다. 맨 마지막에 `2 ** 31 - 1` 타이머를 등록하고, 200ms 타이머의 콜백이 그 타이머를 지웁니다.
+
+```html file=./examples/delay-convert.html
+
+```
+
+<PredictQuiz
+  question="예제 7의 출력 순서는 무엇일까요?"
+  choices={[
+    '2 ** 31, -100, NaN, Infinity, 문자열 30, 2 ** 32 + 30, 200ms 타이머',
+    '-100, NaN, 문자열 30, 200ms 타이머, 2 ** 31, Infinity, 2 ** 32 + 30',
+    '2 ** 31, -100, NaN, Infinity, 2 ** 32 + 30, 문자열 30, 200ms 타이머',
+    '-100, NaN, 2 ** 31, Infinity, 2 ** 32 + 30, 문자열 30, 200ms 타이머',
+  ]}
+  answer={0}
+  explanation="2 ** 31은 long 변환에서 -2147483648이 되고, -100과 함께 음수를 0으로 바꾸는 단계를 거쳐 0이 됩니다. NaN과 Infinity도 0이고 '30'은 30, 2 ** 32 + 30도 30입니다. 각 타이머보다 먼저 등록한 타이머는 지연이 같거나 짧으므로 등록 순서대로 나옵니다(2 ** 31, -100, NaN, Infinity, 문자열 30, 2 ** 32 + 30, 200ms 타이머)."
+/>
+
+<PredictQuiz
+  question="예제 7에서 2 ** 31 - 1 지연의 타이머가 실행되지 않는 이유는 무엇일까요?"
+  choices={[
+    '2 ** 31 - 1이 NaN으로 변환되기 때문',
+    '음수로 변환되어 지워지기 때문',
+    '브라우저가 큰 지연 값을 무시하기 때문',
+    '200ms 타이머의 콜백이 clearTimeout으로 지웠기 때문',
+  ]}
+  answer={3}
+  explanation="2 ** 31 - 1은 32비트 부호 있는 정수 범위 안이라 변환되지 않고 그대로 약 24.8일의 지연입니다. 200ms 타이머를 먼저 등록했고 지연이 더 짧으므로 200ms 타이머가 먼저 실행되고, 그 콜백이 clearTimeout(max)으로 지웠기 때문에 2 ** 31 - 1 실행은 출력에 나오지 않습니다."
+/>
+
+### 예제 8: 디바운스
+
+`debounce(fn, 50)`이 돌려준 `save`를 반복문에서 5번 부르고, 120ms 뒤에 한 번 더 부릅니다.
+
+```html file=./examples/debounce.html
+
+```
+
+<PredictQuiz
+  question="예제 8의 출력 전체는 무엇일까요?"
+  choices={[
+    '저장 초안1 1번째, 저장 초안2 2번째, 저장 초안3 3번째, 저장 초안4 4번째, 저장 초안5 5번째, 반복 끝',
+    '반복 끝, 저장 초안1 1번째, 저장 최종 2번째',
+    '반복 끝, 저장 초안5 1번째, 저장 최종 1번째',
+    '반복 끝, 저장 초안5 1번째, 저장 최종 2번째',
+  ]}
+  answer={3}
+  explanation="호출마다 이전 타이머를 지우므로 반복문의 앞 4번은 실행되기 전에 사라지고 마지막 값만 한 번 실행됩니다. 120ms 뒤의 호출은 새 타이머라서 실행되어 calls가 2가 됩니다(반복 끝, 저장 초안5 1번째, 저장 최종 2번째)."
+/>
+
+<PredictQuiz
+  question="예제 8의 debounce가 이전 타이머의 id를 기억해 clearTimeout을 부를 수 있는 이유는 무엇일까요?"
+  choices={[
+    'setTimeout이 이전 id를 자동으로 지우기 때문',
+    '돌려준 함수가 클로저로 바깥의 timer 변수를 기억하기 때문',
+    'timer가 전역 객체의 프로퍼티이기 때문',
+    '타이머 콜백의 this가 timer를 가리키기 때문',
+  ]}
+  answer={1}
+  explanation="debounce가 끝난 뒤에도 돌려준 함수가 바깥 함수의 timer 변수에 접근할 수 있습니다(클로저). 그래서 호출 사이에서 같은 timer에 id를 저장하고 지울 수 있습니다."
+/>
+
+## 결과와 이유
+
+### 상황별 결과표
+
+아래 표는 지금까지 본 상황을 코드와 결과, 그 결과를 만든 규칙으로 정리한 것입니다. 나중에 등록한 더 짧은 타이머의 순서처럼 표준이 보장하지 않는 행은 근거 규칙 칸에 Chromium에서 관찰한 결과라고 적었습니다.
+
+<Wide>
+  <div
+    className="focus-visible:outline-accent my-6 overflow-x-auto focus-visible:outline-2"
+    tabIndex={0}
+    role="region"
+    aria-label="타이머 상황별 결과와 근거 규칙"
+  >
+    <table className="w-full border-collapse text-left [&_code]:whitespace-nowrap">
+      <thead>
+        <tr>
+          {columns.map((column) => (
+            <th
+              key={column.key}
+              scope="col"
+              className={`border-border border px-3 py-2${column.key === 'rule' ? ' min-w-64' : ''}`}
+            >
+              {column.label}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((row) => (
+          <tr key={row.situation}>
+            <th scope="row" className="border-border border px-3 py-2">
+              {row.situation}
+            </th>
+            <td className="border-border border px-3 py-2">
+              <code>{row.code}</code>
+            </td>
+            <td className="border-border border px-3 py-2">{row.result}</td>
+            <td className="border-border border px-3 py-2">{row.rule}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+</Wide>
+
+표의 모든 행은 위 예제 중 하나의 출력 줄과 테스트로 묶여 있습니다. 각 행이 가리키는 예제의 출력에 그 행의 증거 줄이 순서대로 들어 있는지 테스트가 확인하고, 예제의 출력은 `npm test`가 Chromium에서 실제로 실행한 값과 대조합니다.
+
+### 흔한 오해
+
+<Callout type="misconception" title="setTimeout(fn, 0)은 바로 실행된다">
+
+지연이 `0`이어도 콜백은 태스크로 큐에 들어가므로 지금 실행 중인 스크립트가 끝난 뒤에 실행됩니다. 예제 1에서 `타이머 0ms`는 `스크립트 끝` 뒤에 나왔습니다.
+
+</Callout>
+
+<Callout type="misconception" title="지연 값은 정확한 실행 시각이다">
+
+지연 값은 '최소한 이만큼 기다린다'는 뜻입니다. 표준은 정확한 시각을 보장하지 않는다고 밝힙니다. 예제 2에서 10ms 타이머는 동기 코드가 50ms 막는 동안 실행되지 못해 50ms 이상 지난 뒤에 실행되었습니다(`타이머 실행, 50ms 이상 지남 true`).
+
+</Callout>
+
+<Callout type="misconception" title="clearTimeout과 clearInterval은 짝을 맞춰 써야 한다">
+
+두 메서드는 같은 id 맵에서 항목을 지우므로 서로 바꿔 써도 됩니다. 예제 5에서 `clearInterval(once)`가 `setTimeout`으로 만든 타이머를 지웠고, `clearTimeout(id)`가 `setInterval`을 멈췄습니다. 읽는 사람을 위해 짝을 맞춰 쓰는 편이 낫지만 동작 때문에 필요한 것은 아닙니다.
+
+</Callout>
+
+<Callout type="misconception" title="타이머 콜백의 this는 strict mode면 undefined다">
+
+strict mode에서 함수를 그냥 부르면 `this`는 `undefined`이지만(`strict 직접 호출 this undefined`), 타이머는 콜백을 `this`가 `window`로 지정된 채 부릅니다. 예제 6에서 strict mode 콜백도 `this === window`가 `true`였습니다(`strict 콜백 this는 window true`). 메서드를 그대로 넘기면 `user`를 잃는다는 점은 다릅니다(`hello undefined`).
+
+</Callout>
+
+<Callout type="misconception" title="지연 값에 아주 큰 수를 넣으면 아주 늦게 실행된다">
+
+지연 값은 먼저 32비트 부호 있는 정수로 변환됩니다. 2147483647을 넘는 값은 나머지 계산을 거쳐 음수가 될 수 있고, 음수는 0이 됩니다. `Infinity`는 변환 단계에서 바로 0이 됩니다. 예제 7에서 `2 ** 31`과 `Infinity`는 곧바로 실행되었습니다. 반대로 `2 ** 32 + 30`은 30ms가 되므로 '큰 값은 곧바로 실행된다'도 맞는 일반화가 아닙니다. 이 변환은 브라우저(HTML과 Web IDL)의 규칙이며, Node 공식 문서는 2147483647보다 큰 값을 1로 바꾼다고 적고 있습니다(실행 확인 안 함).
+
+</Callout>
+
+<Callout type="misconception" title="지연이 짧으면 표준이 먼저 실행을 보장한다">
+
+표준이 보장하는 것은 먼저 등록했고 지연이 같거나 짧은 타이머가 먼저 실행된다는 순서입니다. 지연이 다른 타이머 사이에도 이 순서는 보장됩니다(예제 3의 `c 0ms` → `d 50ms`, 예제 7). 보장이 없는 것은 나중에 등록한 타이머의 지연이 더 짧을 때입니다. 예제 3에서 `c 0ms`가 `a 50ms`보다 먼저 나온 것은 Chromium에서 관찰한 결과이고, 같은 알고리즘의 선택 단계가 추가 대기를 허용하므로 이 경우의 순서는 가정하면 안 됩니다.
+
+</Callout>

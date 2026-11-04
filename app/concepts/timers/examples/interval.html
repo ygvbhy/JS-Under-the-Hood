@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<script>
+var count = 0;
+var id = setInterval(function () {
+  count++;
+  console.log('tick ' + count);
+  if (count === 3) clearTimeout(id);
+}, 10);
+var once = setTimeout(function () {
+  console.log('once 실행');
+}, 0);
+clearInterval(once);
+console.log('등록 끝');
+</script>
+</body>
+</html>

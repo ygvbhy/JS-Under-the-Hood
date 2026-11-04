@@ -57,6 +57,7 @@ import {
   EVENT_PROPAGATION_DELEGATION_PATH,
   EVENT_PROPAGATION_DELEGATION_SIMULATOR_NAME,
   PREVENT_DEFAULT_STOP_PROPAGATION_PATH,
+  TIMERS_PATH,
   SCRIPT_ASYNC_DEFER_PATH,
   SET_MAP_PATH,
   SPREAD_DESTRUCTURING_PATH,
@@ -1011,10 +1012,20 @@ test('이벤트 전파와 위임 개념 페이지: 아이콘을 클릭 시나리
   expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
 })
 
+test(`${TIMERS_PATH}: 가로 스크롤이 없다`, async ({ page }) => {
+  await page.goto(TIMERS_PATH)
+  await waitForHydration(page)
+  const { scrollWidth, innerWidth } = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    innerWidth: window.innerWidth,
+  }))
+  expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
+})
+
 test('홈 학습 순서 보기: 가로 스크롤이 없다', async ({ page }) => {
   await page.goto('/?view=order')
   await waitForHydration(page)
-  await expect(page.getByRole('article')).toHaveCount(41)
+  await expect(page.getByRole('article')).toHaveCount(42)
   const { scrollWidth, innerWidth } = await page.evaluate(() => ({
     scrollWidth: document.documentElement.scrollWidth,
     innerWidth: window.innerWidth,
