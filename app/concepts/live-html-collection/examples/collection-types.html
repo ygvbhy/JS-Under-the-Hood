@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<ul>
+  <li class="todo">청소</li>
+  <li class="todo">빨래</li>
+  <li class="todo">설거지</li>
+  <li class="todo">장보기</li>
+</ul>
+<script>
+var byClass = document.getElementsByClassName('todo');
+var byQuery = document.querySelectorAll('.todo');
+console.log(byClass.constructor.name, byQuery.constructor.name);
+console.log(Array.isArray(byClass), Array.isArray(byQuery));
+console.log(typeof byClass.forEach, typeof byQuery.forEach);
+console.log(Array.isArray(Array.from(byClass)), [...byClass].length);
+</script>
+</body>
+</html>

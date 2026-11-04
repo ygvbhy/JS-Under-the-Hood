@@ -53,6 +53,8 @@ import {
   ITERABLE_FOR_OF_PATH,
   ITERABLE_FOR_OF_SIMULATOR_NAME,
   DOM_TREE_NODES_PATH,
+  LIVE_HTML_COLLECTION_PATH,
+  LIVE_HTML_COLLECTION_SIMULATOR_NAME,
   SCRIPT_ASYNC_DEFER_PATH,
   SET_MAP_PATH,
   SPREAD_DESTRUCTURING_PATH,
@@ -814,6 +816,24 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await page.goto(DOM_TREE_NODES_PATH)
       await waitForHydration(page)
       await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
+      await expectNoSeriousViolations(page)
+    })
+
+    test('개념 페이지: HTMLCollection은 살아 있다', async ({ page }) => {
+      await page.goto(LIVE_HTML_COLLECTION_PATH)
+      await waitForHydration(page)
+      await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
+      await expectNoSeriousViolations(page)
+    })
+
+    test('개념 페이지: 컬렉션 시뮬레이터를 진행한 뒤', async ({ page }) => {
+      await page.goto(LIVE_HTML_COLLECTION_PATH)
+      await waitForHydration(page)
+      const region = page.getByRole('region', { name: LIVE_HTML_COLLECTION_SIMULATOR_NAME })
+      const next = region.getByRole('button', { name: '다음' })
+      for (let i = 0; i < 6; i++) await next.click()
+      await expect(region).toBeVisible()
+      await expect(region.getByText(/^단계 7 \/ 12$/)).toBeVisible()
       await expectNoSeriousViolations(page)
     })
 

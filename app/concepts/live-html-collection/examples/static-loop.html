@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<ul>
+  <li class="todo">청소</li>
+  <li class="todo">빨래</li>
+  <li class="todo">설거지</li>
+  <li class="todo">장보기</li>
+</ul>
+<script>
+var items = document.querySelectorAll('li');
+var todos = document.querySelectorAll('.todo');
+function show(label) {
+  var classes = Array.from(items, (li) => li.className);
+  console.log(label, todos.length, JSON.stringify(classes));
+}
+show('시작');
+for (var i = 0; i < todos.length; i++) {
+  todos[i].className = 'done';
+  show('i=' + i);
+}
+show('끝');
+</script>
+</body>
+</html>

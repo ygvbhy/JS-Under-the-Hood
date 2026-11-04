@@ -1,0 +1,380 @@
+import { Simulator } from './Simulator'
+import { scenarios } from './scenarios'
+
+## 동작 원리
+
+할 일 목록 `li` 네 개에 모두 `class="todo"`를 달고, `getElementsByClassName('todo')`로 얻은 컬렉션을 `for` 문으로 돌면서 클래스를 `done`으로 바꾸면 왜 네 개 중 두 개만 바뀔까요? `for` 문은 매 반복 전에 조건식 `i < todos.length`를 다시 평가하는데, 클래스를 바꿀 때마다 `todos`에 든 항목이 줄어들기 때문입니다. 이 페이지는 컬렉션이 "살아 있다"는 말이 무엇인지, 어떤 API가 살아 있는 컬렉션을 돌려주고 어떤 API가 정적인 컬렉션을 돌려주는지, 그리고 살아 있는 컬렉션을 안전하게 다루는 방법을 확인합니다. 컬렉션과 `HTMLCollection`, `NodeList`는 ECMAScript가 아니라 WHATWG DOM 표준이 정하는 호스트(브라우저)의 API이고, `id`와 `Window`의 이름 있는 프로퍼티의 관계는 WHATWG HTML 표준이 정합니다. 예제의 출력은 모두 테스트가 Chromium에서 실제로 열어 `console.log` 출력을 모은 값이며, 다른 브라우저는 이 페이지에서 확인하지 않았습니다. 노드와 트리, 공백 텍스트 노드는 [DOM 트리와 노드 종류](/concepts/dom-tree-nodes)에서, 이터러블과 스프레드는 [이터러블과 for...of](/concepts/iterable-for-of)에서, `id`가 변수처럼 보이는 현상은 [전역 객체](/concepts/global-object)에서 본 것을 전제합니다. `className` 대입, `append`, `createElement`, `removeChild`는 이 페이지에서 컬렉션이 변하는 모습을 보이는 도구로만 씁니다.
+
+### 컬렉션은 기본적으로 살아 있다
+
+DOM 표준은 컬렉션(노드 목록)을 이렇게 정의합니다.
+
+> A collection can be either live or static. Unless otherwise stated, a collection must be live. If a collection is live, then the attributes and methods on that object must operate on the actual underlying data, not a snapshot of the data.
+
+컬렉션은 살아 있을 수도 정적일 수도 있고, 표준이 달리 말하지 않으면 살아 있어야 합니다. 살아 있는 컬렉션의 속성과 메서드는 스냅숏이 아니라 실제 데이터를 기준으로 동작해야 합니다. 그래서 `length`를 읽거나 `todos[i]`로 접근할 때마다 그 시점의 문서 상태가 반영됩니다.
+
+`getElementsByClassName`은 `Document`와 `Element` 양쪽에 있고, 표준은 둘 다 "return the list of elements with class names classNames for this"라고 적습니다. 이 목록을 만드는 규칙은 이렇습니다.
+
+> Return an HTMLCollection rooted at root, whose filter matches descendant elements that have all their classes in classes.
+
+루트(`root`)를 뿌리로 하는 `HTMLCollection`이고, 컬렉션에 드는 조건(필터)은 "주어진 클래스를 모두 가진 후손 요소"입니다. 컬렉션은 항목을 따로 저장한 목록이 아니라 이 필터를 지금 문서에 적용한 결과를 보여 줍니다. 그래서 `li`의 클래스를 `todo`에서 `done`으로 바꾸면 그 `li`는 그 순간 필터에서 빠지고, `length`가 줄며 뒤의 항목들의 인덱스가 하나씩 당겨집니다.
+
+예제 1에서 `todos`에는 처음에 청소(0), 빨래(1), 설거지(2), 장보기(3)가 듭니다. `i=0`에서 `todos[0]`인 청소를 `done`으로 바꾸면 `todos`는 빨래(0), 설거지(1), 장보기(2)가 되어 `length`가 3입니다. `i`가 1이 되면 `todos[1]`은 빨래가 아니라 설거지이고, 설거지를 바꾸면 `todos`는 빨래(0), 장보기(1)가 되어 `length`가 2입니다. `i`가 2가 되면 `2 < 2`가 거짓이라 반복이 끝납니다. 빨래와 장보기는 한 번도 방문하지 못하고 `todo`로 남습니다. `i`는 늘어나는데 컬렉션은 줄어드니 둘이 중간에서 만난 것입니다. 이 과정은 아래 예제 절의 시뮬레이터에서 한 단계씩 볼 수 있습니다.
+
+### querySelectorAll은 정적이다
+
+`querySelectorAll`은 표준에서 이렇게 정의됩니다.
+
+> The querySelectorAll(selectors) method steps are to return the static result of running scope-match a selectors string selectors against this.
+
+선택자를 찾은 결과를 "정적인(static)" 결과로 돌려준다는 뜻입니다. 호출한 시점의 일치 목록이 담긴 `NodeList`이고, 그 뒤에 `li`의 클래스를 바꾸어도 이미 받은 목록은 달라지지 않습니다. 예제 2는 예제 1과 같은 반복을 `querySelectorAll('.todo')`로 돌리며, `todos.length`가 계속 4이므로 네 항목을 모두 방문합니다.
+
+### 붙이면 살아 있는 컬렉션만 늘어난다
+
+예제 3은 `li`가 둘인 `ul`에서 `getElementsByTagName('li')`와 `querySelectorAll('li')`의 결과를 미리 받아 두고, `append`로 `li`를 하나 더 붙인 뒤 두 컬렉션의 `length`를 비교합니다. `getElementsByTagName`의 결과는 표준이 정적이라고 밝히지 않은 컬렉션이므로 위의 기본 규칙에 따라 살아 있고, 정적인 `querySelectorAll`의 결과는 그대로입니다. `querySelectorAll`을 다시 부르면 그 시점의 새 목록을 돌려줍니다.
+
+### HTMLCollection과 NodeList는 다르다
+
+`getElementsByClassName`은 `HTMLCollection`을, `querySelectorAll`은 `NodeList`를 돌려줍니다. DOM 표준은 두 인터페이스를 Web IDL로 이렇게 선언합니다(확장 속성 `[Exposed=Window]`와 HTMLCollection의 `[LegacyUnenumerableNamedProperties]`는 생략했습니다).
+
+> `interface NodeList { getter Node? item(unsigned long index); readonly attribute unsigned long length; iterable<Node>; };`
+
+> `interface HTMLCollection { readonly attribute unsigned long length; getter Element? item(unsigned long index); getter Element? namedItem(DOMString name); };`
+
+둘 다 `length`와 인덱스로 읽는 `item`이 있고, `NodeList`에만 `iterable<Node>`가 선언되어 있습니다. Web IDL의 반복 메서드 정의에 따르면 인덱스 getter가 있는 인터페이스에는 `%Symbol.iterator%`가 `%Array.prototype.values%`로 정의됩니다. 이를 그대로 옮기면 다음과 같습니다.
+
+> If definition has an indexed property getter, then: Perform DefineMethodProperty(target, %Symbol.iterator%, %Array.prototype.values%, false).
+
+그래서 `HTMLCollection`과 `NodeList` 둘 다 이터러블이어서 스프레드와 `Array.from`으로 배열을 만들 수 있습니다. 그리고 값 이터레이터(`iterable<Node>`)가 선언된 `NodeList`에는 여기에 더해 `entries`, `keys`, `values`, `forEach`도 정의되지만, 값 이터레이터가 없는 `HTMLCollection`에는 `forEach`가 없습니다. 둘 다 `Array`의 인스턴스가 아니어서 `Array.isArray`는 `false`입니다. 표준은 `HTMLCollection`에 대해 이런 노트를 남깁니다.
+
+> HTMLCollection is a historical artifact we cannot rid the web of.
+
+### 살아 있는 컬렉션을 안전하게 바꾸는 방법 세 가지
+
+예제 5는 컬렉션을 돌면서 바꿔도 모든 항목이 바뀌게 하는 세 가지 방법입니다.
+
+- 역순 `for`: `i`를 `todos.length - 1`에서 0까지 줄입니다. `todos[i]`의 클래스를 바꾸면 그 항목만 컬렉션에서 빠지고, 인덱스 `i`보다 앞의 항목들은 인덱스가 그대로입니다. 다음에 볼 인덱스 `i - 1`은 아직 그 자리에 있습니다. 네 항목 기준으로 `i=3`의 장보기, `i=2`의 설거지, `i=1`의 빨래, `i=0`의 청소를 차례로 바꾸므로 모두 바뀝니다.
+- `Array.from`: 반복 전에 컬렉션의 항목으로 배열을 만들어 두고 그 배열을 돕니다. 배열은 호출 시점의 항목을 담은 정적인 값이어서 클래스를 바꿔도 달라지지 않습니다. 원래의 컬렉션 `dones`는 살아 있으므로 항목이 모두 `todo`로 바뀐 뒤에는 `length`가 0이 됩니다.
+- `while (todos.length > 0)`: 매번 `todos[0]`을 바꿉니다. 바꾼 항목이 빠지면 다음 항목이 0번 자리로 오므로 컬렉션이 빌 때까지 모든 항목을 한 번씩 처리합니다. 처리한 항목이 컬렉션에서 빠질 때만 끝납니다. `classList.add('done')`처럼 `todo` 클래스를 남기면 항목이 빠지지 않아 `length`가 줄지 않고(예제 6의 셋째 줄), 그런 처리로 이 `while`을 쓰면 무한 루프가 됩니다. 역순 `for`는 이와 달리, 바꾼 항목(인덱스 `i`)이 빠지든 빠지지 않든 인덱스가 더 앞인 항목은 자리가 그대로라는 점에 기대는 방법입니다.
+
+`for...of`, `Array.prototype.forEach.call(todos, …)`, `NodeList`의 `forEach`(예: `childNodes`)도 같은 함정에 걸려 절반만 처리합니다(예제 6). 다만 건너뛰는 원리는 `for...of`와 `forEach`가 다릅니다.
+
+`for...of`는 배열 이터레이터를 씁니다. 배열 이터레이터의 `next`는 부를 때마다 `length`를 다시 읽으므로([이터러블과 for...of](/concepts/iterable-for-of)), 다음에 읽을 위치가 늘어나는 동안 `length`가 줄어 예제 1의 `for` 문과 같은 자리에서 끝납니다.
+
+ECMAScript의 `Array.prototype.forEach`는 시작할 때 `LengthOfArrayLike`로 길이를 한 번만 읽어 고정하고, 인덱스 `k`가 그 길이보다 작은 동안 `HasProperty`가 `true`인 인덱스에만 콜백을 부릅니다. 명세의 노트는 이렇게 적습니다.
+
+> elements that are deleted after the call to forEach begins and before being visited are not visited
+
+예제 6에서 길이는 4로 고정되지만, `k`가 0과 1일 때 클래스를 바꾸어 컬렉션이 두 항목으로 줄어듭니다. `k`가 2와 3일 때는 컬렉션에 인덱스 2와 3이 없어 `HasProperty`가 `false`이므로 콜백이 불리지 않습니다. 콜백이 받은 인덱스가 `[0,1]`뿐입니다(예제 6의 둘째 줄). 결과는 `for...of`와 같지만, 길이를 다시 읽어서가 아니라 사라진 인덱스를 건너뛰어서 생긴 결과입니다.
+
+`NodeList`의 `forEach`는 `Array.prototype.forEach`와 같은 함수입니다. Web IDL은 값 이터레이터가 있는 인터페이스의 반복 메서드를 정의할 때 이렇게 적습니다.
+
+> Perform ! CreateDataPropertyOrThrow(target, "forEach", %Array.prototype.forEach%).
+
+`NodeList`의 인터페이스 프로토타입 객체에 `%Array.prototype.forEach%` 그 함수를 `forEach`로 넣는다는 뜻이고, Chromium에서도 `NodeList.prototype.forEach === Array.prototype.forEach`가 `true`입니다(예제 6의 넷째 줄). 그래서 `childNodes.forEach`로 지우면 위와 같은 이유로 두 노드만 지웁니다.
+
+핵심은 인덱스를 버리는 것이 아니라, 반복하는 동안 컬렉션의 구성이 바뀌어도 영향을 받지 않게 하는 것입니다. 역순으로 돌아 지운 항목이 아직 안 본 항목을 밀지 않게 하거나, 정적인 스냅숏을 만들어 돌거나, 처리하면 반드시 빠지는 경우에만 항상 0번을 처리합니다.
+
+### childNodes도 살아 있다
+
+`NodeList`라고 모두 정적인 것은 아닙니다. `childNodes`는 표준에서 이렇게 정의됩니다.
+
+> The childNodes getter steps are to return a NodeList rooted at this matching only children.
+
+여기에는 `querySelectorAll`과 달리 "static"이라는 말이 없으므로 위의 기본 규칙에 따라 살아 있는 `NodeList`입니다. 예제 7은 `li` 네 개를 공백 없이 한 줄에 붙여 쓴 `ul`의 `childNodes`를 돌며 `removeChild`로 지웁니다. 줄바꿈과 들여쓰기는 텍스트 노드가 되어 `childNodes`에 섞이므로([DOM 트리와 노드 종류](/concepts/dom-tree-nodes)), 이를 피하려고 한 줄에 붙여 썼습니다. `kids[0]`인 첫째 `li`를 지우면 `kids`는 둘째, 셋째, 넷째가 되고, `kids[1]`은 셋째 `li`입니다. 이를 지우면 `kids`는 둘째와 넷째만 남아 `length`가 2가 되고, `i`가 2일 때 반복이 끝납니다.
+
+### id가 중복되면 어떻게 될까
+
+HTML 표준은 `id` 속성 값이 유일해야 한다고 정합니다.
+
+> When specified on HTML elements, the id attribute value must be unique amongst all the IDs in the element's tree and must contain at least one character.
+
+같은 `id`를 둘 이상 쓰는 것은 작성 규칙 위반이지만, 브라우저는 그런 문서도 파싱합니다. `document.getElementById`는 DOM 표준의 "get an element by ID" 단계를 따릅니다.
+
+> return the first element, in tree order, within node's descendants, whose ID is elementId; otherwise, if there is no such element, null.
+
+트리 순서로 첫 번째 요소를 돌려주고, 없으면 `null`입니다. 그래서 `id="note"`가 둘이면 `getElementById('note')`는 앞의 것만 찾습니다. `querySelectorAll('#note')`는 일치하는 요소를 모두 모으므로 둘 다 담깁니다.
+
+HTML 표준은 `Window` 객체에도 이름 접근을 정의합니다.
+
+> The Window object supports named properties.
+
+문서에 있는 요소의 `id`는 `Window`가 지원하는 이름 있는 프로퍼티의 이름이 되므로(아래처럼 `Window`가 이미 가진 이름은 예외), 예제 8의 `box`처럼 `id="box"`인 요소를 변수 선언 없이 이름으로 읽을 수 있습니다([전역 객체](/concepts/global-object)). 이 프로퍼티는 `window`의 own 프로퍼티가 아닙니다. `Object.hasOwn(window, 'box')`는 `false`이고 `'box' in window`는 `true`입니다(예제 8의 넷째 줄). Web IDL은 이런 프로퍼티가 어디에 있는지를 이렇게 정합니다.
+
+> the named properties object, which exposes the named properties, is in the prototype chain
+
+이름 있는 프로퍼티를 드러내는 named properties object가 프로토타입 체인에 있다는 뜻입니다. `Window`에서는 `Window.prototype`의 프로토타입이 이 객체입니다. Web IDL은 이 객체의 class string을 인터페이스 이름 뒤에 `Properties`를 붙인 것으로 정하므로(참고 자료의 Web IDL — named properties object), `Object.prototype.toString.call(Object.getPrototypeOf(Window.prototype))`은 `[object WindowProperties]`입니다(예제 8의 일곱째 줄). 프로퍼티 조회는 own 프로퍼티를 먼저 보고 프로토타입 체인을 따라 올라가므로, 같은 이름의 own 전역 프로퍼티(예: `var box` 선언은 전역 객체의 own 프로퍼티를 만듭니다)가 있으면 그것이 이름 있는 프로퍼티를 가립니다. 전역 `let`·`const` 선언은 own 프로퍼티를 만들지 않지만 역시 가립니다. 식별자를 찾을 때 전역 환경 레코드가 선언적 칸을 객체 칸보다 먼저 보기 때문입니다([전역 객체](/concepts/global-object)). 예제 8의 둘째 스크립트에서 `let box = 1` 뒤에 `box`는 `1`이고, `Object.hasOwn(window, 'box')`는 여전히 `false`이며, `window.box`로는 요소를 그대로 읽습니다(예제 8의 여덟째 줄). 표준 스스로도 이를 권하지 않습니다.
+
+> As a general rule, relying on this will lead to brittle code. Which IDs end up mapping to this API can vary over time, as new features are added to the web platform, for example. Instead of this, use document.getElementById() or document.querySelector().
+
+`Window`가 이미 가진 이름은 요소로 매핑되지 않습니다. 이름마다 노출 여부는 Web IDL의 named property visibility가 정하며, `Window`의 이름 있는 프로퍼티에서 이 알고리즘의 대상 `O`는 전역 객체 `window`입니다. 앞쪽 검사는 이렇습니다.
+
+> If O has an own property named P, then return false.
+
+`Window`처럼 `[Global]`이 붙은 인터페이스의 어트리뷰트는 인터페이스 프로토타입 객체가 아니라 `window` 자신에 놓여서 `Object.hasOwn(window, 'name')`이 `true`입니다. 그래서 `id="name"`인 요소가 있어도 `name`은 `window.name`이어서 `""`입니다(예제 8의 여섯째 줄). 다음 검사는 프로토타입 체인을 봅니다.
+
+> If prototype is not a named properties object, and prototype has an own property named P, then return false
+
+프로토타입 체인에서 named properties object가 아닌 객체가 같은 이름의 own 프로퍼티를 가지면 이름 있는 프로퍼티는 보이지 않는다는 뜻입니다. `toString`은 `window`의 own 프로퍼티가 아니지만 체인 위의 `Object.prototype`에 있으므로, `id="toString"`인 요소가 있어도 `typeof toString`은 `function`입니다(예제 8의 일곱째 줄). 또 `id="note"`가 둘이면 `note`는 요소 하나가 아니라 길이 2인 `HTMLCollection`입니다(예제 8의 다섯째 줄).
+
+### 요소에서 찾으면 그 요소의 후손만 찾는다
+
+`Element`의 `getElementsByClassName`도 위와 같은 규칙으로 목록을 만들며 `this`가 루트입니다. 필터는 "descendant elements", 즉 후손 요소만 포함하므로 `news.getElementsByClassName('item')`은 `news` 안의 요소만 찾고 문서의 다른 곳에 있는 같은 클래스는 포함하지 않습니다. `news.querySelectorAll('.item')`도 마찬가지로 `news`의 후손 중에서만 찾습니다. 예제 9에서 문서 전체는 3개, `news` 안은 2개입니다.
+
+다만 선택자 자체는 요소 안에서만 맞추지 않고 문서 전체를 기준으로 맞춥니다. 표준의 scope-match 단계는 이렇습니다.
+
+> Return the result of match a selector against a tree with selector and node's root using scoping root node.
+
+선택자는 `node`의 root(보통 문서)를 기준으로 맞추고, 그 결과 중 `news`의 후손만 돌려줍니다. 그래서 `news.querySelectorAll('body section .item')`은 `body`와 `section`이 `news` 밖이거나 `news` 자신이어도 `item` 2개를 찾습니다(예제 9의 넷째 줄).
+
+## 예제
+
+예제의 `console.log`는 값을 출력하는 호스트 API이며 ECMAScript 언어의 일부가 아닙니다. 모든 예제는 테스트가 Chromium에서 실제로 열어 얻은 출력이고, 응답을 일부러 늦추는 지연은 없습니다. 여러 줄 출력은 퀴즈에서 ' / '로 이어 적었고, 줄이 긴 예제는 줄 일부만 물었습니다.
+
+### 예제 1: 클래스를 바꾸는 for 문이 절반만 돈다
+
+`getElementsByClassName('todo')`로 얻은 컬렉션 `todos`를 돌며 클래스를 `done`으로 바꿉니다. `show` 함수는 반복마다 `todos.length`와 `li` 네 개의 클래스를 찍습니다.
+
+```html file=./examples/live-loop.html
+
+```
+
+<PredictQuiz
+  question="예제 1에서 반복이 끝난 뒤 todo로 남는 할 일은 무엇일까요?"
+  choices={['없음(네 개 모두 done)', '청소와 설거지', '빨래와 장보기', '장보기뿐']}
+  answer={2}
+  explanation="i=0에서 청소가 컬렉션에서 빠지고 i=1의 todos[1]은 설거지입니다. 설거지가 빠지면 length가 2가 되어 2 < 2가 거짓이므로 반복이 끝나고, 빨래와 장보기가 todo로 남습니다."
+/>
+
+<PredictQuiz
+  question="예제 1의 'i=1' 줄에서 todos.length는 얼마일까요?"
+  choices={['4', '3', '2', '1']}
+  answer={2}
+  explanation="i=0에서 청소가 빠져 length가 3이 되었고, i=1에서 설거지가 빠져 2가 됩니다. 이때 li의 class는 차례로 done, todo, done, todo입니다."
+/>
+
+### 예제 2: querySelectorAll은 네 개를 모두 돈다
+
+예제 1과 같은 반복을 `querySelectorAll('.todo')`로 돌립니다.
+
+```html file=./examples/static-loop.html
+
+```
+
+<PredictQuiz
+  question="예제 2의 마지막 줄('끝')은 무엇일까요?"
+  choices={[
+    '끝 2 ["done","todo","done","todo"]',
+    '끝 4 ["done","done","done","done"]',
+    '끝 0 ["done","done","done","done"]',
+    '끝 4 ["todo","todo","todo","todo"]',
+  ]}
+  answer={1}
+  explanation="querySelectorAll의 결과는 정적이라 클래스를 바꿔도 length가 4로 유지되고 네 항목을 모두 방문하고, 마지막 줄에서 li의 class는 모두 done입니다."
+/>
+
+### 반복을 한 단계씩
+
+예제 1과 2의 두 시나리오를 한 단계씩 실행하며 `i`, `todos`에 든 항목, `todos.length`, 반복 조건이 어떻게 바뀌는지 확인해 보세요. 각 단계의 상태는 테스트가 Chromium이 실제로 찍은 출력 줄과, 컬렉션의 필터 규칙(살아 있는 쪽은 `todo`인 `li`만 든다)과 대조합니다.
+
+<Simulator scenarios={scenarios} />
+
+### 예제 3: 붙이면 늘어나는 컬렉션
+
+`getElementsByTagName`의 결과와 `querySelectorAll`의 결과를 미리 받아 두고 `li`를 붙인 뒤 `length`를 비교합니다.
+
+```html file=./examples/live-grow.html
+
+```
+
+<PredictQuiz
+  question="예제 3의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={['2 2 / 2', '3 3 / 3', '3 2 / 3', '2 3 / 3']}
+  answer={2}
+  explanation="getElementsByTagName의 결과는 살아 있어 append 뒤 3이고, 미리 받은 querySelectorAll의 결과는 정적이라 2입니다. querySelectorAll을 다시 부르면 지금의 li 3개를 찾습니다."
+/>
+
+### 예제 4: 두 컬렉션의 차이
+
+두 컬렉션의 생성자 이름, `Array.isArray`, `forEach`의 유무, 배열로 바꾸기를 확인합니다.
+
+```html file=./examples/collection-types.html
+
+```
+
+<PredictQuiz
+  question="예제 4의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'HTMLCollection NodeList / false false / undefined function / true 4',
+    'HTMLCollection NodeList / true false / function function / true 4',
+    'NodeList NodeList / false false / function function / true 4',
+    'HTMLCollection NodeList / false false / undefined function / true 1',
+  ]}
+  answer={0}
+  explanation="getElementsByClassName은 HTMLCollection, querySelectorAll은 NodeList를 돌려주고 둘 다 배열이 아닙니다. forEach는 NodeList에만 있고, Array.from과 스프레드로 만든 배열의 길이는 4입니다."
+/>
+
+### 예제 5: 안전하게 바꾸는 세 가지 방법
+
+역순 `for`, `Array.from`, `while`로 `todo`와 `done`을 오가며 바꿉니다.
+
+```html file=./examples/fixes.html
+
+```
+
+<PredictQuiz
+  question="예제 5의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={['4 / 4 0 / 4 0', '4 / 4 4 / 4 4', '2 / 2 2 / 2 2', '4 / 4 0 / 0 4']}
+  answer={0}
+  explanation="세 방법 모두 네 항목을 전부 바꿉니다. 바꾼 뒤 살아 있는 컬렉션은 비어서 dones.length와 todos.length는 0이 됩니다."
+/>
+
+### 예제 6: 반복 방법만 바꿔서는 안 되는 경우
+
+`for...of`, `Array.prototype.forEach.call`, `classList.add`를 쓰는 처리, `childNodes.forEach`가 각각 어떻게 되는지 확인합니다. `forEach`가 콜백을 부른 인덱스와, `NodeList`의 `forEach`가 `Array.prototype.forEach`와 같은 함수인지도 확인합니다.
+
+```html file=./examples/iteration-traps.html
+
+```
+
+<PredictQuiz
+  question="예제 6의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '4 / 4 [0,1,2,3] / 4 "done" / 0 true',
+    '2 / 2 [0,1] / 4 "todo done" / 2 true',
+    '2 / 2 [0,1,2,3] / 0 "todo done" / 2 false',
+    '2 / 4 [0,1] / 4 "done" / 2 false',
+  ]}
+  answer={1}
+  explanation="for...of는 next마다 length를 다시 읽어서, Array.prototype.forEach.call은 길이를 4로 고정하지만 사라진 인덱스 2와 3을 HasProperty에서 건너뛰어서 둘 다 2가 남고, forEach의 콜백은 인덱스 0과 1에서만 불립니다. classList.add는 todo를 남겨 length가 4 그대로입니다. NodeList의 forEach는 Array.prototype.forEach와 같은 함수(true)라서 childNodes.forEach도 둘만 지우고 2가 남습니다."
+/>
+
+### 예제 7: 순회하며 지우는 childNodes
+
+공백 없이 쓴 `li` 네 개의 `childNodes`를 돌며 `removeChild`로 지웁니다.
+
+```html file=./examples/child-nodes-live.html
+
+```
+
+<PredictQuiz
+  question="예제 7의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'NodeList 4 / 0 null null',
+    'NodeList 4 / 2 2 4',
+    'NodeList 4 / 2 1 3',
+    'NodeList 4 / 4 1 4',
+  ]}
+  answer={1}
+  explanation="kids[0]을 지우면 kids[1]은 셋째 li이고, 이를 지우면 length가 2가 되어 반복이 끝납니다. 둘째와 넷째가 남아 length 2, 첫 자식 2, 마지막 자식 4입니다."
+/>
+
+### 예제 8: 중복 id와 id 이름의 Window 프로퍼티
+
+같은 `id`가 둘일 때 `getElementById`와 `querySelectorAll`의 결과를 비교하고, `id="box"`를 이름 `box`로 읽습니다. 이 프로퍼티가 `window`의 own 프로퍼티인지, 같은 `id`가 둘이면 이름이 무엇을 가리키는지, `Window`가 이미 가진 이름 `name`과 `id="name"`이 부딪히면 어떻게 되는지도 확인합니다. `Object.prototype`에 있는 이름 `toString`과 `id="toString"`, named properties object의 class string, 둘째 스크립트의 전역 `let box`가 이름 있는 프로퍼티를 가리는지도 봅니다.
+
+```html file=./examples/duplicate-id.html
+
+```
+
+<PredictQuiz
+  question="예제 8의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '둘째 / 2 null / 상자 true / true true / HTMLCollection 2 / 이름 false 이름 / object [object Window] / 1 true 1',
+    '첫째 / 1 null / 상자 true / false true / HTMLCollection 1 / "" true 이름 / function [object WindowProperties] / 상자 false 상자',
+    '첫째 / 2 null / 상자 true / false true / HTMLCollection 2 / "" true 이름 / function [object WindowProperties] / 1 false 상자',
+    '첫째 / 2 undefined / 상자 false / false false / HTMLCollection 2 / "" false 이름 / object [object Object] / 1 true 상자',
+  ]}
+  answer={2}
+  explanation="getElementById는 트리 순서로 첫 요소를 돌려주어 첫째이고, 없는 id는 null입니다. querySelectorAll('#note')는 둘 다 찾아 2입니다. box는 window의 own 프로퍼티는 아니지만(false) in 연산자로는 보이고(true), 같은 id가 둘인 note는 길이 2인 HTMLCollection입니다. name은 window의 own 프로퍼티(true)라서 id가 name이어도 빈 문자열이고, toString은 Object.prototype에 있어 function입니다. named properties object의 class string은 WindowProperties이고, 전역 let box는 own 프로퍼티를 만들지 않고(false) box를 1로 가리지만 window.box는 여전히 요소입니다."
+/>
+
+### 예제 9: 요소에서 찾기
+
+문서 전체와 `news` 요소 안에서 같은 클래스를 찾고, 요소의 `querySelectorAll`에 문서 전체를 기준으로 하는 선택자를 줍니다.
+
+```html file=./examples/element-scope.html
+
+```
+
+<PredictQuiz
+  question="예제 9의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '3 / 3 3 / 뉴스 1 / 3',
+    '3 / 2 2 / 뉴스 1 / 2',
+    '3 / 2 2 / 뉴스 1 / 0',
+    '3 / 2 2 / 광고 / 2',
+  ]}
+  answer={1}
+  explanation="문서 전체에는 item이 3개이고, news 요소에서 찾으면 후손인 2개뿐입니다. querySelector는 일치하는 첫 요소를 돌려주어 뉴스 1입니다. 'body section .item'은 선택자를 문서 전체 기준으로 맞춘 뒤 news의 후손만 돌려주므로 2입니다."
+/>
+
+## 결과와 이유
+
+### 예제 1
+
+출력의 2번째 줄 `i=0 3 [...]`은 청소를 `done`으로 바꾼 직후입니다. 그 `li`가 필터에서 빠져 `todos.length`가 3입니다. 3번째 줄 `i=1 2 ["done","todo","done","todo"]`에서는 `todos[1]`이 빨래가 아니라 설거지여서 설거지가 `done`이 되었고 `length`가 2입니다. 코드 21번 줄의 조건 `2 < 2`가 거짓이라 반복이 끝나고, 4번째 줄 `끝 2 ...`는 빨래와 장보기가 `todo`인 채임을 보여 줍니다. `for` 문이 잘못 돈 것이 아니라, 컬렉션이 줄어들어 `i`가 가리키는 자리에 다른 항목이 와서 건너뛰어진 것입니다.
+
+### 예제 2
+
+`todos`는 `querySelectorAll`이 호출 시점에 돌려준 정적 목록이므로 클래스를 바꿔도 `length`는 계속 4입니다. 출력의 `i=0`부터 `i=3`까지 `done`이 한 개씩 늘고, 마지막 줄은 `끝 4 ["done","done","done","done"]`입니다. 코드 21번 줄의 조건이 4번 참이라 항목을 모두 방문합니다.
+
+### 예제 3
+
+1번째 줄 `3 2`는 `append` 뒤의 `byTag.length`가 3, 미리 받은 `byQuery.length`가 2라는 뜻입니다. 살아 있는 컬렉션은 지금의 문서를 보여 주고, 정적인 `querySelectorAll`의 결과는 받은 시점의 목록입니다. 2번째 줄 `3`은 `querySelectorAll('li')`를 새로 불러 `li` 3개를 찾은 결과입니다.
+
+### 예제 4
+
+1번째 줄은 두 컬렉션의 생성자 이름이 `HTMLCollection`과 `NodeList`라는 것, 2번째 줄은 둘 다 `Array.isArray`가 `false`라는 것을 보여 줍니다. 3번째 줄 `undefined function`은 `HTMLCollection`에는 `forEach`가 없고 `NodeList`에는 있다는 뜻입니다(위의 Web IDL 규칙). 4번째 줄 `true 4`는 `Array.from`으로 배열이 만들어지고 스프레드로 4개 항목을 펼쳤다는 뜻입니다. 두 컬렉션 모두 인덱스 getter가 있어 이터러블이기 때문입니다.
+
+### 예제 5
+
+1번째 줄 `4`는 역순 `for`로 `done`이 4개가 되었다는 뜻입니다. `i`가 3에서 0으로 줄 때 `todos[i]`를 바꾸면 그 항목만 빠지고 앞의 항목은 인덱스가 그대로여서 모두 방문합니다. 2번째 줄 `4 0`은 `Array.from(dones)`의 배열 4개를 모두 `todo`로 바꾼 결과입니다. `todo` 컬렉션에는 4개가 있고 원래의 살아 있는 `dones`는 `length` 0입니다. 3번째 줄 `4 0`은 `while`로 항상 `todos[0]`을 바꿔 `todos.length`가 0이 될 때까지 4번 반복한 결과이며, `done`이 4개입니다.
+
+### 예제 6
+
+1번째 줄 `2`는 `for...of`가 컬렉션을 돌며 `className`을 바꿨을 때 두 개가 `todo`로 남았다는 뜻입니다. 이터레이터가 매번 `length`를 다시 읽어 예제 1과 같이 절반만 처리합니다. 2번째 줄 `2 [0,1]`은 `Array.prototype.forEach.call`도 두 개를 남겼고 콜백이 받은 인덱스가 0과 1뿐이라는 뜻입니다. `forEach`는 길이를 4로 고정하지만, 인덱스 2와 3은 그때 컬렉션에 없어 `HasProperty`에서 빠집니다. 3번째 줄 `4 "todo done"`은 `classList.add('done')`가 `todo` 클래스를 남겨 `todos[0]`이 필터에서 빠지지 않았고 `length`가 4 그대로이며 `className`이 `"todo done"`이라는 뜻입니다. 이 처리로 `while (todos.length > 0)`을 쓰면 끝나지 않습니다. 4번째 줄 `2 true`는 `childNodes.forEach`가 `removeChild`로 지우다 둘만 지우고 둘이 남았고, `NodeList`의 `forEach`가 `Array.prototype.forEach`와 같은 함수라는 뜻입니다.
+
+### 예제 7
+
+1번째 줄 `NodeList 4`는 `childNodes`가 `NodeList`이고 공백 텍스트 노드가 없어 자식이 4개라는 뜻입니다. 2번째 줄은 `kids.length`가 2, 첫 자식의 텍스트가 `2`, 마지막 자식이 `4`입니다. `i=0`에서 첫째 `li`를 지우면 `kids`는 둘째, 셋째, 넷째가 되고, `i=1`의 `kids[1]`은 셋째입니다. 이를 지우면 둘째와 넷째가 남고 `length`는 2입니다. `i=2`에서 `2 < 2`가 거짓이라 반복이 끝납니다.
+
+### 예제 8
+
+1번째 줄은 `id="note"`가 둘 있어도 `getElementById`가 트리 순서의 첫 요소를 찾아 `첫째`입니다. 2번째 줄 `2 null`은 `querySelectorAll('#note')`가 둘 다 찾고 없는 `id`는 `null`이라는 뜻입니다. 3번째 줄 `상자 true`는 변수를 선언하지 않은 `box`가 `id="box"` 요소를 가리킨다는 뜻이며, `document.getElementById('box')`와 같은 요소입니다. 4번째 줄 `false true`는 `box`가 `window`의 own 프로퍼티는 아니지만 `in`으로는 보인다는 뜻입니다. 5번째 줄 `HTMLCollection 2`는 `id="note"`가 둘이라 `note`가 길이 2인 `HTMLCollection`이라는 뜻입니다. 6번째 줄 `"" true 이름`은 `name`이 `window`의 own 프로퍼티라서 `id="name"` 요소로 매핑되지 않아 빈 문자열이고, 요소는 `getElementById`로 찾는다는 뜻입니다. 7번째 줄 `function [object WindowProperties]`는 `Object.prototype`에 있는 `toString`이 `id="toString"` 요소보다 먼저 보이고, `Window.prototype`의 프로토타입인 named properties object의 class string이 `WindowProperties`라는 뜻입니다. 8번째 줄 `1 false 상자`는 둘째 스크립트의 전역 `let box`가 own 프로퍼티를 만들지 않고 식별자 `box`를 가리며, `window.box`는 여전히 `id="box"` 요소라는 뜻입니다.
+
+### 예제 9
+
+1번째 줄 `3`은 문서 전체의 `item`입니다. 2번째 줄 `2 2`는 `news.getElementsByClassName('item')`과 `news.querySelectorAll('.item')`이 모두 `news`의 후손 둘만 찾았다는 뜻입니다. `news` 밖의 `광고`는 후손이 아니라서 들지 않습니다. 3번째 줄 `뉴스 1`은 `news.querySelector('.item')`이 그 후손 중 첫 요소를 찾은 결과입니다. 4번째 줄 `2`는 선택자 `body section .item`을 문서 전체 기준으로 맞춘 뒤 `news`의 후손만 남긴 개수입니다.
+
+### 흔한 오해
+
+<Callout type="misconception" title="for 문은 컬렉션의 모든 항목을 방문한다">
+
+`for` 문은 컬렉션이 아니라 `i`와 조건식을 따릅니다. 살아 있는 컬렉션은 반복 중에 항목이 빠지면 `length`와 인덱스가 함께 바뀌므로 `i`가 가리키는 항목이 건너뛰어집니다(예제 1). `for...of`나 `forEach`로 바꿔도 마찬가지입니다(예제 6). 정적인 목록(예제 2)이나 `Array.from`으로 만든 배열, 역순 `for`, `while`(예제 5)을 쓰면 모든 항목을 처리합니다.
+
+</Callout>
+
+<Callout type="misconception" title="NodeList는 항상 정적이다">
+
+`querySelectorAll`의 `NodeList`는 정적이지만(예제 2), `childNodes`의 `NodeList`는 살아 있습니다(예제 7). 정적인지 살아 있는지는 타입 이름이 아니라 그 컬렉션을 돌려주는 API의 정의가 정합니다.
+
+</Callout>
+
+<Callout type="misconception" title="HTMLCollection에도 forEach가 있다">
+
+`HTMLCollection`에는 `forEach`가 없습니다(`typeof`가 `undefined`, 예제 4). `NodeList`에는 있지만 둘 다 배열은 아닙니다. `HTMLCollection`은 `Array.from`이나 스프레드로 배열로 바꾼 뒤 돌거나, 컬렉션의 구성을 바꾸지 않는 작업이라면 `for` 문으로 돕니다.
+
+</Callout>
+
+<Callout type="misconception" title="id가 중복돼도 괜찮다">
+
+`id`는 같은 트리 안에서 유일해야 한다고 HTML 표준이 정하며, 중복은 작성 규칙 위반입니다. 브라우저는 중복된 문서도 파싱하고 `getElementById`는 트리 순서의 첫 요소만 돌려주지만(예제 8), 다른 선택 API는 둘 다 찾을 수 있으니 중복에 기대지 않습니다.
+
+</Callout>
+
+<Callout type="misconception" title="id 이름으로 Window 프로퍼티에 기대면 된다">
+
+예제 8의 `box`처럼 `id`가 `Window`의 이름 있는 프로퍼티로 보이는 것은 HTML 표준이 정한 동작입니다. 그러나 표준 스스로 이에 기대면 깨지기 쉬운 코드가 된다고 쓰고 `document.getElementById()`나 `document.querySelector()`를 권합니다. 어떤 `id`가 이 API에 매핑되는지는 웹 플랫폼에 기능이 더해지며 달라질 수 있습니다.
+
+</Callout>

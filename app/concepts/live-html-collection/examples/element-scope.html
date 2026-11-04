@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<section id="news">
+  <p class="item">뉴스 1</p>
+  <p class="item">뉴스 2</p>
+</section>
+<p class="item">광고</p>
+<script>
+var news = document.getElementById('news');
+console.log(document.getElementsByClassName('item').length);
+console.log(news.getElementsByClassName('item').length, news.querySelectorAll('.item').length);
+console.log(news.querySelector('.item').textContent);
+console.log(news.querySelectorAll('body section .item').length);
+</script>
+</body>
+</html>

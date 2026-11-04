@@ -61,6 +61,8 @@ export const SPREAD_DESTRUCTURING_PATH = '/concepts/spread-destructuring'
 export const SET_MAP_PATH = '/concepts/set-map'
 export const SCRIPT_ASYNC_DEFER_PATH = '/concepts/script-async-defer'
 export const DOM_TREE_NODES_PATH = '/concepts/dom-tree-nodes'
+export const LIVE_HTML_COLLECTION_PATH = '/concepts/live-html-collection'
+export const LIVE_HTML_COLLECTION_SIMULATOR_NAME = '컬렉션 시뮬레이터'
 
 // 404 문서 자체를 받을 때 브라우저가 남기는 리소스 로드 로그. 앱 오류가 아니므로 무시한다.
 const IGNORED_404_LOG = /Failed to load resource: the server responded with a status of 404/

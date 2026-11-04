@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<ul id="list">
+  <li class="todo">청소</li>
+  <li class="todo">빨래</li>
+  <li class="todo">설거지</li>
+  <li class="todo">장보기</li>
+</ul>
+<ul id="row"><li>1</li><li>2</li><li>3</li><li>4</li></ul>
+<script>
+var todos = document.getElementsByClassName('todo');
+function reset() {
+  document.querySelectorAll('#list li').forEach((li) => {
+    li.className = 'todo';
+  });
+}
+for (var li of todos) {
+  li.className = 'done';
+}
+console.log(todos.length);
+reset();
+var seen = [];
+Array.prototype.forEach.call(todos, (li, k) => {
+  seen.push(k);
+  li.className = 'done';
+});
+console.log(todos.length, JSON.stringify(seen));
+reset();
+todos[0].classList.add('done');
+console.log(todos.length, JSON.stringify(todos[0].className));
+var row = document.getElementById('row');
+row.childNodes.forEach((node) => {
+  row.removeChild(node);
+});
+console.log(row.childNodes.length, NodeList.prototype.forEach === Array.prototype.forEach);
+</script>
+</body>
+</html>

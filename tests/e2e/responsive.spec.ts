@@ -51,6 +51,8 @@ import {
   ITERABLE_FOR_OF_PATH,
   ITERABLE_FOR_OF_SIMULATOR_NAME,
   DOM_TREE_NODES_PATH,
+  LIVE_HTML_COLLECTION_PATH,
+  LIVE_HTML_COLLECTION_SIMULATOR_NAME,
   SCRIPT_ASYNC_DEFER_PATH,
   SET_MAP_PATH,
   SPREAD_DESTRUCTURING_PATH,
@@ -932,10 +934,37 @@ test(`${DOM_TREE_NODES_PATH}: 가로 스크롤이 없다`, async ({ page }) => {
   expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
 })
 
+test(`${LIVE_HTML_COLLECTION_PATH}: 가로 스크롤이 없다`, async ({ page }) => {
+  await page.goto(LIVE_HTML_COLLECTION_PATH)
+  await waitForHydration(page)
+  const { scrollWidth, innerWidth } = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    innerWidth: window.innerWidth,
+  }))
+  expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
+})
+
+test('HTMLCollection은 살아 있다 개념 페이지: 정적인 NodeList 시나리오를 끝까지 진행해도 가로 스크롤이 없다', async ({
+  page,
+}) => {
+  await page.goto(LIVE_HTML_COLLECTION_PATH)
+  await waitForHydration(page)
+  const region = page.getByRole('region', { name: LIVE_HTML_COLLECTION_SIMULATOR_NAME })
+  await region.getByRole('radio', { name: '정적인 NodeList', exact: true }).check()
+  const next = region.getByRole('button', { name: '다음' })
+  for (let i = 0; i < 17; i++) await next.click()
+  await expect(region.getByText(/^단계 18 \/ 18$/)).toBeVisible()
+  const { scrollWidth, innerWidth } = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    innerWidth: window.innerWidth,
+  }))
+  expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
+})
+
 test('홈 학습 순서 보기: 가로 스크롤이 없다', async ({ page }) => {
   await page.goto('/?view=order')
   await waitForHydration(page)
-  await expect(page.getByRole('article')).toHaveCount(37)
+  await expect(page.getByRole('article')).toHaveCount(38)
   const { scrollWidth, innerWidth } = await page.evaluate(() => ({
     scrollWidth: document.documentElement.scrollWidth,
     innerWidth: window.innerWidth,

@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<ul>
+  <li class="todo">청소</li>
+  <li class="todo">빨래</li>
+  <li class="todo">설거지</li>
+  <li class="todo">장보기</li>
+</ul>
+<script>
+var todos = document.getElementsByClassName('todo');
+for (var i = todos.length - 1; i >= 0; i--) {
+  todos[i].className = 'done';
+}
+console.log(document.getElementsByClassName('done').length);
+var dones = document.getElementsByClassName('done');
+Array.from(dones).forEach((li) => {
+  li.className = 'todo';
+});
+console.log(document.getElementsByClassName('todo').length, dones.length);
+while (todos.length > 0) {
+  todos[0].className = 'done';
+}
+console.log(document.getElementsByClassName('done').length, todos.length);
+</script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<p id="note">첫째</p>
+<p id="note">둘째</p>
+<div id="box">상자</div>
+<div id="name">이름</div>
+<div id="toString">문자열</div>
+<script>
+console.log(document.getElementById('note').textContent);
+console.log(document.querySelectorAll('#note').length, document.getElementById('none'));
+console.log(box.textContent, box === document.getElementById('box'));
+console.log(Object.hasOwn(window, 'box'), 'box' in window);
+console.log(note.constructor.name, note.length);
+console.log(JSON.stringify(name), Object.hasOwn(window, 'name'), document.getElementById('name').textContent);
+console.log(typeof toString, Object.prototype.toString.call(Object.getPrototypeOf(Window.prototype)));
+</script>
+<script>
+let box = 1;
+console.log(box, Object.hasOwn(window, 'box'), window.box.textContent);
+</script>
+</body>
+</html>

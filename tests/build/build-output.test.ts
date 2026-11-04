@@ -1035,6 +1035,31 @@ describe('프리렌더 (dom-tree-nodes)', () => {
   })
 })
 
+// 38~42장 로드맵 3번(live-html-collection): 시뮬레이터와 퀴즈도 프리렌더 HTML에 정적으로 들어 있어야 한다.
+describe('시뮬레이터 프리렌더 (live-html-collection)', () => {
+  const html = read('concepts/live-html-collection/index.html')
+  const text = htmlToText(html)
+
+  it('시뮬레이터 region이 HTML에 있다', () => {
+    expect(html).toMatch(/role="region"[^>]*aria-label="컬렉션 시뮬레이터"/)
+  })
+
+  it('단계 1(실행 전) 텍스트가 HTML에 있다', () => {
+    expect(text).toContain('단계 1')
+    expect(text).toContain('실행 전')
+  })
+
+  it('할 일 네 개의 텍스트가 HTML에 있다', () => {
+    for (const task of ['청소', '빨래', '설거지', '장보기']) {
+      expect(text).toContain(task)
+    }
+  })
+
+  it('퀴즈 정답이 <details>로 10개 이상 프리렌더된다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(10)
+  })
+})
+
 // 학습 순서 이전/다음: 관련 개념 링크와 섞이지 않도록 nav 영역만 잘라 검사한다.
 describe('학습 순서 pager', () => {
   const ordered = sortByOrder(concepts)
