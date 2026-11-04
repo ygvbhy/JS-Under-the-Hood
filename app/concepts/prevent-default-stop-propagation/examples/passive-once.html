@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<input type="checkbox" id="pin">
+<input type="checkbox" id="star">
+<button id="save">저장</button>
+<script>
+var pin = document.getElementById('pin');
+var star = document.getElementById('star');
+var save = document.getElementById('save');
+pin.addEventListener('click', function (e) {
+  e.preventDefault();
+  console.log('passive 리스너 ' + e.defaultPrevented);
+}, { passive: true });
+pin.click();
+console.log('pin ' + pin.checked);
+star.addEventListener('click', function (e) {
+  e.preventDefault();
+}, { passive: true });
+star.addEventListener('click', function (e) {
+  console.log('다음 리스너 ' + e.defaultPrevented);
+  e.preventDefault();
+  console.log('직접 호출 뒤 ' + e.defaultPrevented);
+});
+star.click();
+console.log('star ' + star.checked);
+var calls = 0;
+save.addEventListener('click', function () { calls++; }, { once: true });
+save.click();
+save.click();
+console.log('once ' + calls);
+</script>
+</body>
+</html>

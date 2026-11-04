@@ -56,6 +56,7 @@ import {
   HTML_ATTRIBUTE_DOM_PROPERTY_PATH,
   EVENT_PROPAGATION_DELEGATION_PATH,
   EVENT_PROPAGATION_DELEGATION_SIMULATOR_NAME,
+  PREVENT_DEFAULT_STOP_PROPAGATION_PATH,
   SCRIPT_ASYNC_DEFER_PATH,
   SET_MAP_PATH,
   SPREAD_DESTRUCTURING_PATH,
@@ -984,6 +985,16 @@ test(`${EVENT_PROPAGATION_DELEGATION_PATH}: 가로 스크롤이 없다`, async (
   expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
 })
 
+test(`${PREVENT_DEFAULT_STOP_PROPAGATION_PATH}: 가로 스크롤이 없다`, async ({ page }) => {
+  await page.goto(PREVENT_DEFAULT_STOP_PROPAGATION_PATH)
+  await waitForHydration(page)
+  const { scrollWidth, innerWidth } = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    innerWidth: window.innerWidth,
+  }))
+  expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
+})
+
 test('이벤트 전파와 위임 개념 페이지: 아이콘을 클릭 시나리오를 끝까지 진행해도 가로 스크롤이 없다', async ({
   page,
 }) => {
@@ -1003,7 +1014,7 @@ test('이벤트 전파와 위임 개념 페이지: 아이콘을 클릭 시나리
 test('홈 학습 순서 보기: 가로 스크롤이 없다', async ({ page }) => {
   await page.goto('/?view=order')
   await waitForHydration(page)
-  await expect(page.getByRole('article')).toHaveCount(40)
+  await expect(page.getByRole('article')).toHaveCount(41)
   const { scrollWidth, innerWidth } = await page.evaluate(() => ({
     scrollWidth: document.documentElement.scrollWidth,
     innerWidth: window.innerWidth,

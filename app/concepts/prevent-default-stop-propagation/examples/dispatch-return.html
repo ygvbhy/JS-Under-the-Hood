@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<div id="panel">편집 중인 메모</div>
+<script>
+var panel = document.getElementById('panel');
+var unsaved = true;
+panel.addEventListener('panelclose', function (e) {
+  if (unsaved) {
+    e.preventDefault();
+  }
+});
+function closePanel() {
+  var ok = panel.dispatchEvent(new Event('panelclose', { cancelable: true }));
+  if (ok) {
+    panel.hidden = true;
+  }
+  console.log('닫기 ' + ok + ' hidden ' + panel.hidden);
+}
+closePanel();
+unsaved = false;
+closePanel();
+</script>
+</body>
+</html>

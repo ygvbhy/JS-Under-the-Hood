@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<script>
+var last = null;
+window.addEventListener('click', function (e) { last = e; }, true);
+function trial(name, register) {
+  var row = document.createElement('div');
+  var box = document.createElement('input');
+  box.type = 'checkbox';
+  row.appendChild(box);
+  document.body.appendChild(row);
+  var rest = false;
+  var parent = false;
+  register(box);
+  box.addEventListener('click', function () { rest = true; });
+  row.addEventListener('click', function () { parent = true; });
+  box.click();
+  console.log(name + ' 체크 ' + box.checked + ' 남은 ' + rest + ' 부모 ' + parent + ' defaultPrevented ' + last.defaultPrevented);
+}
+trial('아무것도 안 함', function (box) {
+  box.addEventListener('click', function () {});
+});
+trial('preventDefault', function (box) {
+  box.addEventListener('click', function (e) { e.preventDefault(); });
+});
+trial('stopPropagation', function (box) {
+  box.addEventListener('click', function (e) { e.stopPropagation(); });
+});
+trial('stopImmediatePropagation', function (box) {
+  box.addEventListener('click', function (e) { e.stopImmediatePropagation(); });
+});
+trial('passive에서 preventDefault', function (box) {
+  box.addEventListener('click', function (e) { e.preventDefault(); }, { passive: true });
+});
+trial('onclick의 return false', function (box) {
+  box.onclick = function () { return false; };
+});
+trial('addEventListener의 return false', function (box) {
+  box.addEventListener('click', function () { return false; });
+});
+</script>
+</body>
+</html>

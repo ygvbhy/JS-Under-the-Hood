@@ -101,15 +101,15 @@ describe('getAdjacentConcepts', () => {
     expect(adj.prev).toBeNull()
     expect(adj.next?.slug).toBe('short-circuit-evaluation')
     expect(adj.position).toBe(1)
-    expect(adj.total).toBe(40)
+    expect(adj.total).toBe(41)
   })
 
   it('마지막 개념은 다음이 없다', () => {
-    const adj = getAdjacentConcepts('event-propagation-delegation')
-    expect(adj.prev?.slug).toBe('html-attribute-dom-property')
+    const adj = getAdjacentConcepts('prevent-default-stop-propagation')
+    expect(adj.prev?.slug).toBe('event-propagation-delegation')
     expect(adj.next).toBeNull()
-    expect(adj.position).toBe(40)
-    expect(adj.total).toBe(40)
+    expect(adj.position).toBe(41)
+    expect(adj.total).toBe(41)
   })
 
   it('중간 개념은 앞뒤 개념을 돌려준다', () => {

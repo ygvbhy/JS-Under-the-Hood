@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<div id="row">
+<input type="checkbox" id="agree">
+<input type="checkbox" id="news">
+</div>
+<script>
+var row = document.getElementById('row');
+var agree = document.getElementById('agree');
+var news = document.getElementById('news');
+var changes = [];
+row.addEventListener('click', function (e) {
+  console.log('row ' + e.target.id + ' ' + e.defaultPrevented);
+});
+function recordChange(e) {
+  changes.push(e.target.id);
+}
+row.addEventListener('change', recordChange);
+agree.addEventListener('click', function (e) {
+  console.log('agree 리스너 ' + agree.checked);
+  e.preventDefault();
+  console.log('preventDefault 뒤 ' + agree.checked);
+});
+news.addEventListener('click', function () {
+  console.log('news 리스너 ' + news.checked);
+});
+agree.click();
+console.log('agree 클릭 뒤 ' + agree.checked);
+news.click();
+console.log('news 클릭 뒤 ' + news.checked);
+var loose = document.createElement('input');
+loose.type = 'checkbox';
+loose.id = 'loose';
+loose.addEventListener('change', recordChange);
+loose.click();
+console.log('loose 클릭 뒤 ' + loose.checked);
+console.log(JSON.stringify(changes));
+</script>
+</body>
+</html>

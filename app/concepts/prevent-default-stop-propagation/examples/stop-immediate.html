@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<div id="card">
+<button id="save">저장</button>
+<input type="checkbox" id="pin">
+</div>
+<script>
+var card = document.getElementById('card');
+var save = document.getElementById('save');
+var pin = document.getElementById('pin');
+var log = [];
+card.addEventListener('click', function () { log.push('card 버블'); });
+save.addEventListener('click', function (e) {
+  log.push('save 1');
+  e.stopImmediatePropagation();
+});
+save.addEventListener('click', function () { log.push('save 2'); });
+save.click();
+console.log(JSON.stringify(log));
+pin.addEventListener('click', function (e) { e.stopImmediatePropagation(); });
+log = [];
+pin.click();
+console.log(pin.checked + ' ' + JSON.stringify(log));
+var ping = new Event('ping', { bubbles: true, cancelable: true });
+save.addEventListener('ping', function (e) {
+  e.stopPropagation();
+  e.preventDefault();
+  console.log('리스너 안 ' + e.cancelBubble + ' ' + e.defaultPrevented);
+});
+save.dispatchEvent(ping);
+console.log('디스패치 뒤 ' + ping.cancelBubble + ' ' + ping.defaultPrevented);
+</script>
+</body>
+</html>

@@ -1096,6 +1096,22 @@ describe('시뮬레이터 프리렌더 (event-propagation-delegation)', () => {
   })
 })
 
+// 38~42장 로드맵 6번(prevent-default-stop-propagation): 호출별 비교표와 퀴즈가 프리렌더 HTML에 정적으로 있어야 한다.
+describe('프리렌더 (prevent-default-stop-propagation)', () => {
+  const html = read('concepts/prevent-default-stop-propagation/index.html')
+  const text = htmlToText(html)
+
+  it('호출별 비교표 region이 HTML에 있다', () => {
+    expect(html).toContain('aria-label="호출마다 기본 동작과 전파가 어떻게 되는지"')
+    expect(text).toContain('stopImmediatePropagation')
+    expect(text).toContain('불리지 않음')
+  })
+
+  it('퀴즈 정답이 <details>로 10개 이상 프리렌더된다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(10)
+  })
+})
+
 // 학습 순서 이전/다음: 관련 개념 링크와 섞이지 않도록 nav 영역만 잘라 검사한다.
 describe('학습 순서 pager', () => {
   const ordered = sortByOrder(concepts)

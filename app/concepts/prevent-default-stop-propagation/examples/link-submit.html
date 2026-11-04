@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<a id="next" href="/next">다음</a>
+<form id="form" action="/save">
+<input name="q" value="hi">
+<button type="submit" id="send">보내기</button>
+</form>
+<script>
+var next = document.getElementById('next');
+var form = document.getElementById('form');
+var send = document.getElementById('send');
+document.addEventListener('click', function (e) {
+  console.log('click ' + e.target.id + ' ' + e.defaultPrevented);
+});
+document.addEventListener('submit', function (e) {
+  console.log('submit ' + e.cancelable + ' ' + e.defaultPrevented);
+});
+next.addEventListener('click', function (e) {
+  e.preventDefault();
+});
+form.addEventListener('submit', function (e) {
+  e.preventDefault();
+});
+next.click();
+send.click();
+</script>
+</body>
+</html>

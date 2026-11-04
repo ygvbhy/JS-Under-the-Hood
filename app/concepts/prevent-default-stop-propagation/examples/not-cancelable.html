@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<div id="box"></div>
+<input type="checkbox" id="pin">
+<script>
+var box = document.getElementById('box');
+var pin = document.getElementById('pin');
+box.addEventListener('ping', function (e) {
+  e.preventDefault();
+  console.log('ping ' + e.cancelable + ' ' + e.defaultPrevented);
+});
+console.log(box.dispatchEvent(new Event('ping')));
+console.log(box.dispatchEvent(new Event('ping', { cancelable: true })));
+pin.addEventListener('change', function (e) {
+  e.preventDefault();
+  console.log('change ' + e.cancelable + ' ' + e.defaultPrevented);
+});
+pin.click();
+console.log('pin ' + pin.checked);
+</script>
+</body>
+</html>

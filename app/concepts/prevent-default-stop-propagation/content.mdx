@@ -1,0 +1,523 @@
+import { rows, defaultText, calledText } from './action-table'
+
+체크박스의 click 리스너에서 `preventDefault()`를 부르면 체크가 취소되는데, 그 체크박스를 감싼 부모의 click 리스너는 왜 그대로 불릴까요? 이 페이지는 이 질문에서 출발해, 기본 동작을 취소하는 일과 이벤트 전파를 막는 일이 서로 다른 플래그를 건드린다는 것을 확인합니다. 이어서 `stopPropagation`과 `stopImmediatePropagation`의 차이, 체크박스 click 리스너 안에서 `checked`가 이미 바뀌어 있는 이유, `passive`와 `once`, 같은 함수의 중복 등록, `dispatchEvent`의 반환값, `onclick`의 `return false`를 하나씩 살펴봅니다. 이벤트 취소와 전파는 ECMAScript가 아니라 호스트(브라우저)의 동작이며, 규칙은 WHATWG DOM 표준과 WHATWG HTML 표준이 정합니다. 예제의 출력은 모두 테스트가 Chromium에서 실제로 열어 `console.log` 출력을 모은 값이며, 다른 브라우저는 이 페이지에서 확인하지 않았습니다. 예제의 이벤트는 사용자가 실제로 누르는 대신 `click()`이나 `dispatchEvent`로 만들기 때문에 `isTrusted`가 `false`입니다. 이 페이지는 [이벤트 전파와 위임](/concepts/event-propagation-delegation)에서 본 경로와 디스패치, 그리고 [HTML 어트리뷰트와 DOM 프로퍼티](/concepts/html-attribute-dom-property)에서 본 체크박스의 `checked`(checkedness)를 전제합니다.
+
+## 동작 원리
+
+### preventDefault는 canceled flag만 세운다
+
+흔히 '기본 동작(default action)'이라고 부르는 것을 WHATWG DOM 표준과 HTML 표준은 하나의 규칙으로 정의하지 않습니다. 이 용어 자체는 W3C UI Events 명세의 용어집에 이벤트 디스패치와 함께 수행되고 `preventDefault()`로 취소할 수 있는 부가 동작으로 정의되어 있지만, 이 페이지는 실제 처리 절차를 정하는 WHATWG 두 표준의 규칙으로 설명합니다. `click`에 대해서는 DOM 표준이 활성화 동작(activation behavior)이라는 자리를 두고 HTML 표준이 요소마다(체크박스, 링크, 제출 버튼 등) 그 내용을 정합니다. `submit`처럼 다른 이벤트는 그 이벤트를 발생시킨 알고리즘(폼 제출 등)이 취소 여부를 보고 계속할지 정합니다. 어느 쪽이든 취소의 입구는 이벤트에 달린 canceled flag입니다. DOM 표준의 `preventDefault()` 정의는 이렇습니다.
+
+> The preventDefault() method steps are to set the canceled flag with this.
+
+`preventDefault()`가 하는 일은 이벤트의 canceled flag를 세우는 것이 전부이고, 전파와 관련된 플래그는 건드리지 않습니다. 그래서 `preventDefault()`를 불러도 이벤트는 경로를 따라 계속 가서 부모 리스너도 불립니다. 기본 동작은 리스너가 도는 동안이 아니라 디스패치가 경로를 다 지난 뒤에 실행 여부가 정해집니다. DOM 표준의 디스패치 알고리즘은 마지막 부분에서 이렇게 씁니다.
+
+> If activationTarget is non-null: If event's canceled flag is unset, then run activationTarget's activation behavior with event. Otherwise, if activationTarget has legacy-canceled-activation behavior, then run activationTarget's legacy-canceled-activation behavior.
+
+canceled flag가 서 있지 않으면 활성화 대상의 활성화 동작을 실행하고, 서 있으면 실행하지 않습니다. 리스너가 몇 개든 그중 하나라도 flag를 세웠으면 같은 결과입니다. 예제 1에서 체크박스 `agree`의 리스너가 `preventDefault()`를 부른 뒤에도 부모 `row`의 리스너가 불리고, 그 리스너가 읽은 `defaultPrevented`는 `true`입니다.
+
+### 체크박스 click 리스너 안의 checked는 이미 바뀐 값이다
+
+체크박스를 `click()`하면 리스너가 실행될 때 `checked`는 이미 눌린 뒤의 값입니다. 이는 모든 요소의 일반 규칙이 아니라 체크박스와 라디오 버튼에만 있는 예외입니다. DOM 표준은 디스패치가 경로를 만들고 나서 리스너를 부르기 전에 이렇게 하라고 정합니다.
+
+> If activationTarget is non-null and activationTarget has legacy-pre-activation behavior, then run activationTarget's legacy-pre-activation behavior.
+
+이 legacy 동작이 어떤 요소에 있는지는 DOM 표준이 이렇게 한정합니다.
+
+> These algorithms only exist for checkbox and radio input elements and are not to be used for anything else.
+
+체크박스의 legacy-pre-activation behavior를 HTML 표준은 이렇게 정의합니다.
+
+> If this element's type attribute is in the Checkbox state, then set this element's checkedness to its opposite value
+
+원문은 이어서 indeterminateness를 `false`로 만든다고 정하는데, 이 페이지에서는 `indeterminate`를 다루지 않습니다. 정리하면 리스너를 부르기 전에 checkedness가 뒤집히므로 리스너 안에서 `checked`는 누르기 전의 반대 값이고(예제 1의 `agree`에서는 `true`), `preventDefault()`를 부른 직후에도 그 값 그대로입니다. 취소는 디스패치가 끝난 뒤에 처리됩니다. HTML 표준의 legacy-canceled-activation behavior는 이렇습니다.
+
+> set the element's checkedness and the element's indeterminateness back to the values they had before the legacy-pre-activation behavior was run.
+
+그래서 `agree.click()`이 끝난 뒤의 `checked`는 `false`로 돌아와 있습니다. 취소되지 않았다면 활성화 동작이 실행되는데, 체크박스의 활성화 동작은 (요소가 문서에 연결되어 있을 때) `input` 이벤트와 `change` 이벤트를 발생시키는 것입니다. HTML 표준은 첫 단계를 `If the element is not connected, then return`으로 두고, 이어서 `Fire an event named input`과 `Fire an event named change`로 적습니다. 그래서 `createElement`로 만들고 문서에 붙이지 않은 체크박스를 `click()`하면 checkedness는 뒤집히지만 `change`는 나오지 않습니다. 예제 1의 `loose`가 그 경우입니다. 취소된 `agree`에서는 이 동작이 실행되지 않아 `change`가 나오지 않고, 예제 1의 `change` 목록에는 `news`만 남습니다. 라디오 버튼에도 같은 종류의 legacy 동작이 있지만 이 페이지에서는 체크박스만 다룹니다. [HTML 어트리뷰트와 DOM 프로퍼티](/concepts/html-attribute-dom-property)에서 본 `checked` 프로퍼티는 어트리뷰트가 아니라 checkedness를 읽는 값이었고, 여기서 뒤집히고 되돌아가는 것이 바로 그 checkedness입니다.
+
+### 링크와 폼 제출도 click과 submit이 따로 취소된다
+
+링크(`a` 요소)의 click에 대해 HTML 표준은 활성화 동작으로 이동을 정의합니다. 폼 안의 제출 버튼은 활성화 동작이 폼 제출을 시작하는 것입니다. HTML 표준의 `button` 요소 활성화 동작에는 이런 단계가 있습니다.
+
+> If element is a submit button, then submit element's form owner from element with userInvolvement set to event's user navigation involvement, and return.
+
+링크의 click이 취소되면 활성화 동작이 실행되지 않으므로 이동하지 않습니다. 취소되지 않으면 링크는 이동하고 폼 제출은 계속됩니다. 이 페이지의 예제는 취소한 경우만 보입니다. 예제를 실행하는 테스트는 페이지 이동이 일어나면 실패하므로, 취소하지 않았을 때의 이동은 실행 결과가 아니라 표준의 근거로만 서술합니다. 반대로 예제 2가 테스트를 통과한다는 것은 두 취소로 이동이 일어나지 않았다는 뜻입니다.
+
+폼 제출은 click과 별개의 이벤트를 만듭니다. 폼 제출 알고리즘은 `submit` 이벤트를 이렇게 발생시킵니다.
+
+> Let shouldContinue be the result of firing an event named submit at form using SubmitEvent, with the submitter attribute initialized to submitterButton, the bubbles attribute initialized to true, and the cancelable attribute initialized to true.
+
+이어지는 단계는 이렇습니다(그 사이에는 폼의 firing submission events를 `false`로 되돌리는 단계가 하나 있습니다).
+
+> If shouldContinue is false, then return.
+
+`submit` 이벤트는 `cancelable`이 `true`로 만들어지고, 그 이벤트를 취소하면 제출이 더 진행되지 않습니다. 따라서 제출 버튼의 click을 취소하지 않아 폼 제출이 시작되더라도 `submit` 리스너에서 제출을 취소할 수 있습니다. click과 submit은 서로 다른 이벤트이고 각각 취소해야 합니다. 예제 2에서 링크 click은 취소했고, 제출 버튼 click은 취소하지 않았지만 폼의 `submit` 리스너가 취소했습니다.
+
+### cancelable이 false인 이벤트는 취소할 수 없다
+
+canceled flag를 세우는 절차에는 조건이 붙어 있습니다.
+
+> To set the canceled flag, given an event event, if event's cancelable attribute value is true and event's in passive listener flag is unset, then set event's canceled flag, and do nothing otherwise.
+
+이벤트의 `cancelable` 값이 `true`이고 passive 리스너 안이 아닐 때만 flag가 서고, 아니면 아무 일도 하지 않습니다. 오류가 나지도 않습니다. `EventInit` 딕셔너리에서 `cancelable`의 기본값은 `false`입니다. IDL로는 이렇게 적혀 있습니다.
+
+> boolean cancelable = false;
+
+그래서 `new Event('ping')`으로 만든 이벤트는 리스너가 `preventDefault()`를 불러도 `defaultPrevented`가 `false`로 남습니다. `bubbles`의 기본값이 `false`인 것과 같은 딕셔너리의 기본값입니다. 브라우저가 만드는 이벤트는 종류마다 `cancelable`이 다릅니다. `click()`이 만드는 click은 취소할 수 있지만, 체크박스의 `change`는 HTML 표준이 `bubbles`만 `true`로 발생시키므로 취소할 수 없습니다. 게다가 `change`가 나올 때는 체크가 이미 끝난 뒤입니다. 예제 3이 이를 보입니다.
+
+### dispatchEvent의 반환값은 취소 여부를 알려 준다
+
+DOM 표준은 `dispatchEvent()`의 반환값을 이렇게 설명합니다.
+
+> Dispatches a synthetic event event to target and returns true if either event's cancelable attribute value is false or its preventDefault() method was not invoked; otherwise false.
+
+디스패치 알고리즘의 마지막 단계는 이렇습니다.
+
+> Return false if event's canceled flag is set; otherwise true.
+
+즉 반환값은 canceled flag의 부정입니다. 이 성질을 이용하면 직접 만든 이벤트로 '취소할 수 있는 동작'을 흉내 낼 수 있습니다. 먼저 `cancelable: true`인 이벤트를 보내고, 리스너가 취소하지 않았을 때만(반환값이 `true`일 때만) 동작을 실행하는 패턴입니다. 예제 4에서 메모 패널을 닫는 동작이 그렇습니다. 다만 이 '기본 동작'은 브라우저가 정한 것이 아니라 코드가 반환값을 보고 정한 것입니다. `cancelable`이 `false`인 이벤트에서는 `preventDefault()`가 canceled flag를 세우지 못하므로 반환값이 `true`입니다(예제 3의 두 번째 줄).
+
+### stopPropagation은 다음 방문부터 리스너를 부르지 않는다
+
+`stopPropagation()`은 canceled flag가 아니라 다른 플래그를 세웁니다.
+
+> The stopPropagation() method steps are to set this's stop propagation flag.
+
+경로의 각 항목을 방문하는 invoke 단계는 시작할 때 이 플래그를 확인합니다.
+
+> If event's stop propagation flag is set, then return.
+
+그래서 플래그가 선 뒤로는 다음 방문부터 리스너를 부르지 않습니다. 이 확인은 방문(invoke 한 번)을 시작할 때만 하기 때문에, 이미 진행 중인 같은 방문의 남은 리스너는 계속 불립니다.
+
+여기서 방문은 노드 단위가 아닙니다. 디스패치는 경로를 캡처 순회와 버블 순회로 두 번 지나고(버블 순회에서 조상 항목은 `bubbles`가 `true`일 때만 방문합니다), 타깃은 두 순회에서 한 번씩 방문합니다. 한 방문 안에서 리스너를 부르는 inner invoke 단계는 순회에 맞지 않는 리스너를 건너뜁니다.
+
+> If phase is "capturing" and listener's capture is false, then continue.
+
+> If phase is "bubbling" and listener's capture is true, then continue.
+
+그래서 타깃의 캡처 리스너가 `stopPropagation()`을 부르면, 같은 타깃에 `capture` 없이 단 리스너는 버블 순회의 다음 방문에 속하므로 불리지 않습니다. "같은 노드의 리스너는 모두 불린다"가 아니라 "같은 방문의 리스너는 모두 불린다"입니다. 캡처 순회 중에 바깥 항목이 멈추면 타깃에 도달하지 못해 타깃의 리스너도 불리지 않습니다. 기본 동작은 canceled flag의 문제이므로 `stopPropagation()`은 기본 동작을 막지 않습니다. 예제 5가 이 네 가지를 보입니다.
+
+### stopImmediatePropagation은 같은 방문의 남은 리스너도 막는다
+
+`stopImmediatePropagation()`은 플래그를 두 개 세웁니다.
+
+> The stopImmediatePropagation() method steps are to set this's stop propagation flag and this's stop immediate propagation flag.
+
+한 방문 안에서 리스너를 차례로 부르는 inner invoke 단계가 두 번째 플래그를 확인합니다.
+
+> If event's stop immediate propagation flag is set, then break.
+
+그래서 같은 방문의 나머지 리스너도 불리지 않고, stop propagation flag도 서 있으므로 다음 방문(버블 순회라면 부모, 캡처 순회라면 타깃 쪽으로 한 칸 안쪽의 항목 또는 타깃의 버블 순회 방문)으로도 가지 않습니다. 하지만 이것도 canceled flag와는 무관해서 기본 동작은 그대로입니다. 두 메서드는 서로를 대신하지 못합니다. `stopPropagation()`은 같은 방문의 남은 리스너를 막지 못하고, `stopImmediatePropagation()`도 기본 동작은 막지 못합니다.
+
+디스패치가 끝나면 전파 플래그는 지워지지만 canceled flag는 남습니다. 디스패치 알고리즘은 마지막에 이렇게 정리합니다.
+
+> Unset event's dispatch flag, stop propagation flag, and stop immediate propagation flag.
+
+그래서 디스패치가 끝난 뒤 이벤트의 `defaultPrevented`는 `true`로 남아 있지만, `stopPropagation()`을 불렀던 이벤트의 `cancelBubble`은 `false`가 됩니다. `cancelBubble`은 stop propagation flag를 읽는 옛 이름의 getter입니다. 표준이 `cancelBubble` getter를 이렇게 정의하기 때문입니다.
+
+> The cancelBubble getter steps are to return true if this's stop propagation flag is set; otherwise false.
+
+예제 6의 마지막 두 줄이 리스너 안과 디스패치 뒤를 비교합니다.
+
+### 같은 함수는 같은 capture로 한 번만 등록된다
+
+`addEventListener`는 리스너를 목록에 추가하기 전에 같은 것이 이미 있는지 봅니다.
+
+> If eventTarget's event listener list does not contain an event listener whose type is listener's type, callback is listener's callback, and capture is listener's capture, then append listener to eventTarget's event listener list.
+
+같은 노드에 type, callback, capture가 모두 같은 리스너는 한 번만 들어갑니다. 그래서 같은 함수를 두 번 등록해도 한 번만 불립니다. 같은 함수라도 `capture`가 다르면 별개의 리스너라서 두 번 불립니다. `for` 문 안에서 함수 표현식을 쓰면 평가될 때마다 새 함수 객체가 만들어지므로 callback이 서로 달라 모두 등록됩니다. 비교 대상은 type, callback, capture뿐이라서, 같은 함수와 같은 capture로 나중에 `{ once: true }`를 주어 등록해도 이미 있는 것으로 보아 추가되지 않고, 처음 등록한 `once` 없는 리스너가 그대로 남습니다.
+
+제거할 때도 같은 기준입니다. `removeEventListener`는 옵션을 먼저 이렇게 정리합니다.
+
+> Let capture be the result of flattening options.
+
+그리고 type, callback, capture가 모두 같은 리스너만 제거합니다. 그래서 `capture`가 `true`인 리스너는 `removeEventListener('click', f)`로는 지워지지 않고, `capture: true`를 주어야 지워집니다. 예제 7이 이 모든 경우를 숫자로 보입니다.
+
+### passive 리스너 안의 preventDefault는 무시된다
+
+리스너 옵션 `passive`가 `true`이면 그 리스너를 부르는 동안 이벤트에 in passive listener flag가 섭니다. 내부 호출 단계는 이렇게 정합니다.
+
+> If listener's passive is true, then set event's in passive listener flag.
+
+그리고 리스너가 돌아온 뒤 `Unset event's in passive listener flag`로 지웁니다. canceled flag를 세우는 절차가 이 플래그가 서 있으면 아무것도 하지 않으므로(앞의 인용), passive 리스너 안의 `preventDefault()`는 효과가 없습니다. DOM 표준은 `preventDefault()` 정의 뒤에 이런 일반 note를 둡니다. passive 리스너만이 아니라 `cancelable`이 `false`인 경우 등 효과가 없는 모든 경우를 가리키는 문장이고, 브라우저가 그 원인을 개발자 콘솔에 기록하도록 권장합니다.
+
+> There are scenarios where invoking preventDefault() has no effect. User agents are encouraged to log the precise cause in a developer console, to aid debugging.
+
+Chromium은 passive 리스너 안의 `preventDefault()`에 대해 실제로 `Unable to preventDefault inside passive event listener invocation.`이라는 메시지를 콘솔에 남깁니다. 예제 8이나 예제 10을 개발자 도구에서 직접 실행하면 이 메시지가 함께 보이지만, 이 페이지의 출력은 예제가 `console.log`로 찍은 줄만 모은 것이라 포함하지 않습니다.
+
+효과가 없는 것은 그 리스너가 도는 동안뿐이라서, 같은 이벤트의 다음 일반 리스너가 `preventDefault()`를 부르면 취소됩니다. 한편 `touchstart`, `touchmove`, `wheel`, `mousewheel`을 `window`, `document`, `html`, `body`에 등록하면 `passive`의 기본값이 `true`가 되는 규칙(default passive value)이 DOM 표준에 있지만, 이 페이지에서는 확인하지 않고 이름만 언급합니다.
+
+`once` 옵션이 `true`이면 내부 호출 단계는 콜백을 부르기 직전에 리스너를 목록에서 제거합니다.
+
+> If listener's once is true, then remove an event listener given event's currentTarget attribute value and listener.
+
+그래서 `once` 리스너는 한 번만 불리고, 다음 click부터는 목록에 없습니다. 예제 8이 두 옵션을 함께 보입니다.
+
+### return false는 이벤트 핸들러에서만 취소한다
+
+`onclick` 같은 이벤트 핸들러(어트리뷰트 또는 프로퍼티)도 [이벤트 전파와 위임](/concepts/event-propagation-delegation)에서 본 것처럼 리스너 목록에 리스너 하나로 들어갑니다. 다만 그 리스너가 하는 일은 핸들러 함수를 직접 부르는 것이 아니라 HTML 표준의 이벤트 핸들러 처리 알고리즘(event handler processing algorithm)을 실행하는 것이고, 이 알고리즘이 반환값을 이렇게 다룹니다.
+
+> If return value is false, then set event's canceled flag.
+
+그래서 `onclick`이 `false`를 반환하면 canceled flag가 섭니다. 반면 `addEventListener`로 등록한 리스너의 반환값은 DOM의 내부 호출 단계가 사용하지 않기 때문에, 리스너가 `false`를 반환해도 아무 일도 일어나지 않습니다. 또 `return false`는 canceled flag만 세울 뿐 stop propagation flag는 건드리지 않아서 전파를 막지 않습니다. 예제 9에서 세 경우 모두 `document`의 리스너가 불립니다.
+
+## 예제
+
+예제의 `console.log`는 값을 출력하는 호스트 API이며 ECMAScript 언어의 일부가 아닙니다. 모든 예제는 테스트가 Chromium에서 실제로 열어 얻은 출력입니다.
+
+### 예제 1: 체크박스 click을 취소해도 부모 리스너는 불린다
+
+체크박스 `agree`의 click 리스너는 `preventDefault()`를 부르고, `news`의 click 리스너는 아무것도 하지 않습니다. 부모 `row`에는 click 리스너와 `change` 리스너가 있습니다. 마지막으로 문서에 붙이지 않은 체크박스 `loose`를 만들어 `row`와 같은 `change` 리스너 `recordChange`를 직접 달고 `click()`합니다(`row` 밖에 있으므로 `row`의 리스너로는 받을 수 없습니다). 리스너 안과 `click()`이 끝난 뒤의 `checked`를 비교해 보세요.
+
+```html file=./examples/checkbox-prevent.html
+
+```
+
+<PredictQuiz
+  question="예제 1에서 agree의 click 리스너가 preventDefault()를 부른 직후 찍히는 줄('preventDefault 뒤')은 무엇일까요?"
+  choices={[
+    'preventDefault 뒤 false',
+    'preventDefault 뒤 true',
+    'preventDefault 뒤 null',
+    '찍히지 않는다',
+  ]}
+  answer={1}
+  explanation="체크박스의 checkedness는 리스너를 부르기 전에 이미 뒤집혀 있고, 취소는 디스패치가 끝난 뒤에 되돌립니다. 그래서 리스너 안에서는 preventDefault() 뒤에도 true입니다(preventDefault 뒤 true)."
+/>
+
+<PredictQuiz
+  question="예제 1의 마지막 줄, 즉 change 이벤트가 발생한 체크박스 id 목록은 무엇일까요?"
+  choices={['["agree","news","loose"]', '["news","loose"]', '["news"]', '["agree"]']}
+  answer={2}
+  explanation="agree의 click이 취소되어 체크박스의 활성화 동작(input·change 발생)이 실행되지 않았습니다. loose는 취소하지 않았지만 문서에 연결되지 않아 활성화 동작이 첫 단계에서 끝나므로, checked만 true가 되고 change는 나오지 않습니다(loose 클릭 뒤 true). 그래서 목록에는 news만 들어 있습니다."
+/>
+
+### 예제 2: 링크 click과 폼 submit은 따로 취소한다
+
+링크 `next`의 click 리스너와 폼의 `submit` 리스너가 `preventDefault()`를 부릅니다. `document`는 click과 submit을 모두 지켜봅니다. 제출 버튼 `send`를 누를 때는 click 쪽에서 아무것도 취소하지 않습니다.
+
+```html file=./examples/link-submit.html
+
+```
+
+<PredictQuiz
+  question="예제 2에서 document가 제출 버튼 send의 click을 볼 때 찍는 줄은 무엇일까요?"
+  choices={['click send true', 'click send false', 'click form false', 'click send undefined']}
+  answer={1}
+  explanation="send의 click에는 preventDefault()를 부르는 리스너가 없으므로 document가 볼 때 defaultPrevented는 false입니다(click send false). 그 뒤 폼 제출이 시작되어 submit 이벤트가 발생합니다."
+/>
+
+<PredictQuiz
+  question="예제 2의 'submit true true' 줄에서 두 번째 값(defaultPrevented)이 true인 이유는 무엇일까요?"
+  choices={[
+    'submit 이벤트는 항상 취소된 상태로 시작하기 때문',
+    '폼의 submit 리스너가 document의 리스너보다 먼저 불려 preventDefault()를 불렀기 때문',
+    'send의 click이 취소되었기 때문',
+    '링크의 click이 취소되었기 때문',
+  ]}
+  answer={1}
+  explanation="submit 이벤트는 cancelable이 true로 만들어지고(첫 번째 값 true), 타깃인 form의 리스너가 먼저 불려 취소했으므로 버블 순회에서 document가 볼 때는 이미 true입니다."
+/>
+
+### 예제 3: cancelable이 false인 이벤트는 취소되지 않는다
+
+`new Event('ping')`과 `new Event('ping', { cancelable: true })`를 각각 보냅니다. 두 번 모두 리스너가 `preventDefault()`를 부릅니다. 체크박스 `pin`의 `change` 리스너도 취소를 시도합니다.
+
+```html file=./examples/not-cancelable.html
+
+```
+
+<PredictQuiz
+  question="예제 3에서 cancelable 옵션 없이 만든 ping 이벤트의 첫 줄은 무엇일까요?"
+  choices={['ping true true', 'ping false true', 'ping false false', 'ping true false']}
+  answer={2}
+  explanation="cancelable의 기본값은 false이고, 이 값이 false이면 preventDefault()를 불러도 canceled flag가 서지 않습니다(ping false false). 그래서 바로 아래 줄의 dispatchEvent 반환값도 true입니다."
+/>
+
+<PredictQuiz
+  question="예제 3의 마지막 두 줄은 무엇일까요? change 리스너가 preventDefault()를 불렀습니다."
+  choices={[
+    'change false false, pin true',
+    'change true true, pin false',
+    'change true false, pin true',
+    'change false false, pin false',
+  ]}
+  answer={0}
+  explanation="체크박스의 change는 cancelable이 false로 발생하므로 취소할 수 없고(change false false), 그 시점에는 이미 체크가 끝난 뒤라서 pin은 true로 남습니다(pin true)."
+/>
+
+### 예제 4: dispatchEvent의 반환값으로 취소 여부를 안다
+
+메모 패널을 닫기 전에 `cancelable: true`인 `panelclose` 이벤트를 보냅니다. 저장하지 않은 메모가 있으면 리스너가 취소하고, `closePanel`은 반환값이 `true`일 때만 패널을 숨깁니다. 두 번째 호출 전에 `unsaved`를 `false`로 바꿉니다.
+
+```html file=./examples/dispatch-return.html
+
+```
+
+<PredictQuiz
+  question="예제 4의 두 줄은 무엇일까요?"
+  choices={[
+    '닫기 true hidden true, 닫기 true hidden true',
+    '닫기 false hidden false, 닫기 true hidden true',
+    '닫기 false hidden true, 닫기 true hidden true',
+    '닫기 false hidden false, 닫기 false hidden false',
+  ]}
+  answer={1}
+  explanation="저장하지 않은 상태에서는 리스너가 취소해 dispatchEvent가 false를 돌려주므로 패널이 숨겨지지 않습니다(닫기 false hidden false). 저장 뒤에는 취소하지 않아 true를 돌려주고 패널이 숨겨집니다(닫기 true hidden true)."
+/>
+
+### 예제 5: stopPropagation은 다음 방문부터 막는다
+
+`card` 안에 버튼 `save`와 체크박스 `pin`이 있습니다. 첫 번째 `click()`은 `save`의 첫 리스너가 `stopPropagation()`을 부릅니다. 두 번째는 `card`에 캡처 리스너를 달아 거기서 멈춥니다. 세 번째는 그 리스너를 떼고 타깃 `save`에 캡처 리스너를 달아 거기서 멈춥니다. 네 번째는 체크박스 `pin`의 리스너가 멈춥니다.
+
+```html file=./examples/stop-propagation.html
+
+```
+
+<PredictQuiz
+  question="예제 5의 첫 줄(save의 첫 리스너가 stopPropagation()을 부른 결과)은 무엇일까요?"
+  choices={['["save 1"]', '["save 1","save 2"]', '["save 1","save 2","card 버블"]', '[]']}
+  answer={1}
+  explanation="stop propagation flag는 방문을 시작할 때만 확인하므로 같은 방문(버블 순회에서 save를 방문하는 중)의 남은 리스너 save 2는 계속 불리고, 다음 방문인 부모 card의 버블 리스너는 불리지 않습니다(로그에 save 1과 save 2만 있고 card 버블은 없습니다)."
+/>
+
+<PredictQuiz
+  question="예제 5의 둘째 줄은 무엇일까요? card의 캡처 리스너가 stopPropagation()을 부릅니다."
+  choices={[
+    '["card 캡처"]',
+    '["card 캡처","save 1","save 2"]',
+    '["save 1","save 2"]',
+    '["card 캡처","card 버블"]',
+  ]}
+  answer={0}
+  explanation="캡처 순회에서 card가 멈추면 타깃 save에 도달하지 못해 save의 리스너도 불리지 않습니다. 로그에는 card 캡처 하나만 남습니다."
+/>
+
+<PredictQuiz
+  question="예제 5의 셋째 줄은 무엇일까요? 타깃 save의 캡처 리스너가 stopPropagation()을 부릅니다."
+  choices={[
+    '["save 캡처"]',
+    '["save 캡처","save 1","save 2"]',
+    '["save 캡처","save 1","save 2","card 버블"]',
+    '["save 캡처","card 버블"]',
+  ]}
+  answer={0}
+  explanation="타깃은 캡처 순회와 버블 순회에서 한 번씩 방문되고, 캡처 리스너는 캡처 순회의 방문에서, save 1과 save 2는 버블 순회의 방문에서 불립니다. 캡처 순회의 방문에서 멈췄으므로 같은 save에 단 save 1과 save 2도 다음 방문에 속해 불리지 않습니다(로그에 save 캡처 하나만 남습니다)."
+/>
+
+<PredictQuiz
+  question="예제 5의 마지막 줄은 무엇일까요? pin의 리스너가 stopPropagation()을 불렀습니다."
+  choices={['false []', 'true []', 'true ["card 버블"]', 'false ["card 버블"]']}
+  answer={1}
+  explanation="stopPropagation()은 canceled flag를 세우지 않아 기본 동작은 그대로이므로 체크는 true이고, card의 버블 리스너는 불리지 않아 로그는 []입니다(true [])."
+/>
+
+### 예제 6: stopImmediatePropagation과 디스패치 뒤의 플래그
+
+`save`의 첫 리스너가 `stopImmediatePropagation()`을 부릅니다. 이어서 체크박스에서도 같은 호출을 하고, 마지막으로 `bubbles`·`cancelable`이 모두 `true`인 `ping` 이벤트의 리스너에서 `stopPropagation()`과 `preventDefault()`를 부른 뒤 리스너 안과 디스패치가 끝난 뒤의 `cancelBubble`·`defaultPrevented`를 읽습니다.
+
+```html file=./examples/stop-immediate.html
+
+```
+
+<PredictQuiz
+  question="예제 6에서 save의 첫 리스너가 stopImmediatePropagation()을 부르면 로그(첫 줄)는 무엇일까요?"
+  choices={['["save 1"]', '["save 1","save 2"]', '["save 1","card 버블"]', '[]']}
+  answer={0}
+  explanation="stop immediate propagation flag가 서면 같은 방문의 남은 리스너(save 2)도 부르지 않고, stop propagation flag도 함께 서서 다음 방문인 부모 card로도 가지 않습니다(로그에 save 1만 남습니다)."
+/>
+
+<PredictQuiz
+  question="예제 6의 마지막 두 줄(리스너 안, 디스패치 뒤)은 무엇일까요?"
+  choices={[
+    '리스너 안 true true, 디스패치 뒤 true true',
+    '리스너 안 true true, 디스패치 뒤 false true',
+    '리스너 안 true true, 디스패치 뒤 false false',
+    '리스너 안 false true, 디스패치 뒤 false true',
+  ]}
+  answer={1}
+  explanation="디스패치가 끝나면 stop propagation flag와 stop immediate propagation flag는 지워지지만 canceled flag는 남습니다. 그래서 cancelBubble은 true에서 false로, defaultPrevented는 true로 유지됩니다(리스너 안 true true, 디스패치 뒤 false true)."
+/>
+
+### 예제 7: 같은 함수의 중복 등록과 제거
+
+같은 함수 `onClick`을 같은 버튼에 두 번 등록하고, `capture`만 바꿔 한 번 더 등록한 뒤, `capture` 없이 그리고 `capture: true`로 차례로 제거합니다. 이어서 `for` 문 안에서 함수 표현식을 등록하고, 마지막으로 같은 함수를 `{ once: true }`와 함께 다시 등록합니다. 각 줄의 숫자는 `click()`이 호출한 횟수입니다.
+
+```html file=./examples/duplicate-listener.html
+
+```
+
+<PredictQuiz
+  question="예제 7에서 같은 함수를 capture만 다르게 한 번 더 등록한 뒤 click()하면 호출 횟수는 몇일까요?"
+  choices={['1', '2', '3', '0']}
+  answer={1}
+  explanation="type, callback, capture가 모두 같아야 중복으로 봅니다. 버블용 하나와 캡처용 하나는 서로 다른 리스너라서 둘 다 불립니다(capture만 다름 2)."
+/>
+
+<PredictQuiz
+  question="예제 7에서 capture 옵션 없이 removeEventListener('click', onClick)을 부른 뒤 click()하면 호출 횟수는 몇일까요?"
+  choices={['0', '1', '2', '오류가 난다']}
+  answer={1}
+  explanation="옵션 없는 제거는 capture가 false인 리스너만 지웁니다. capture가 true인 리스너가 남아 한 번 불립니다(capture 없이 제거 1). capture: true로 제거하면 0이 됩니다."
+/>
+
+<PredictQuiz
+  question="예제 7의 마지막 줄에서 같은 함수를 { once: true }와 함께 나중에 다시 등록한 뒤 click()을 두 번 하면 호출 횟수는 몇일까요?"
+  choices={['1', '2', '3', '4']}
+  answer={1}
+  explanation="type, callback, capture가 같아 두 번째 등록은 추가되지 않으므로 once가 적용되지 않습니다. 처음 등록한 리스너가 click마다 불려 두 번 호출됩니다(once를 나중에 줌 2)."
+/>
+
+### 예제 8: passive와 once
+
+체크박스 `pin`의 리스너는 `{ passive: true }`로 등록되어 `preventDefault()`를 부릅니다. 체크박스 `star`에는 passive 리스너와 그다음 일반 리스너가 있는데, 일반 리스너는 `preventDefault()` 전후의 `defaultPrevented`를 읽습니다. 마지막은 `once` 리스너를 단 버튼입니다.
+
+```html file=./examples/passive-once.html
+
+```
+
+<PredictQuiz
+  question="예제 8에서 passive 리스너 안에서 preventDefault()를 부른 직후의 defaultPrevented(첫 줄)와 그 뒤 pin.checked(둘째 줄)는 무엇일까요?"
+  choices={[
+    'passive 리스너 true, pin false',
+    'passive 리스너 false, pin true',
+    'passive 리스너 true, pin true',
+    'passive 리스너 false, pin false',
+  ]}
+  answer={1}
+  explanation="passive 리스너가 도는 동안 in passive listener flag가 서 있어 canceled flag가 세워지지 않으므로 defaultPrevented는 false이고 체크도 취소되지 않아 true로 남습니다(passive 리스너 false, pin true)."
+/>
+
+<PredictQuiz
+  question="예제 8에서 star의 다음 일반 리스너가 직접 preventDefault()를 부르면 마지막 star 줄과 그 앞의 두 줄은 무엇일까요?"
+  choices={[
+    '다음 리스너 false, 직접 호출 뒤 true, star false',
+    '다음 리스너 true, 직접 호출 뒤 true, star false',
+    '다음 리스너 false, 직접 호출 뒤 false, star true',
+    '다음 리스너 true, 직접 호출 뒤 true, star true',
+  ]}
+  answer={0}
+  explanation="앞선 passive 리스너의 호출은 무시되어 다음 리스너가 볼 때 defaultPrevented는 false이고, 일반 리스너가 직접 부르면 true가 되어 체크가 취소됩니다(다음 리스너 false, 직접 호출 뒤 true, star false)."
+/>
+
+### 예제 9: return false
+
+체크박스 세 개에 모두 `false`를 반환하는 핸들러를 달되, `a`는 `onclick` 어트리뷰트, `b`는 `onclick` 프로퍼티, `c`는 `addEventListener`로 답니다. `document`의 리스너가 각 클릭의 `defaultPrevented`를 찍고, 마지막 줄은 세 체크박스의 `checked`입니다.
+
+```html file=./examples/return-false.html
+
+```
+
+<PredictQuiz
+  question="예제 9에서 addEventListener로 등록한 리스너가 false를 반환한 체크박스 c의 줄과, 마지막 줄(a b c의 checked)은 무엇일까요?"
+  choices={[
+    'c true, false false false',
+    'c false, false false true',
+    'c true, false false true',
+    'c false, true true true',
+  ]}
+  answer={1}
+  explanation="이벤트 핸들러(a, b)의 false 반환은 canceled flag를 세우지만(a true, b true), addEventListener 리스너의 반환값은 DOM이 쓰지 않아 c는 취소되지 않습니다(c false). 그래서 체크는 a와 b가 취소되어 false, c만 true입니다(false false true)."
+/>
+
+## 결과와 이유
+
+### 호출별 비교표
+
+아래 표는 지금까지 본 호출을 체크박스 click 하나에 적용한 결과를 한눈에 비교한 것입니다. 기본 동작은 체크가 유지되는지로, 같은 노드·같은 단계의 남은 리스너와 부모 리스너는 불렸는지로, 마지막 칸은 디스패치가 끝난 뒤 읽은 `defaultPrevented`로 나타냈습니다. 맨 오른쪽 열은 그 결과를 만든 표준의 규칙입니다.
+
+<Wide>
+  <div
+    className="focus-visible:outline-accent my-6 overflow-x-auto focus-visible:outline-2"
+    tabIndex={0}
+    role="region"
+    aria-label="호출마다 기본 동작과 전파가 어떻게 되는지"
+  >
+    <table className="w-full border-collapse text-left [&_code]:whitespace-nowrap">
+      <thead>
+        <tr>
+          <th scope="col" className="border-border border px-3 py-2">
+            호출
+          </th>
+          <th scope="col" className="border-border border px-3 py-2">
+            기본 동작(체크박스 체크)
+          </th>
+          <th scope="col" className="border-border border px-3 py-2">
+            같은 노드·같은 단계의 남은 리스너
+          </th>
+          <th scope="col" className="border-border border px-3 py-2">
+            부모 리스너
+          </th>
+          <th scope="col" className="border-border border px-3 py-2">
+            defaultPrevented
+          </th>
+          <th scope="col" className="border-border min-w-64 border px-3 py-2">
+            근거 규칙
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((row) => (
+          <tr key={row.name}>
+            <th scope="row" className="border-border border px-3 py-2">
+              {row.call ? <code>{row.call}</code> : '없음'}
+              {row.where ? <span className="block font-normal">{row.where}</span> : null}
+            </th>
+            <td className="border-border border px-3 py-2">{defaultText(row)}</td>
+            <td className="border-border border px-3 py-2">{calledText(row.rest)}</td>
+            <td className="border-border border px-3 py-2">{calledText(row.parent)}</td>
+            <td className="border-border border px-3 py-2">{String(row.defaultPrevented)}</td>
+            <td className="border-border border px-3 py-2">{row.rule}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+</Wide>
+
+표의 각 칸은 예제 10이 찍는 출력 줄에서 만든 값입니다. 행마다 새 체크박스와 그 부모를 만들고, 그 행의 호출을 하는 리스너를 단 뒤 `click()`하여 체크 여부, 남은 리스너와 부모 리스너가 불렸는지, `defaultPrevented`를 한 줄로 찍습니다. `defaultPrevented`는 `window`의 캡처 리스너가 저장해 둔 이벤트를 디스패치가 끝난 뒤에 읽은 값입니다. 표의 행은 이 출력 줄과 정확히 같아야 하며, 테스트가 출력을 실제 Chromium 실행 결과와 대조합니다.
+
+```html file=./examples/actions.html
+
+```
+
+표에서 두 가지를 읽을 수 있습니다. 첫째, 기본 동작 칸이 '취소됨'인 행은 `defaultPrevented`가 `true`인 행과 정확히 같습니다. 체크박스의 click은 `cancelable`이라서 canceled flag가 곧 기본 동작의 취소 여부입니다. 둘째, 부모 리스너가 불리지 않는 행은 `stopPropagation`과 `stopImmediatePropagation` 두 행뿐이며, 전파를 건드리는 호출은 기본 동작 칸을 바꾸지 못하고 기본 동작을 건드리는 호출은 전파를 바꾸지 못합니다.
+
+### 흔한 오해
+
+<Callout type="misconception" title="preventDefault()가 이벤트 전파도 막는다">
+
+`preventDefault()`는 canceled flag만 세우고 전파 플래그는 건드리지 않습니다. 예제 1에서 `agree`의 클릭을 취소해도 부모 `row`의 리스너가 불렸고, 표에서도 `preventDefault` 행의 부모 리스너는 '불림'입니다. 전파를 막으려면 `stopPropagation()`이 필요합니다.
+
+</Callout>
+
+<Callout type="misconception" title="stopPropagation()이나 stopImmediatePropagation()이 기본 동작도 막는다">
+
+두 메서드는 전파 플래그만 세우고 canceled flag는 세우지 않습니다. 예제 5와 예제 6의 체크박스는 전파를 멈췄어도 체크가 그대로 `true`였고(`true []`), 표에서도 두 행의 기본 동작은 '일어남'이며 `defaultPrevented`는 `false`입니다. 기본 동작을 막으려면 `preventDefault()`를 따로 불러야 합니다.
+
+</Callout>
+
+<Callout type="misconception" title="return false는 어디서나 이벤트를 취소한다">
+
+반환값으로 취소되는 것은 `onclick` 같은 이벤트 핸들러뿐입니다. 예제 9에서 `onclick` 어트리뷰트와 프로퍼티는 취소(`a true`, `b true`)되지만 `addEventListener` 리스너는 취소되지 않습니다(`c false`). 또 `return false`는 전파를 막지 않아서 세 경우 모두 `document`의 리스너가 불렸습니다.
+
+</Callout>
+
+<Callout type="misconception" title="같은 함수를 여러 번 등록하면 여러 번 불린다">
+
+type, callback, capture가 모두 같은 리스너는 한 번만 등록됩니다. 예제 7에서 같은 함수를 두 번 등록해도 호출 횟수는 `1`이고(`같은 함수 두 번 1`), `capture`가 다르거나 매번 새로 만든 함수 표현식일 때만 `2`입니다.
+
+</Callout>
+
+<Callout type="misconception" title="체크박스 click 리스너의 checked는 클릭하기 전 값이다">
+
+체크박스에서는 리스너를 부르기 전에 checkedness가 이미 뒤집혀 있습니다. 예제 1의 `agree 리스너 true`가 그 값이고, 취소해도 리스너 안에서는 `preventDefault 뒤 true`입니다. 취소는 디스패치가 끝난 뒤 값을 되돌리는 것이라서 `agree 클릭 뒤 false`가 됩니다. 이 규칙은 체크박스와 라디오 버튼의 legacy 동작이며 다른 요소의 일반 규칙이 아닙니다.
+
+</Callout>
+
+<Callout type="misconception" title="removeEventListener는 함수만 같으면 지워진다">
+
+제거도 type, callback, capture가 모두 같아야 합니다. 예제 7에서 capture를 주지 않은 제거 뒤에는 캡처 리스너가 남아 호출 횟수가 `1`이었고(`capture 없이 제거 1`), `capture`를 맞춘 제거 뒤에야 `0`이 되었습니다.
+
+</Callout>

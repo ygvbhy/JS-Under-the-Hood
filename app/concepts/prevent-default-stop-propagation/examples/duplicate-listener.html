@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<button id="save">저장</button>
+<button id="other">다른 버튼</button>
+<button id="tap">탭</button>
+<script>
+var save = document.getElementById('save');
+var other = document.getElementById('other');
+var tap = document.getElementById('tap');
+var count = 0;
+function onClick() { count++; }
+save.addEventListener('click', onClick);
+save.addEventListener('click', onClick);
+save.click();
+console.log('같은 함수 두 번 ' + count);
+save.addEventListener('click', onClick, true);
+count = 0;
+save.click();
+console.log('capture만 다름 ' + count);
+save.removeEventListener('click', onClick);
+count = 0;
+save.click();
+console.log('capture 없이 제거 ' + count);
+save.removeEventListener('click', onClick, { capture: true });
+count = 0;
+save.click();
+console.log('capture: true로 제거 ' + count);
+var hits = 0;
+for (var i = 0; i < 2; i++) {
+  other.addEventListener('click', function () { hits++; });
+}
+other.click();
+console.log('함수 표현식 두 번 ' + hits);
+var taps = 0;
+function onTap() { taps++; }
+tap.addEventListener('click', onTap);
+tap.addEventListener('click', onTap, { once: true });
+tap.click();
+tap.click();
+console.log('once를 나중에 줌 ' + taps);
+</script>
+</body>
+</html>
