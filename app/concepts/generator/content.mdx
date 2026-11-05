@@ -101,7 +101,7 @@ GeneratorResume은 먼저 GeneratorValidate로 `this`가 제너레이터인지, 
 
 ### 이 페이지가 다루지 않는 것
 
-async 제너레이터와 `for await...of`, 제너레이터로 비동기 흐름을 다루는 방식, `async`/`await`는 별도 개념(작성 예정)입니다. `try...catch...finally` 문 자체와 예외 처리도 별도 개념(작성 예정)이라, 이 페이지는 `finally` 블록이 실행되는지 여부만 다룹니다. `finally` 안에서 다시 `yield`하거나 `return`하는 경우, `GeneratorFunction` 생성자, Iterator helpers도 다루지 않습니다. 명세는 판마다 GeneratorResume 등의 서술 방식과 매개변수 이름이 다릅니다. 이 페이지는 ES2026판과 현재 초안에 똑같이 있는 문장만 인용하고, 링크는 현재 초안을 가리킵니다.
+async 제너레이터와 `for await...of`, 제너레이터로 비동기 흐름을 다루는 방식은 별도 개념(작성 예정)이고, `async`/`await`는 [async/await](/concepts/async-await)에서 다룹니다. `try...catch...finally` 문 자체와 예외 처리도 별도 개념(작성 예정)이라, 이 페이지는 `finally` 블록이 실행되는지 여부만 다룹니다. `finally` 안에서 다시 `yield`하거나 `return`하는 경우, `GeneratorFunction` 생성자, Iterator helpers도 다루지 않습니다. 명세는 판마다 GeneratorResume 등의 서술 방식과 매개변수 이름이 다릅니다. 이 페이지는 ES2026판과 현재 초안에 똑같이 있는 문장만 인용하고, 링크는 현재 초안을 가리킵니다.
 
 ## 예제
 

@@ -1,0 +1,559 @@
+import { Simulator } from './Simulator'
+import { scenarios } from './scenarios'
+
+`await`에서 멈춘 async 함수를 호출한 쪽의 코드는 왜 기다리지 않고 먼저 실행될까요? async 함수를 부르면 본문의 `console.log`는 호출한 쪽의 코드 사이에서 바로 찍히는데, `await` 뒤의 문장은 호출한 쪽의 코드가 모두 끝난 뒤에야 찍힙니다. 이 페이지는 이 질문에서 출발해 async 함수를 부르면 본문이 어디까지 동기로 실행되는지, 호출이 왜 항상 새 프로미스를 돌려주는지, `await`가 함수를 어떻게 멈추고 어떤 방식으로 이어 가는지, `return`과 `throw`가 돌려준 프로미스를 어떻게 정하는지, 이행된 프로미스를 `return`하면 왜 값을 `return`할 때보다 늦게 이행되는지, `forEach`에 async 콜백을 넘기면 왜 기다리지 않는지, `await`한 거부는 어떻게 잡히고 async 함수에 `new`를 쓰면 왜 TypeError인지, thenable도 `await`할 수 있는지를 예제 아홉 개로 차례로 확인합니다. async 함수는 ECMAScript 언어의 동작이고, 예제의 출력은 Node.js의 `vm`에서 실행한 값이며 `console`은 호스트가 제공하는 API입니다. 이 페이지는 [프로미스](/concepts/promise)에서 본 프로미스의 상태와 `then` 콜백, [마이크로태스크 큐](/concepts/microtask-queue)에서 본 프로미스 Job의 순서, [제너레이터](/concepts/generator)에서 본 멈췄다 이어지는 실행 컨텍스트를 전제합니다. `try...catch...finally` 문 자체와 처리되지 않은 거부, 최상위 `await`는 별도 개념(작성 예정)입니다.
+
+## 동작 원리
+
+### 부르면 첫 await까지는 동기로 실행된다
+
+async 함수를 부르면 명세의 EvaluateAsyncFunctionBody가 먼저 새 프로미스를 만듭니다.
+
+> Let promiseCapability be ! NewPromiseCapability(%Promise%).
+
+그다음 FunctionDeclarationInstantiation으로 매개변수를 바인딩하고, 여기서 오류가 나지 않으면 본문을 시작합니다.
+
+> Perform AsyncFunctionStart(promiseCapability, FunctionBody).
+
+그리고 호출은 그 프로미스를 돌려줍니다.
+
+> Return ReturnCompletion(promiseCapability.[[Promise]]).
+
+[제너레이터](/concepts/generator)와 달리 본문을 나중으로 미루지 않습니다. 본문 컨텍스트는 [실행 컨텍스트 스택](/concepts/execution-context)에서 호출한 쪽의 컨텍스트 위에 쌓여 지금 바로 실행되고, `await`를 만나거나 끝날 때까지 호출한 쪽의 코드는 기다립니다. 그래서 예제 1에서 `work()`를 부르면 `a1`이 `after call`보다 먼저 찍힙니다. 본문의 `await null`부터는 멈추므로 `a2`는 `after call` 뒤에 찍히고, `then done`이 가장 마지막입니다. `await`의 피연산자 식도 멈추기 전에 동기로 평가됩니다. `await f()`라면 `f()` 호출은 호출한 쪽의 코드가 이어지기 전에 실행되고, 멈추는 것은 그 값을 받은 다음입니다.
+
+돌려주는 프로미스는 호출마다 새로 만들어집니다. 예제 2에서 `one()`을 두 번 부르면 `p === one()`이 `false`이고 `p instanceof Promise`는 `true`입니다. `one`의 본문은 `await` 없이 `return 1`로 끝나므로 `p`는 호출이 끝난 시점에 이미 이행되어 있지만, `p.then`에 넘긴 콜백은 Job으로 실행되어 `sync end` 뒤에 `value 1`이 찍힙니다.
+
+### await는 함수를 멈추고 호출한 쪽으로 돌아간다
+
+`await` 식은 명세의 Await 연산이 처리합니다. 먼저 현재 실행 중인 컨텍스트를 기억해 둡니다.
+
+> Let asyncContext be the running execution context.
+
+그다음 `await`한 값을 PromiseResolve로 프로미스로 바꾸고, 이어 갈 함수 두 개를 그 프로미스의 반응으로 등록합니다.
+
+> Perform PerformPromiseThen(promise, onFulfilled, onRejected).
+
+여기서 async 함수의 실행 컨텍스트는 멈추고 스택에서 빠지며, 실행은 스택에서 바로 아래에 있던 컨텍스트로 돌아갑니다. 첫 `await`에서는 그 컨텍스트가 함수를 부른 코드입니다. 하지만 Job으로 재개된 뒤 만나는 `await`에서는 함수를 재개시킨 Job으로 돌아가고, 그 Job이 끝납니다. 예제 6의 `viaForOf`는 두 번째 반복의 `await`부터 이 경우입니다. 멈춘 async 함수의 컨텍스트는 버려지지 않고 남아 있다가, 등록한 반응이 실행될 때 다시 스택에 올라 `await` 식이 그 결과 값(거부면 예외)으로 평가되는 지점부터 이어집니다. 이렇게 멈췄다 이어지는 점은 [제너레이터](/concepts/generator)의 `yield`와 닮았지만, 다음 점이 다릅니다. 제너레이터 객체는 `next`를 부르는 쪽이 재개 시점을 정하고 [[GeneratorState]] 같은 상태 슬롯이 있습니다. async 함수에는 그런 상태 슬롯이 없고, 재개는 프로미스의 반응이 맡습니다. 시뮬레이터가 보이는 실행 중 · await에서 멈춤 · 끝남은 명세의 슬롯이 아니라, 멈춘 실행 컨텍스트에 이름을 붙여 보인 것입니다.
+
+재개하는 반응도 `then` 콜백의 반응과 똑같이 프로미스 Job으로 실행됩니다. 프로미스가 이미 이행되거나 거부돼 있으면 PerformPromiseThen은 반응을 곧바로 Job으로 만들어 큐에 넣고, 아직 pending이면 이행되거나 거부될 때 Job이 됩니다. 어느 쪽이든 Job은 HostEnqueuePromiseJob으로 호스트의 큐에 들어갑니다. ECMAScript는 실행 컨텍스트 스택이 비었을 때만 Job을 시작하게 하므로, 호출한 쪽의 동기 코드가 모두 끝난 다음에야 재개됩니다. 호스트가 큐의 Job을 실제로 언제 실행하는지는 [마이크로태스크 큐](/concepts/microtask-queue)에서 다룹니다.
+
+`await`한 값이 프로미스가 아니어도 멈춥니다. 프로미스도 thenable도 아닌 값이면 PromiseResolve가 그 값으로 이행된 새 프로미스를 만들기 때문에, 반응은 곧바로 Job이 됩니다(thenable이면 아래 예제 9처럼 한 단계가 더 있습니다). 예제 3에서 `await 'not a promise'`가 만든 재개 Job은 그 줄에서 큐에 들어갑니다. 곧이어 `Promise.resolve().then(...)`의 첫 콜백 Job이 큐에 들어가므로, 큐의 순서대로 `task after await`, `then 1`이 실행되고 `then 1`이 끝나야 `then 2`의 Job이 생깁니다. 출력은 `sync`, `task after await`, `then 1`, `then 2`입니다. `await` 뒤의 코드가 다른 `then` 콜백보다 항상 먼저 실행되는 것이 아니라, 큐에 들어간 순서대로 실행된 결과입니다.
+
+### return은 resolve, throw는 거부
+
+본문이 끝나면 AsyncBlockStart가 호출이 돌려준 프로미스의 `[[Resolve]]`나 `[[Reject]]`를 부릅니다. 이 단계에 닿았다는 것은 async 함수가 예외를 던졌거나 암묵적 또는 명시적으로 `return`했다는 뜻이고, 더는 기다릴 `await`가 없습니다.
+
+> Assert: If we return here, the async function either threw an exception or performed an implicit or explicit return; all awaiting is done.
+
+`return`했으면 처음에 만든 프로미스의 `[[Resolve]]`를 `return`한 값으로 부릅니다(`return` 없이 본문 끝까지 실행되면 별도 단계에서 `undefined`로 부릅니다).
+
+> Perform ! Call(promiseCapability.[[Resolve]], undefined, « result.[[Value]] »).
+
+`[[Resolve]]`를 부르는 것은 곧 이행시키는 것과 같지 않습니다. 값이 프로미스도 thenable도 아니면 그 값으로 바로 이행되지만, 프로미스나 thenable이면 그 결과를 따라가므로(다음 절) 거부된 프로미스를 `return`하면 호출의 프로미스도 거부됩니다. 예외를 던졌으면 같은 프로미스의 `[[Reject]]`를 부릅니다. 본문이 던진 예외는 AsyncBlockStart가 받아 프로미스의 거부로 바꾸고, 호출은 그 프로미스를 정상적으로 돌려주므로 호출한 쪽에 동기 예외가 나가지 않습니다. 예제 4의 `fail()`은 `throw new Error('boom')`을 던지지만 호출 줄에서 스크립트가 멈추지 않고, `b`에 거부된 프로미스가 담깁니다. 매개변수 처리 중에 난 오류도 같습니다. `badParam(x = missing)`의 기본값에서 `missing`을 읽다가 ReferenceError가 나면 EvaluateAsyncFunctionBody가 본문을 시작하지 않고 `[[Reject]]`를 부르므로, `c`는 ReferenceError로 거부된 프로미스입니다. 예제 4의 `호출은 모두 끝남`이 먼저 찍히고 `a 이행: ok`, `b 거부: boom`, `c 거부: ReferenceError`가 등록 순서대로 이어집니다.
+
+### 이행된 프로미스를 return하면 늦어진다
+
+`return`한 값이 프로미스이면 `[[Resolve]]`가 그 프로미스를 값으로 받아들이지 않습니다. [프로미스](/concepts/promise)에서 본 대로, resolve 함수는 인수가 객체이고 `then`이 호출 가능하면 NewPromiseResolveThenableJob을 Job으로 큐에 넣습니다.
+
+> Perform HostEnqueuePromiseJob(job.[[Job]], job.[[Realm]]).
+
+이 Job이 실행되어야 그 프로미스의 `then`을 불러 바깥 프로미스를 이어 줍니다. 예제 5에서 Job 큐를 따라가 봅니다. 동기 코드가 끝난 시점의 큐는 이렇습니다.
+
+1. J1: `returnsPromise()`의 `return`이 넣은 NewPromiseResolveThenableJob
+2. J2: `returnsValue()`의 프로미스에 건 `then` 콜백(이미 이행돼 있어 곧바로 Job)
+3. J3: `tick 1` 콜백
+
+J1은 안쪽 프로미스의 `then`을 부르고, 안쪽은 이미 이행돼 있어 그 반응이 J4가 됩니다. J2가 `returnsValue: value`를 찍고, J3이 `tick 1`을 찍으며 `tick 2`의 Job J5를 만듭니다. J4가 바깥 프로미스를 이행시키면 `then` 콜백 Job J6이 J5 뒤에 들어갑니다. J5가 `tick 2`를 찍고 J6이 `returnsPromise: promise`를 찍은 뒤에 `tick 3`이 옵니다. 그래서 이 예제의 출력은 `returnsValue: value`, `tick 1`, `tick 2`, `returnsPromise: promise`, `tick 3`입니다. 이 순서는 이 예제에 대한 명세 단계와 실행 결과이고, 모든 경우에 적용되는 일반 규칙으로 쓰지 않습니다.
+
+`await p`는 다릅니다. `p`가 프로미스이고 `p.constructor`가 `%Promise%`이면 PromiseResolve가 새 프로미스를 만들지 않고 `p`를 그대로 돌려줍니다. 그래서 그 프로미스에 바로 반응을 거는 것이며 thenable 처리를 위한 Job이 끼지 않습니다. 반면 `return`은 값을 `[[Resolve]]`에 넘기는 것이어서 NewPromiseResolveThenableJob을 거칩니다.
+
+### forEach는 기다리지 않는다
+
+`forEach`는 콜백을 요소마다 호출할 뿐 콜백이 돌려준 값을 쓰지 않습니다. async 콜백은 `await`를 만나면 프로미스를 돌려주고 호출한 쪽으로 돌아가므로, `forEach`는 그 프로미스를 기다리지 않고 다음 요소로 넘어갑니다. 예제 6에서 세 콜백은 모두 `await null`에서 멈추고 재개 Job 셋을 큐에 넣은 뒤에야 `forEach`가 끝납니다. 그래서 `forEach 직후`의 `viaForEach`는 `[]`입니다.
+
+`for...of` 안의 `await`는 같은 async 함수 본문이 멈췄다 이어지며 요소를 하나씩 처리합니다. `viaForOf()`의 첫 재개 Job은 세 콜백의 재개 Job보다 뒤에 큐에 들어갑니다. 그래서 `viaForOf`가 첫 요소를 처리하기 전에 세 콜백이 이미 모두 재개되어 `viaForEach`에 `1`, `2`, `3`을 넣습니다. `for...of: [1,2,3]` 다음에 `forEach 나중: [1,2,3]`이 찍히는 이유입니다. `forEach`가 기다려 준 것이 아니라 Job 큐에 들어간 순서의 결과입니다.
+
+### 거부 잡기, 생성자 아님, thenable
+
+`await`한 프로미스가 거부되면 등록해 둔 두 번째 함수(onRejected)가 실행되어, 멈춘 컨텍스트를 `await` 식 자리에서 예외가 던져진 것처럼 이어 갑니다. 그 자리가 `try` 블록 안이면 `catch`가 잡습니다. 예제 7에서 `await Promise.reject(new Error('실패'))` 다음 줄은 실행되지 않고 `잡음: 실패`가 찍힌 뒤 `load`가 `'계속'`으로 이행합니다. `try...catch...finally` 문 자체의 의미는 별도 개념(작성 예정)이고, 이 페이지는 이 결과만 씁니다.
+
+async 함수는 생성자가 아닙니다. 명세는 AsyncFunction 인스턴스에 대해 이렇게 적습니다.
+
+> AsyncFunction instances are not constructors and do not have a [[Construct]] internal method.
+
+> AsyncFunction instances do not have a prototype property as they are not constructable.
+
+예제 8에서 `'prototype' in f`가 `false`이고 `new f()`는 TypeError입니다. [new 연산자](/concepts/new-operator)가 대상이 생성자가 아니라고 보고 던지는 오류입니다.
+
+`await`한 값이 thenable(호출 가능한 `then`을 가진 객체)이면(`constructor`가 `%Promise%`가 아닌 프로미스도 같은 경로입니다), PromiseResolve가 새 프로미스를 만들어 resolve하고, 그 resolve가 NewPromiseResolveThenableJob을 Job으로 큐에 넣습니다. 명세는 이 Job이어야 하는 이유를 이렇게 적습니다.
+
+> This process must take place as a Job to ensure that the evaluation of the then method occurs after evaluation of any surrounding code has completed.
+
+예제 9에서 `read()`는 `await thenable`에서 멈추고 호출한 쪽으로 돌아가 `sync end`를 찍습니다. 그다음 Job이 `thenable.then`을 부르면 `then 호출됨`이 찍히고, `resolve(7)`이 프로미스를 이행시켜 재개 Job이 만들어지므로 `v = 7`이 마지막입니다.
+
+### 이 페이지가 다루지 않는 것
+
+`try...catch...finally` 문 자체, 처리되지 않은 거부, 최상위 `await`(모듈에서만 쓸 수 있음)는 별도 개념(작성 예정)입니다. async 제너레이터와 `for await...of`, `Promise.all` 등으로 여러 async 호출을 병렬로 실행하는 방법도 다루지 않습니다. async 화살표 함수와 메서드도 같은 규칙을 따른다는 것만 밝혀 둡니다. 명세는 판마다 Await와 AsyncBlockStart에서 함수를 멈추고 호출한 쪽으로 돌아가는 서술 방식과 매개변수 이름이 다릅니다. 이 페이지는 ES2026판과 현재 초안에 똑같이 있는 문장만 인용하고, 링크는 현재 초안을 가리킵니다.
+
+## 예제
+
+예제의 `console.log`는 ECMAScript 언어가 아니라 호스트가 제공하는 API입니다. 모든 예제의 출력은 테스트가 Node.js의 `vm`에서 실제로 실행해 얻은 값입니다.
+
+### 예제 1: 첫 await까지는 동기로 실행된다
+
+`work()`를 부르고 `p.then`으로 콜백을 겁니다. `a1`, `after call`, `a2`, `then done`이 찍히는 순서를 비교해 보세요.
+
+```js file=./examples/sync-until-await.js
+
+```
+
+<PredictQuiz
+  question="예제 1의 출력 순서는 무엇일까요?"
+  choices={[
+    'a1, a2, after call, then done',
+    'after call, a1, a2, then done',
+    'a1, after call, a2, then done',
+    'a1, after call, then done, a2',
+  ]}
+  answer={2}
+  explanation="본문은 첫 await까지 호출이 값을 돌려주기 전에 동기로 실행되어 a1이 먼저 찍힙니다. await 뒤의 a2는 동기 코드가 끝난 뒤 재개 Job으로 실행되고, then 콜백은 p가 이행된 뒤의 Job이라 가장 마지막입니다."
+/>
+
+<PredictQuiz
+  question="예제 1에서 a1이 after call보다 먼저 찍히는 이유는 무엇일까요?"
+  choices={[
+    'work 본문이 호출 즉시 첫 await까지, 호출이 값을 돌려주기 전에 동기로 실행되기 때문이다',
+    'async 함수 본문은 항상 Job으로 시작하기 때문이다',
+    'console.log는 프로미스 콜백보다 항상 먼저 실행되기 때문이다',
+    'await null이 본문 전체를 건너뛰기 때문이다',
+  ]}
+  answer={0}
+  explanation="EvaluateAsyncFunctionBody는 AsyncFunctionStart로 본문을 바로 시작합니다. 본문은 await를 만나 멈출 때까지 호출한 쪽의 코드를 기다리게 하며 실행됩니다."
+/>
+
+### 예제 2: 호출은 항상 새 프로미스를 돌려준다
+
+`one`의 본문에는 `await`가 없습니다. 그래도 돌려주는 값이 프로미스인지, 호출마다 같은 프로미스인지 비교해 보세요.
+
+```js file=./examples/always-promise.js
+
+```
+
+<PredictQuiz
+  question="예제 2의 출력은 무엇일까요?"
+  choices={[
+    'true, true, sync end, value 1',
+    'true, false, sync end, value 1',
+    'true, false, value 1, sync end',
+    'false, false, sync end, value 1',
+  ]}
+  answer={1}
+  explanation="one()은 호출할 때마다 새 프로미스를 돌려주므로 instanceof는 true이고 두 호출의 결과를 비교하면 false입니다. then 콜백은 Job으로 실행되어 sync end 뒤에 value 1이 찍힙니다."
+/>
+
+<PredictQuiz
+  question="예제 2의 p === one()이 false인 이유는 무엇일까요?"
+  choices={[
+    '프로미스는 === 로 비교할 수 없기 때문이다',
+    'p가 아직 pending이라 비교가 거짓이 되기 때문이다',
+    'one을 부를 때마다 NewPromiseCapability가 새 프로미스를 만들어 돌려주기 때문이다',
+    '같은 값을 return하면 async 함수가 같은 프로미스를 재사용하기 때문이다',
+  ]}
+  answer={2}
+  explanation="EvaluateAsyncFunctionBody는 호출할 때마다 NewPromiseCapability로 새 프로미스를 만들어 돌려줍니다. 서로 다른 객체이므로 === 비교는 false입니다."
+/>
+
+### 예제 3: await 뒤의 코드와 then 콜백의 순서
+
+`task`는 프로미스가 아닌 문자열을 `await`합니다. 이어서 `Promise.resolve().then(...).then(...)`이 콜백을 둘 겁니다. 출력 순서를 예측해 보세요.
+
+```js file=./examples/interleave.js
+
+```
+
+<PredictQuiz
+  question="예제 3의 출력 순서는 무엇일까요?"
+  choices={[
+    'sync, then 1, task after await, then 2',
+    'sync, task after await, then 1, then 2',
+    'task after await, sync, then 1, then 2',
+    'sync, then 1, then 2, task after await',
+  ]}
+  answer={1}
+  explanation="동기 코드가 끝난 뒤 Job이 큐에 들어간 순서대로 실행됩니다. task의 재개 Job이 then 1 콜백 Job보다 먼저 들어갔으므로 task after await, then 1이고, then 2의 Job은 then 1이 끝나야 생깁니다."
+/>
+
+<PredictQuiz
+  question="예제 3에서 task after await가 then 1보다 먼저 찍히는 이유는 무엇일까요?"
+  choices={[
+    '문자열은 프로미스가 아니라서 await가 멈추지 않고 바로 이어 가기 때문이다',
+    'await 뒤의 코드는 항상 모든 then 콜백보다 먼저 실행되기 때문이다',
+    'then 콜백은 동기 코드가 끝나기 전에는 큐에 들어가지 못하기 때문이다',
+    '문자열을 await하며 만든 재개 Job이 첫 then 콜백 Job보다 먼저 큐에 들어갔기 때문이다',
+  ]}
+  answer={3}
+  explanation="PromiseResolve가 문자열을 이행된 새 프로미스로 감싸서 재개 Job이 곧바로 큐에 들어갑니다. then 콜백 Job은 그다음 줄에서 들어가므로 큐의 앞에 있던 재개 Job이 먼저 실행됩니다. 순서는 큐에 들어간 순서가 정합니다."
+/>
+
+### 한 단계씩 따라가기
+
+시나리오 두 개가 각각 예제 1과 예제 3에 해당합니다. 한 단계씩 실행하며 실행 컨텍스트 스택, async 함수 호출의 상태, 변수에 담긴 프로미스와 등록된 반응, 프로미스 Job 큐가 어떻게 바뀌는지 확인해 보세요. 첫 번째 시나리오 `첫 await까지는 동기로`에서는 `work()`를 부르면 본문 컨텍스트가 호출한 쪽 위에 쌓여 `a1`을 찍고, `await null`에서 멈추면서 재개 Job이 큐에 들어가고 본문 컨텍스트가 스택에서 빠지는 것, 동기 코드가 끝나 스택이 비어야 Job이 실행되는 것, `return 'done'`이 `p`를 이행시켜 `then` 콜백이 Job이 되는 것을 볼 수 있습니다. 두 번째 시나리오 `await 뒤의 코드와 then 콜백`은 예제 3을 따라가며, 재개 Job과 `then 1` 콜백 Job이 큐에 들어간 순서대로 실행되고 `then 2`의 Job은 `then 1`이 끝난 뒤에 들어가는 것을 볼 수 있습니다. 마지막 단계의 출력은 테스트가 예제 파일의 `expectedOutput`과 대조합니다. 내장 함수(`then`, `console.log`, Await가 만드는 내장 함수)의 실행 컨텍스트는 그리지 않았습니다.
+
+<Simulator scenarios={scenarios} />
+
+### 예제 4: return은 resolve, throw는 거부
+
+`ok`는 값을 `return`하고, `fail`은 예외를 던지고, `badParam`은 기본값을 평가하다 오류가 납니다. 세 호출 중 어느 것이 호출한 쪽에서 예외로 보일까요?
+
+```js file=./examples/return-throw.js
+
+```
+
+<PredictQuiz
+  question="예제 4의 출력은 무엇일까요?"
+  choices={[
+    'a 이행: ok, 호출은 모두 끝남, b 거부: boom, c 거부: ReferenceError',
+    '호출은 모두 끝남, a 이행: ok, b 거부: boom, c 거부: ReferenceError',
+    '호출은 모두 끝남, a 이행: ok, b 거부: boom',
+    '호출은 모두 끝남, a 이행: ok, b 거부: boom, c 거부: TypeError',
+  ]}
+  answer={1}
+  explanation="세 호출 모두 예외 없이 프로미스를 돌려주므로 호출은 모두 끝남이 먼저 찍힙니다. 이어서 then과 catch 콜백이 등록 순서대로 실행되고, 기본값의 missing은 선언되지 않은 이름이라 ReferenceError입니다."
+/>
+
+<PredictQuiz
+  question="예제 4에서 fail()이 호출한 줄에서 예외를 던지지 않는 이유는 무엇일까요?"
+  choices={[
+    'throw는 async 함수 안에서는 무시되기 때문이다',
+    'b.catch가 호출보다 먼저 등록되어 예외를 가로채기 때문이다',
+    'badParam 때문에 fail 호출이 건너뛰어지기 때문이다',
+    '본문이 예외로 끝나면 AsyncBlockStart가 프로미스의 Reject를 불러 거부시키고, 호출은 그 프로미스를 돌려주기 때문이다',
+  ]}
+  answer={3}
+  explanation="async 함수의 호출은 항상 프로미스를 돌려주며, 본문의 예외는 그 프로미스를 거부시킵니다. 예외는 b.catch로 등록한 콜백이 받으며 호출한 줄에는 동기 예외가 나가지 않습니다."
+/>
+
+### 예제 5: 이행된 프로미스를 return하면 늦게 이행된다
+
+`returnsPromise`는 프로미스를, `returnsValue`는 값을 `return`합니다. 둘 다 `then`으로 출력하고, 그 사이에 `tick` 콜백 체인이 끼어 있습니다.
+
+```js file=./examples/return-promise.js
+
+```
+
+<PredictQuiz
+  question="예제 5의 출력 순서는 무엇일까요?"
+  choices={[
+    'returnsPromise: promise, returnsValue: value, tick 1, tick 2, tick 3',
+    'returnsValue: value, returnsPromise: promise, tick 1, tick 2, tick 3',
+    'returnsValue: value, tick 1, tick 2, returnsPromise: promise, tick 3',
+    'returnsValue: value, tick 1, returnsPromise: promise, tick 2, tick 3',
+  ]}
+  answer={2}
+  explanation="returnsPromise의 프로미스는 NewPromiseResolveThenableJob을 거쳐 두 Job 뒤에야 이행되어, 이 예제에서는 tick 2 다음에 콜백이 실행됩니다. returnsValue는 곧바로 이행되어 가장 먼저입니다."
+/>
+
+<PredictQuiz
+  question="예제 5에서 returnsPromise의 콜백이 늦게 실행되는 이유는 무엇일까요?"
+  choices={[
+    'return한 프로미스는 thenable이라 NewPromiseResolveThenableJob이 먼저 실행되어야 하고, 그 뒤에야 바깥 프로미스가 이행되어 이 예제에서는 Job을 두 개 더 거치기 때문이다',
+    'Promise.resolve가 값을 한 틱 늦게 만들기 때문이다',
+    'async 함수는 return한 값이 프로미스이면 항상 타이머로 미루기 때문이다',
+    'returnsPromise를 먼저 호출했으므로 항상 마지막에 실행되기 때문이다',
+  ]}
+  answer={0}
+  explanation="[[Resolve]]는 thenable을 받으면 그 then을 부르는 Job(J1)을 큐에 넣고, J1이 건 반응이 다시 Job(J4)이 되어야 바깥 프로미스를 이행시킵니다. 이 예제에서는 이 Job들 때문에 tick 2 뒤로 밀렸습니다."
+/>
+
+### 예제 6: forEach는 async 콜백을 기다리지 않는다
+
+같은 요소 `1`, `2`, `3`을 `forEach`의 async 콜백과 `for...of` 안의 `await`로 각각 처리합니다. 세 시점의 `viaForEach`를 비교해 보세요.
+
+```js file=./examples/foreach.js
+
+```
+
+<PredictQuiz
+  question="예제 6의 출력은 무엇일까요?"
+  choices={[
+    'forEach 직후: [1,2,3], for...of: [1,2,3], forEach 나중: [1,2,3]',
+    'forEach 직후: [], for...of: [1,2,3], forEach 나중: []',
+    'forEach 직후: [], for...of: [1,2,3], forEach 나중: [1,2,3]',
+    'forEach 직후: [], for...of: [], forEach 나중: [1,2,3]',
+  ]}
+  answer={2}
+  explanation="forEach가 끝난 직후에는 세 콜백이 모두 await에서 멈춰 있어 빈 배열입니다. 콜백들의 재개 Job이 먼저 실행돼 for...of 쪽이 끝날 때는 viaForEach도 이미 [1,2,3]입니다."
+/>
+
+<PredictQuiz
+  question="예제 6에서 forEach 나중이 이미 [1,2,3]인 이유는 무엇일까요?"
+  choices={[
+    'forEach가 async 콜백의 프로미스를 기다렸다가 다음 요소로 넘어가기 때문이다',
+    '세 콜백의 재개 Job이 viaForOf의 첫 재개 Job보다 먼저 큐에 들어갔기 때문이다',
+    'forEach 콜백은 await를 만나도 멈추지 않고 동기로 끝까지 실행되기 때문이다',
+    'for...of가 forEach 콜백을 대신 실행하기 때문이다',
+  ]}
+  answer={1}
+  explanation="forEach는 콜백이 돌려준 프로미스를 쓰지 않습니다. 이 예제의 결과는 재개 Job이 큐에 들어간 순서에서 나옵니다. 세 콜백의 Job이 viaForOf의 첫 재개 Job보다 앞서 있어, viaForOf가 첫 요소를 처리하기 전에 이미 1, 2, 3이 들어가 있습니다."
+/>
+
+### 예제 7: await한 거부는 try...catch가 잡는다
+
+`await`한 프로미스가 거부되면 `await` 식 자리에서 예외가 던져진 것처럼 이어집니다. `try...catch` 문 자체의 의미는 별도 개념(작성 예정)이고, 여기서는 출력만 봅니다.
+
+```js file=./examples/catch-rejection.js
+
+```
+
+<PredictQuiz
+  question="예제 7의 출력은 무엇일까요?"
+  choices={[
+    '여기는 실행되지 않음, 잡음: 실패, 결과: 계속',
+    '잡음: 실패',
+    '결과: 계속, 잡음: 실패',
+    '잡음: 실패, 결과: 계속',
+  ]}
+  answer={3}
+  explanation="거부된 프로미스를 await하면 await 식 자리에서 예외가 던져진 것처럼 이어져 catch가 잡고, 그 뒤 load는 계속을 return해 이행됩니다. await 다음 줄은 실행되지 않습니다."
+/>
+
+<PredictQuiz
+  question="예제 7에서 catch 블록이 실행되는 이유는 무엇일까요?"
+  choices={[
+    'await가 거부를 항상 undefined로 바꾸기 때문이다',
+    'catch가 프로미스의 거부를 가로채려고 await 전에 실행되기 때문이다',
+    'load의 프로미스가 거부되어 then 콜백이 catch를 대신하기 때문이다',
+    '거부된 프로미스를 await하면 멈춘 컨텍스트가 await 식 자리에서 예외가 던져진 것처럼 이어지고, 그 자리가 try 블록 안이기 때문이다',
+  ]}
+  answer={3}
+  explanation="await가 등록한 거부 반응이 실행되면 멈춘 컨텍스트가 await 식 자리에서 예외로 이어집니다. 그 자리가 try 블록 안이므로 catch가 잡고, load의 프로미스는 이행됩니다."
+/>
+
+### 예제 8: async 함수는 생성자가 아니다
+
+async 함수에는 `prototype` 프로퍼티가 있는지, `new`를 쓰면 어떻게 되는지 확인합니다.
+
+```js file=./examples/not-constructor.js
+
+```
+
+<PredictQuiz
+  question="예제 8의 출력은 무엇일까요?"
+  choices={['true, new: TypeError', 'false, new: TypeError', 'false, new: ReferenceError', 'false']}
+  answer={1}
+  explanation="AsyncFunction 인스턴스는 생성자가 아니라서 prototype 프로퍼티가 없고, new는 TypeError를 던집니다."
+/>
+
+<PredictQuiz
+  question="예제 8에서 new f()가 TypeError인 이유는 무엇일까요?"
+  choices={[
+    'f의 본문이 비어 있기 때문이다',
+    'f가 프로미스를 돌려주어서 new가 거부하기 때문이다',
+    'async 함수는 [[Construct]] 내부 메서드가 없는 생성자가 아닌 함수이기 때문이다',
+    'new는 var로 선언된 함수에는 쓸 수 없기 때문이다',
+  ]}
+  answer={2}
+  explanation="명세는 AsyncFunction 인스턴스가 생성자가 아니고 [[Construct]] 내부 메서드가 없다고 정합니다. new 연산자는 그런 대상에 TypeError를 던집니다."
+/>
+
+### 예제 9: thenable도 await할 수 있다
+
+`thenable`은 프로미스가 아니지만 호출 가능한 `then`을 가진 객체입니다. `then` 안의 출력이 `sync end`보다 앞인지 뒤인지 예측해 보세요.
+
+```js file=./examples/thenable.js
+
+```
+
+<PredictQuiz
+  question="예제 9의 출력 순서는 무엇일까요?"
+  choices={[
+    'then 호출됨, sync end, v = 7',
+    'sync end, then 호출됨, v = 7',
+    'sync end, v = 7, then 호출됨',
+    'sync end, v = undefined',
+  ]}
+  answer={1}
+  explanation="await한 thenable의 then은 NewPromiseResolveThenableJob이 부르므로 호출한 쪽의 sync end 뒤입니다. then 안의 resolve(7)이 프로미스를 이행시켜 재개 Job이 만들어지므로 v = 7이 마지막입니다."
+/>
+
+<PredictQuiz
+  question="예제 9에서 then 호출됨이 sync end보다 늦게 찍히는 이유는 무엇일까요?"
+  choices={[
+    'await는 thenable의 then 메서드를 절대 부르지 않기 때문이다',
+    'thenable의 then은 타이머로 호출되기 때문이다',
+    'read 호출이 then이 끝날 때까지 기다리기 때문이다',
+    'PromiseResolve가 새 프로미스를 만들어 resolve하고, 그 resolve가 thenable의 then을 부르는 일을 NewPromiseResolveThenableJob으로 미루기 때문이다',
+  ]}
+  answer={3}
+  explanation="thenable은 프로미스가 아니므로 새 프로미스가 만들어지고, resolve는 then을 부르는 일을 Job으로 큐에 넣습니다. Job은 호출한 쪽의 동기 코드가 끝난 뒤에 실행됩니다."
+/>
+
+## 결과와 이유
+
+예제 1~9의 출력은 하나의 규칙으로 읽을 수 있습니다. async 함수를 부르면 새 프로미스를 만들고 본문을 첫 `await`까지 호출이 값을 돌려주기 전에 동기로 실행한 뒤 그 프로미스를 돌려줍니다. `await`는 값을 프로미스로 바꿔 이어 갈 함수를 반응으로 등록하고 실행 컨텍스트를 멈춘 채 스택에서 바로 아래의 컨텍스트(첫 `await`에서는 함수를 부른 코드)로 돌아가며, 재개는 `then` 콜백의 반응과 똑같이 프로미스 Job으로 실행되어 큐에 들어간 순서대로 일어납니다. `return`은 프로미스를 `return`한 값으로 resolve하고(값이면 이행, 프로미스면 그 결과를 따름) `throw`는 거부시킵니다. 다음 표는 예제마다 결과와 근거를 정리한 것입니다. 결과 열은 meta의 출력과 같고 테스트가 대조합니다. 근거 열은 이 페이지에서 설명한 명세의 연산과 Node의 `vm`에서 얻은 실행 결과를 뜻합니다.
+
+<Wide>
+  <div
+    className="focus-visible:outline-accent my-6 overflow-x-auto focus-visible:outline-2"
+    tabIndex={0}
+    role="region"
+    aria-label="예제마다 핵심 동작, 결과, 근거를 정리한 표(좁은 화면에서는 가로로 스크롤할 수 있습니다)"
+  >
+    <table className="w-full border-collapse text-left">
+      <thead>
+        <tr>
+          <th scope="col" className="border-border border px-3 py-2">
+            상황
+          </th>
+          <th scope="col" className="border-border border px-3 py-2">
+            핵심 동작
+          </th>
+          <th scope="col" className="border-border border px-3 py-2">
+            결과(예제 출력)
+          </th>
+          <th scope="col" className="border-border border px-3 py-2">
+            근거
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            예제 1: 첫 await까지는 동기
+          </th>
+          <td className="border-border border px-3 py-2">
+            본문이 호출 즉시 await까지 실행되고, await 뒤는 재개 Job
+          </td>
+          <td className="border-border border px-3 py-2">a1, after call, a2, then done</td>
+          <td className="border-border border px-3 py-2">
+            EvaluateAsyncFunctionBody의 AsyncFunctionStart, Await의 PerformPromiseThen, vm 실행값
+          </td>
+        </tr>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            예제 2: 항상 새 프로미스
+          </th>
+          <td className="border-border border px-3 py-2">
+            호출마다 새 프로미스를 돌려주고, then 콜백은 Job
+          </td>
+          <td className="border-border border px-3 py-2">true, false, sync end, value 1</td>
+          <td className="border-border border px-3 py-2">
+            NewPromiseCapability, 프로미스 Job, vm 실행값
+          </td>
+        </tr>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            예제 3: await 뒤와 then 콜백
+          </th>
+          <td className="border-border border px-3 py-2">
+            문자열도 감싸서 멈추고, 재개 Job과 then 콜백 Job은 큐에 들어간 순서대로 실행
+          </td>
+          <td className="border-border border px-3 py-2">sync, task after await, then 1, then 2</td>
+          <td className="border-border border px-3 py-2">
+            PromiseResolve, PerformPromiseThen, HostEnqueuePromiseJob
+          </td>
+        </tr>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            예제 4: return과 throw
+          </th>
+          <td className="border-border border px-3 py-2">
+            값의 return은 이행, throw와 매개변수 처리 오류는 거부, 동기 예외 없음
+          </td>
+          <td className="border-border border px-3 py-2">
+            호출은 모두 끝남, a 이행: ok, b 거부: boom, c 거부: ReferenceError
+          </td>
+          <td className="border-border border px-3 py-2">
+            EvaluateAsyncFunctionBody, AsyncBlockStart의 Resolve와 Reject, vm 실행값
+          </td>
+        </tr>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            예제 5: 프로미스를 return
+          </th>
+          <td className="border-border border px-3 py-2">
+            thenable을 받는 Job과 그 반응 Job을 더 거침(이 예제의 Job 추적)
+          </td>
+          <td className="border-border border px-3 py-2">
+            returnsValue: value, tick 1, tick 2, returnsPromise: promise, tick 3
+          </td>
+          <td className="border-border border px-3 py-2">
+            CreateResolvingFunctions, NewPromiseResolveThenableJob, vm 실행값
+          </td>
+        </tr>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            예제 6: forEach와 for...of
+          </th>
+          <td className="border-border border px-3 py-2">
+            forEach는 콜백의 반환값을 쓰지 않음, 재개 Job은 큐에 들어간 순서대로 실행
+          </td>
+          <td className="border-border border px-3 py-2">
+            forEach 직후: [], for...of: [1,2,3], forEach 나중: [1,2,3]
+          </td>
+          <td className="border-border border px-3 py-2">
+            Await의 재개 Job, 프로미스 Job 큐의 순서, vm 실행값
+          </td>
+        </tr>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            예제 7: 거부 잡기
+          </th>
+          <td className="border-border border px-3 py-2">
+            거부 반응이 await 식 자리에서 예외로 이어 가고 catch가 잡음
+          </td>
+          <td className="border-border border px-3 py-2">잡음: 실패, 결과: 계속</td>
+          <td className="border-border border px-3 py-2">Await의 onRejected, vm 실행값</td>
+        </tr>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            예제 8: 생성자가 아님
+          </th>
+          <td className="border-border border px-3 py-2">
+            prototype 프로퍼티가 없고 new는 TypeError
+          </td>
+          <td className="border-border border px-3 py-2">false, new: TypeError</td>
+          <td className="border-border border px-3 py-2">AsyncFunction 인스턴스 절, new 연산자</td>
+        </tr>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            예제 9: thenable
+          </th>
+          <td className="border-border border px-3 py-2">
+            thenable의 then 호출은 Job으로 미뤄지고, resolve 뒤 재개 Job이 이어짐
+          </td>
+          <td className="border-border border px-3 py-2">sync end, then 호출됨, v = 7</td>
+          <td className="border-border border px-3 py-2">
+            PromiseResolve, NewPromiseResolveThenableJob, vm 실행값
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</Wide>
+
+### 흔한 오해
+
+<Callout type="misconception" title="await는 프로그램 전체를 멈춘다">
+
+`await`가 멈추는 것은 그 async 함수의 실행 컨텍스트뿐입니다. 호출한 쪽의 코드는 기다리지 않고 이어서 실행됩니다. 예제 1에서 `await null` 뒤의 `a2`는 `after call`보다 늦게 찍혔고, 예제 9에서 `read()`가 `await thenable`에서 멈춘 동안 호출한 쪽의 `sync end`가 먼저 찍혔습니다. 멈춘 컨텍스트는 프로미스 Job으로 다시 이어집니다.
+
+</Callout>
+
+<Callout type="misconception" title="async 함수 안의 throw는 호출하는 순간 예외가 된다">
+
+async 함수의 `throw`는 호출이 돌려준 프로미스를 거부시킵니다. 호출 줄에서 동기 예외가 나가지 않습니다. 예제 4에서 `fail()`을 불러도 스크립트는 멈추지 않았고 `호출은 모두 끝남`이 찍혔습니다. 매개변수 기본값에서 난 ReferenceError도 `badParam()`의 프로미스를 거부시켰습니다. 거부 이유는 `catch`나 `then`의 두 번째 콜백, `await` 같은 방법으로 그 프로미스에 반응을 걸어야 받을 수 있습니다.
+
+</Callout>
+
+<Callout type="misconception" title="프로미스가 아닌 값을 await하면 멈추지 않는다">
+
+프로미스가 아닌 값도 `await`의 PromiseResolve가 프로미스로 감싸므로(`constructor`가 `%Promise%`인 프로미스면 그 프로미스를 그대로 씁니다), `await`는 반응을 등록하고 함수를 멈춥니다. 예제 3의 `await 'not a promise'`와 예제 1의 `await null` 뒤의 코드는 모두 호출한 쪽의 코드가 끝난 뒤에 재개되었습니다. 이미 이행된 프로미스라도 재개는 Job으로 큐에 들어가 뒤로 미뤄집니다.
+
+</Callout>
+
+<Callout type="misconception" title="forEach에 async 콜백을 넘기면 하나씩 기다린다">
+
+`forEach`는 콜백이 돌려준 프로미스를 쓰지 않으므로 기다리지 않습니다. 예제 6에서 `forEach 직후`의 배열은 비어 있었습니다. 요소를 차례대로 기다리며 처리하는 한 가지 방법은 예제 6의 `viaForOf`처럼 async 함수 본문 안의 `for...of`에서 `await`하는 것입니다. `forEach 나중`이 `[1,2,3]`인 것은 기다려 주어서가 아니라 재개 Job이 큐에 들어간 순서의 결과입니다.
+
+</Callout>

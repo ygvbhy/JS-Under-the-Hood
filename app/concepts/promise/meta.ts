@@ -101,7 +101,7 @@ export const concept = {
     '시뮬레이터의 Job 목록과 "실행 중" 칸은 명세의 Job을 그림으로 나타낸 것이며 엔진이 쓰는 큐 자료구조가 아닙니다. 반응 표시는 PromiseReaction 레코드를 요약한 것입니다.',
     '[[PromiseIsHandled]]와 처리되지 않은 거부(HostPromiseRejectionTracker)는 호스트 동작이라 다루지 않으며, 예제는 모든 거부를 처리합니다.',
     'Promise 서브클래싱과 Symbol.species, Promise.withResolvers, Promise.try는 다루지 않습니다.',
-    'try...catch와 async/await는 별도 개념(작성 예정)입니다.',
+    'try...catch는 별도 개념(작성 예정)이고, async/await는 async/await 개념에서 다룹니다.',
     '예제의 console은 ECMAScript 언어가 아니라 호스트가 제공하는 API입니다.',
   ],
   references: [
