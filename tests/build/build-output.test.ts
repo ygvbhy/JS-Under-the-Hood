@@ -1181,6 +1181,25 @@ describe('시뮬레이터 프리렌더 (promise)', () => {
   })
 })
 
+// 43~48장 로드맵 3번(microtask-queue): 마이크로태스크 큐 시뮬레이터의 첫 단계와 퀴즈가 프리렌더 HTML에 정적으로 있어야 한다.
+describe('시뮬레이터 프리렌더 (microtask-queue)', () => {
+  const html = read('concepts/microtask-queue/index.html')
+  const text = htmlToText(html)
+
+  it('마이크로태스크 큐 시뮬레이터 region과 첫 단계가 HTML에 있다', () => {
+    expect(html).toMatch(/role="region"[^>]*aria-label="마이크로태스크 큐 시뮬레이터"/)
+    expect(text).toContain('단계 1: 스크립트 태스크 시작')
+  })
+
+  it('첫 단계의 콜 스택 항목이 정적으로 보인다', () => {
+    expect(text).toContain('전역 코드')
+  })
+
+  it('퀴즈 정답이 <details>로 14개 이상 프리렌더된다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(14)
+  })
+})
+
 // 학습 순서 이전/다음: 관련 개념 링크와 섞이지 않도록 nav 영역만 잘라 검사한다.
 describe('학습 순서 pager', () => {
   const ordered = sortByOrder(concepts)

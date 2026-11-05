@@ -61,6 +61,8 @@ import {
   EVENT_LOOP_PATH,
   EVENT_LOOP_SIMULATOR_NAME,
   JSON_PATH,
+  MICROTASK_QUEUE_PATH,
+  MICROTASK_QUEUE_SIMULATOR_NAME,
   PROMISE_PATH,
   PROMISE_SIMULATOR_NAME,
   SCRIPT_ASYNC_DEFER_PATH,
@@ -1087,10 +1089,36 @@ test('프로미스 개념 페이지: 첫 시나리오를 끝까지 진행해도 
   expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
 })
 
+test(`${MICROTASK_QUEUE_PATH}: 가로 스크롤이 없다`, async ({ page }) => {
+  await page.goto(MICROTASK_QUEUE_PATH)
+  await waitForHydration(page)
+  const { scrollWidth, innerWidth } = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    innerWidth: window.innerWidth,
+  }))
+  expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
+})
+
+test('마이크로태스크 큐 개념 페이지: 첫 시나리오를 끝까지 진행해도 가로 스크롤이 없다', async ({
+  page,
+}) => {
+  await page.goto(MICROTASK_QUEUE_PATH)
+  await waitForHydration(page)
+  const region = page.getByRole('region', { name: MICROTASK_QUEUE_SIMULATOR_NAME })
+  const next = region.getByRole('button', { name: '다음' })
+  for (let i = 0; i < 15; i++) await next.click()
+  await expect(region.getByText(/^단계 16 \/ 16$/)).toBeVisible()
+  const { scrollWidth, innerWidth } = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    innerWidth: window.innerWidth,
+  }))
+  expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
+})
+
 test('홈 학습 순서 보기: 가로 스크롤이 없다', async ({ page }) => {
   await page.goto('/?view=order')
   await waitForHydration(page)
-  await expect(page.getByRole('article')).toHaveCount(45)
+  await expect(page.getByRole('article')).toHaveCount(46)
   const { scrollWidth, innerWidth } = await page.evaluate(() => ({
     scrollWidth: document.documentElement.scrollWidth,
     innerWidth: window.innerWidth,

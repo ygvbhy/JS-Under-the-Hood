@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"></head>
+<body>
+<script>
+window.addEventListener('message', function () {
+  console.log('리스너 1');
+  queueMicrotask(function () {
+    console.log('마이크로태스크 1');
+  });
+});
+window.addEventListener('message', function () {
+  console.log('리스너 2');
+  queueMicrotask(function () {
+    console.log('마이크로태스크 2');
+  });
+});
+window.postMessage('m', '*');
+console.log('스크립트 끝');
+</script>
+</body>
+</html>

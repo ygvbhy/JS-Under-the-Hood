@@ -96,7 +96,7 @@ export const concept = {
     },
   ],
   simplifications: [
-    'Job을 호스트가 언제 처리하는지(마이크로태스크), 여러 체인이 끼어드는 순서, 타이머와의 관계는 별도 개념(작성 예정)에서 다룹니다.',
+    'Job을 호스트가 언제 처리하는지(마이크로태스크), 여러 체인이 끼어드는 순서, 타이머와의 관계는 마이크로태스크 큐 개념에서 다룹니다.',
     'CreateResolvingFunctions는 ES2025판까지 두 함수가 [[AlreadyResolved]] 슬롯으로 공유하는 alreadyResolved 레코드로, ES2026판부터 promiseOrEmpty 레코드의 [[Value]]를 empty로 바꾸는 방식으로 쓰여 있습니다. 두 번째 호출부터 무시되는 결과는 같습니다.',
     '시뮬레이터의 Job 목록과 "실행 중" 칸은 명세의 Job을 그림으로 나타낸 것이며 엔진이 쓰는 큐 자료구조가 아닙니다. 반응 표시는 PromiseReaction 레코드를 요약한 것입니다.',
     '[[PromiseIsHandled]]와 처리되지 않은 거부(HostPromiseRejectionTracker)는 호스트 동작이라 다루지 않으며, 예제는 모든 거부를 처리합니다.',

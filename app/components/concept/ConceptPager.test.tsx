@@ -15,7 +15,7 @@ function renderPager(slug: string) {
 describe('ConceptPager', () => {
   it('첫 개념은 이전 없이 다음 링크만 있다', () => {
     const nav = renderPager('primitives-and-objects')
-    expect(within(nav).getByText('학습 순서 1 / 45')).toBeInTheDocument()
+    expect(within(nav).getByText('학습 순서 1 / 46')).toBeInTheDocument()
     expect(within(nav).queryByText('이전 개념')).not.toBeInTheDocument()
     const links = within(nav).getAllByRole('link')
     expect(links).toHaveLength(1)
@@ -24,12 +24,12 @@ describe('ConceptPager', () => {
   })
 
   it('마지막 개념은 다음 없이 이전 링크만 있다', () => {
-    const nav = renderPager('promise')
-    expect(within(nav).getByText('학습 순서 45 / 45')).toBeInTheDocument()
+    const nav = renderPager('microtask-queue')
+    expect(within(nav).getByText('학습 순서 46 / 46')).toBeInTheDocument()
     expect(within(nav).queryByText('다음 개념')).not.toBeInTheDocument()
     const links = within(nav).getAllByRole('link')
     expect(links).toHaveLength(1)
-    expect(links[0]).toHaveAttribute('href', '/concepts/json')
+    expect(links[0]).toHaveAttribute('href', '/concepts/promise')
     expect(links[0]).toHaveTextContent('이전 개념')
   })
 

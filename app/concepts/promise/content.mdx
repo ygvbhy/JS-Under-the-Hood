@@ -3,7 +3,7 @@ import { scenarios } from './scenarios'
 
 ## 동작 원리
 
-이미 `resolve`한 프로미스에 `then`을 붙였는데, 왜 콜백이 바로 뒤의 `console.log('sync end')`보다 늦게 불릴까요? 이 페이지는 이 질문에서 출발해 프로미스의 세 상태와 executor, `then`이 반응을 등록하거나 Job을 넣는 절차(PerformPromiseThen), `then`이 돌려주는 새 프로미스, `catch`와 함수가 아닌 인수, 분기와 체인, 프로미스를 반환하는 콜백과 thenable, `finally`, `Promise.all` 같은 정적 메서드, 처리되지 않은 거부를 차례로 보고, 예제 여덟 개로 확인한 뒤 결과와 이유를 정리합니다. 실행 중인 코드가 끝나야 다음 일이 시작된다는 점은 [이벤트 루프와 태스크 큐](/concepts/event-loop), 콜백이 만들어질 때의 환경을 기억하는 방식은 [클로저](/concepts/closure), 이터러블을 받는 정적 메서드는 [이터러블과 for...of](/concepts/iterable-for-of), 출력에 쓰는 `JSON.stringify`는 [JSON](/concepts/json), 코드가 실행되는 단위는 [실행 컨텍스트](/concepts/execution-context)에서 본 것을 전제합니다. Job을 호스트가 언제 처리하는지(마이크로태스크)와 여러 체인이 끼어드는 순서는 별도 개념(작성 예정)이고, async/await와 try...catch도 별도 개념(작성 예정)입니다.
+이미 `resolve`한 프로미스에 `then`을 붙였는데, 왜 콜백이 바로 뒤의 `console.log('sync end')`보다 늦게 불릴까요? 이 페이지는 이 질문에서 출발해 프로미스의 세 상태와 executor, `then`이 반응을 등록하거나 Job을 넣는 절차(PerformPromiseThen), `then`이 돌려주는 새 프로미스, `catch`와 함수가 아닌 인수, 분기와 체인, 프로미스를 반환하는 콜백과 thenable, `finally`, `Promise.all` 같은 정적 메서드, 처리되지 않은 거부를 차례로 보고, 예제 여덟 개로 확인한 뒤 결과와 이유를 정리합니다. 실행 중인 코드가 끝나야 다음 일이 시작된다는 점은 [이벤트 루프와 태스크 큐](/concepts/event-loop), 콜백이 만들어질 때의 환경을 기억하는 방식은 [클로저](/concepts/closure), 이터러블을 받는 정적 메서드는 [이터러블과 for...of](/concepts/iterable-for-of), 출력에 쓰는 `JSON.stringify`는 [JSON](/concepts/json), 코드가 실행되는 단위는 [실행 컨텍스트](/concepts/execution-context)에서 본 것을 전제합니다. Job을 호스트가 언제 처리하는지(마이크로태스크)와 여러 체인이 끼어드는 순서는 [마이크로태스크 큐](/concepts/microtask-queue)에서 다루고, async/await와 try...catch는 별도 개념(작성 예정)입니다.
 
 ### 프로미스의 세 상태와 executor
 
@@ -32,7 +32,7 @@ rejected는 `r`에 대해 같은 방식으로 정의되고, 둘 다 아니면 pe
 
 > Jobs must run in the same order as the HostEnqueuePromiseJob invocations that scheduled them.
 
-넣은 순서대로 실행된다는 뜻입니다. 호스트가 이 Job을 실제로 언제 꺼내 실행하는지는 호스트의 일이고, 별도 개념(작성 예정)에서 다룹니다. 아래 시뮬레이터의 첫 시나리오는 예제 2의 실행을 단계별로 보여 줍니다. 프로미스마다 상태와 등록된 반응이, 그리고 실행을 기다리는 Job이 어떻게 바뀌는지 따라가 보세요. 시뮬레이터의 Job 이름(반응 Job, thenable Job)은 명세의 NewPromiseReactionJob과 NewPromiseResolveThenableJob에 대응합니다.
+넣은 순서대로 실행된다는 뜻입니다. 호스트가 이 Job을 실제로 언제 꺼내 실행하는지는 호스트의 일이고, [마이크로태스크 큐](/concepts/microtask-queue)에서 다룹니다. 아래 시뮬레이터의 첫 시나리오는 예제 2의 실행을 단계별로 보여 줍니다. 프로미스마다 상태와 등록된 반응이, 그리고 실행을 기다리는 Job이 어떻게 바뀌는지 따라가 보세요. 시뮬레이터의 Job 이름(반응 Job, thenable Job)은 명세의 NewPromiseReactionJob과 NewPromiseResolveThenableJob에 대응합니다.
 
 <Simulator scenarios={scenarios} />
 

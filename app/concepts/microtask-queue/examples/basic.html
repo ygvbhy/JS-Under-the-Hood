@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"></head>
+<body>
+<script>
+console.log('스크립트 시작');
+setTimeout(function () {
+  console.log('타이머 0ms');
+}, 0);
+Promise.resolve().then(function () {
+  console.log('then 1');
+});
+queueMicrotask(function () {
+  console.log('queueMicrotask');
+});
+Promise.resolve().then(function () {
+  console.log('then 2');
+});
+console.log('스크립트 끝');
+</script>
+</body>
+</html>

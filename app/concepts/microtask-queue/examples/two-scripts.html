@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"></head>
+<body>
+<script>
+queueMicrotask(function () {
+  console.log('스크립트 1의 마이크로태스크');
+});
+console.log('스크립트 1 끝');
+</script>
+<script>
+console.log('스크립트 2');
+</script>
+</body>
+</html>
