@@ -63,6 +63,8 @@ import {
   EVENT_LOOP_PATH,
   EVENT_LOOP_SIMULATOR_NAME,
   JSON_PATH,
+  PROMISE_PATH,
+  PROMISE_SIMULATOR_NAME,
   SCRIPT_ASYNC_DEFER_PATH,
   SET_MAP_PATH,
   SPREAD_DESTRUCTURING_PATH,
@@ -906,6 +908,24 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await page.goto(JSON_PATH)
       await waitForHydration(page)
       await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
+      await expectNoSeriousViolations(page)
+    })
+
+    test('개념 페이지: 프로미스', async ({ page }) => {
+      await page.goto(PROMISE_PATH)
+      await waitForHydration(page)
+      await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
+      await expectNoSeriousViolations(page)
+    })
+
+    test('개념 페이지: 프로미스 시뮬레이터를 진행한 뒤', async ({ page }) => {
+      await page.goto(PROMISE_PATH)
+      await waitForHydration(page)
+      const region = page.getByRole('region', { name: PROMISE_SIMULATOR_NAME })
+      const next = region.getByRole('button', { name: '다음' })
+      for (let i = 0; i < 5; i++) await next.click()
+      await expect(region).toBeVisible()
+      await expect(region.getByText(/^단계 6 \/ 11$/)).toBeVisible()
       await expectNoSeriousViolations(page)
     })
 

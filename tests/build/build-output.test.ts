@@ -1162,6 +1162,25 @@ describe('프리렌더 (json)', () => {
   })
 })
 
+// 43~48장 로드맵 2번(promise): 프로미스 시뮬레이터의 첫 단계와 퀴즈가 프리렌더 HTML에 정적으로 있어야 한다.
+describe('시뮬레이터 프리렌더 (promise)', () => {
+  const html = read('concepts/promise/index.html')
+  const text = htmlToText(html)
+
+  it('프로미스 시뮬레이터 region과 첫 단계가 HTML에 있다', () => {
+    expect(html).toMatch(/role="region"[^>]*aria-label="프로미스 시뮬레이터"/)
+    expect(text).toContain('단계 1: 실행 시작')
+  })
+
+  it('첫 단계의 실행 중 코드 표시가 정적으로 보인다', () => {
+    expect(text).toContain('동기 코드')
+  })
+
+  it('퀴즈 정답이 <details>로 8개 이상 프리렌더된다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(8)
+  })
+})
+
 // 학습 순서 이전/다음: 관련 개념 링크와 섞이지 않도록 nav 영역만 잘라 검사한다.
 describe('학습 순서 pager', () => {
   const ordered = sortByOrder(concepts)
