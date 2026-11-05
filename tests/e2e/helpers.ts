@@ -75,6 +75,8 @@ export const PROMISE_PATH = '/concepts/promise'
 export const PROMISE_SIMULATOR_NAME = '프로미스 시뮬레이터'
 export const MICROTASK_QUEUE_PATH = '/concepts/microtask-queue'
 export const MICROTASK_QUEUE_SIMULATOR_NAME = '마이크로태스크 큐 시뮬레이터'
+export const GENERATOR_PATH = '/concepts/generator'
+export const GENERATOR_SIMULATOR_NAME = '제너레이터 시뮬레이터'
 
 // 404 문서 자체를 받을 때 브라우저가 남기는 리소스 로드 로그. 앱 오류가 아니므로 무시한다.
 const IGNORED_404_LOG = /Failed to load resource: the server responded with a status of 404/

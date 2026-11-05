@@ -101,15 +101,15 @@ describe('getAdjacentConcepts', () => {
     expect(adj.prev).toBeNull()
     expect(adj.next?.slug).toBe('short-circuit-evaluation')
     expect(adj.position).toBe(1)
-    expect(adj.total).toBe(46)
+    expect(adj.total).toBe(47)
   })
 
   it('마지막 개념은 다음이 없다', () => {
-    const adj = getAdjacentConcepts('microtask-queue')
-    expect(adj.prev?.slug).toBe('promise')
+    const adj = getAdjacentConcepts('generator')
+    expect(adj.prev?.slug).toBe('microtask-queue')
     expect(adj.next).toBeNull()
-    expect(adj.position).toBe(46)
-    expect(adj.total).toBe(46)
+    expect(adj.position).toBe(47)
+    expect(adj.total).toBe(47)
   })
 
   it('중간 개념은 앞뒤 개념을 돌려준다', () => {
