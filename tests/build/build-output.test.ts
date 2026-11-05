@@ -1147,6 +1147,21 @@ describe('시뮬레이터 프리렌더 (event-loop)', () => {
   })
 })
 
+// 43~48장 로드맵 1번(json): 값마다 JSON 결과를 보인 표와 퀴즈가 프리렌더 HTML에 정적으로 있어야 한다.
+describe('프리렌더 (json)', () => {
+  const html = read('concepts/json/index.html')
+  const text = htmlToText(html)
+
+  it('값별 JSON.stringify 결과 표 region이 HTML에 있다', () => {
+    expect(html).toContain('aria-label="값마다 객체 프로퍼티, 배열 요소, 최상위 값으로')
+    expect(text).toContain('SerializeJSONProperty')
+  })
+
+  it('퀴즈 정답이 <details>로 8개 이상 프리렌더된다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(8)
+  })
+})
+
 // 학습 순서 이전/다음: 관련 개념 링크와 섞이지 않도록 nav 영역만 잘라 검사한다.
 describe('학습 순서 pager', () => {
   const ordered = sortByOrder(concepts)

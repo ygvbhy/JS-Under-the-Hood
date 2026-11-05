@@ -1,0 +1,10 @@
+var base = { inherited: 'proto' };
+var user = Object.create(base);
+user.name = 'lee';
+Object.defineProperty(user, 'password', { value: 'secret', enumerable: false });
+user[Symbol('tag')] = 'symbol key';
+console.log(JSON.stringify(user), user.inherited, user.password);
+var scores = [90, 80];
+scores.label = 'math';
+console.log(JSON.stringify(scores), scores.label);
+console.log(JSON.stringify({ 2: 'b', z: 'z', 1: 'a' }));

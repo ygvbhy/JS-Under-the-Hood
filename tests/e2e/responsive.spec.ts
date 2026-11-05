@@ -60,6 +60,7 @@ import {
   TIMERS_PATH,
   EVENT_LOOP_PATH,
   EVENT_LOOP_SIMULATOR_NAME,
+  JSON_PATH,
   SCRIPT_ASYNC_DEFER_PATH,
   SET_MAP_PATH,
   SPREAD_DESTRUCTURING_PATH,
@@ -1050,10 +1051,20 @@ test('이벤트 루프 개념 페이지: 첫 시나리오를 끝까지 진행해
   expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
 })
 
+test(`${JSON_PATH}: 가로 스크롤이 없다`, async ({ page }) => {
+  await page.goto(JSON_PATH)
+  await waitForHydration(page)
+  const { scrollWidth, innerWidth } = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    innerWidth: window.innerWidth,
+  }))
+  expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
+})
+
 test('홈 학습 순서 보기: 가로 스크롤이 없다', async ({ page }) => {
   await page.goto('/?view=order')
   await waitForHydration(page)
-  await expect(page.getByRole('article')).toHaveCount(43)
+  await expect(page.getByRole('article')).toHaveCount(44)
   const { scrollWidth, innerWidth } = await page.evaluate(() => ({
     scrollWidth: document.documentElement.scrollWidth,
     innerWidth: window.innerWidth,

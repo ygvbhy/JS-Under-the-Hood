@@ -1,0 +1,348 @@
+import { columns, rows, RETURNS_UNDEFINED } from './value-table'
+
+## 동작 원리
+
+`{ nickname: undefined }`를 `JSON.stringify`하면 왜 `{}`이고, 같은 `undefined`가 배열 안에서는 왜 `null`일까요? 이 페이지는 `JSON.stringify`가 값 하나를 문자열로 바꾸는 절차(SerializeJSONProperty)와 그 결과를 받는 객체·배열 쪽 절차를 명세로 따라갑니다. 먼저 `undefined`·함수·심벌이 빠지거나 `null`이 되는 이유, 숫자와 래퍼 객체, `toJSON`과 Date, 자기 열거 가능한 문자열 키만 나오는 이유, 직접 만든 `toJSON`, replacer와 space, `JSON.parse`와 reviver, `JSON.parse(JSON.stringify(x))`로 깊은 복사를 할 때 잃는 것을 보고, 예제 여덟 개로 확인한 뒤 마지막에 값별 결과표로 정리합니다. 심벌 키와 심벌 값은 [심벌](/concepts/symbol), Map의 `JSON.stringify` 결과는 [Set과 Map](/concepts/set-map), 열거 가능 여부는 [프로퍼티 어트리뷰트](/concepts/property-attributes), 상속한 프로퍼티는 [프로토타입 체인](/concepts/prototype-chain), 키 순서는 [프로퍼티 키](/concepts/property-keys), `-0`과 `1e21`의 문자열은 [숫자 타입](/concepts/number-type), 래퍼 객체는 [원시 값의 메서드](/concepts/primitive-methods), 배열의 구멍은 [배열은 객체다](/concepts/array-index-length), 재할당과 변경의 구분은 [원시 값과 객체](/concepts/primitives-and-objects)에서 본 것을 전제합니다. `JSON.stringify`가 던지는 TypeError와 `JSON.parse`가 던지는 SyntaxError를 잡는 `try...catch`와 Ajax는 별도 개념입니다.
+
+### 값 하나를 바꾸는 SerializeJSONProperty
+
+`JSON.stringify(value)`는 먼저 빈 문자열 키 하나에 `value`를 담은 객체(wrapper)를 만들고, 이 wrapper에서 빈 문자열 키의 값을 직렬화하는 것으로 시작합니다. 값 하나를 문자열로 바꾸는 일은 추상 연산 SerializeJSONProperty가 맡습니다. 이 연산은 holder에서 키로 값을 읽은 뒤(뒤에서 볼 `toJSON`과 replacer 단계를 거친 뒤) 값의 종류를 차례로 검사합니다. `null`은 `"null"`, `true`와 `false`는 `"true"`와 `"false"`, 문자열은 따옴표로 감싼 문자열, 유한한 숫자는 ToString의 결과, 유한하지 않은 숫자(`NaN`, `Infinity`, `-Infinity`)는 `"null"`입니다. BigInt는 TypeError를 던지고, 호출할 수 없는 객체는 IsArray가 `true`이면 SerializeJSONArray, 아니면 SerializeJSONObject가 처리합니다.
+
+`undefined`, 함수(호출할 수 있는 객체), 심벌은 이 검사의 어느 분기에도 걸리지 않아 마지막 단계 "Return undefined"에 닿습니다. 문자열이 아니라 `undefined` 값 자체를 돌려주는 것입니다. 명세는 Note에서 이를 "In objects an unrepresentable value causes the property to be excluded from stringification."이라고 적고, 배열에서는 같은 값이 `"null"`이라는 문자열로 표현된다고 밝힙니다. 이 차이는 그 `undefined`를 받는 쪽이 만듭니다.
+
+- SerializeJSONObject는 키마다 SerializeJSONProperty를 부르고, 결과가 `undefined`가 아닐 때만 `"키":값` 항목(member)을 만듭니다. `undefined`이면 항목을 만들지 않으므로 그 프로퍼티는 결과에 나오지 않습니다.
+- SerializeJSONArray는 인덱스마다 SerializeJSONProperty를 부르고, 결과가 `undefined`이면 `"null"`을 넣습니다. 그래서 요소가 빠지지 않고 자리가 남습니다.
+- 최상위 값이면 `JSON.stringify`가 SerializeJSONProperty의 결과를 그대로 돌려줍니다. `JSON.stringify(undefined)`는 `"undefined"`라는 문자열이 아니라 `undefined` 값입니다.
+
+`null`은 첫 번째 검사에 걸리는 값이라 `"null"`로 남습니다. 심벌 값과 심벌 키는 [심벌](/concepts/symbol)에서 본 내용과 이어집니다. 심벌 값은 위 절차로 빠지거나 `null`이 되고, 심벌 키는 뒤에서 볼 자기 열거 가능한 문자열 키 조건에서 빠집니다.
+
+### 숫자와 래퍼 객체
+
+유한한 숫자는 ToString으로 바뀝니다. 그래서 `-0`은 `"0"`이 되고(`-0`의 ToString이 `"0"`입니다), `1e21`은 `1e+21`로 쓰입니다([숫자 타입](/concepts/number-type)). `NaN`, `Infinity`, `-Infinity`는 유한하지 않은 숫자라 `"null"`입니다. 명세 Note도 이를 적고 있습니다.
+
+`new Number(7)`, `new String('7')`, `new Boolean(false)` 같은 래퍼 객체는 SerializeJSONProperty가 내부 슬롯이 있는지 보고 원시 값으로 바꾼 뒤 위 검사를 합니다. 내부 슬롯은 어느 래퍼인지 가리는 조건입니다. `[[NumberData]]`가 있으면 ToNumber, `[[StringData]]`가 있으면 ToString을 부르므로 객체의 `valueOf`·`toString`을 거쳐 원시 값을 얻고, `[[BooleanData]]`가 있으면 그 슬롯의 값을 그대로 씁니다. 그래서 `7`, `"7"`, `false`로 쓰입니다([원시 값의 메서드](/concepts/primitive-methods)). 같은 이유로 `valueOf`를 바꾼 Number 래퍼는 바꾼 메서드의 결과로 직렬화되지만, Boolean 래퍼는 `valueOf`를 바꿔도 슬롯 값 그대로입니다.
+
+배열의 구멍은 SerializeJSONArray가 인덱스마다 부른 SerializeJSONProperty가 `Get`으로 값을 읽으면 `undefined`가 나와서 `null`이 됩니다. SerializeJSONArray는 0부터 `length` 앞까지 돌므로 요소 수도 그대로입니다([배열은 객체다](/concepts/array-index-length)). BigInt는 SerializeJSONProperty가 TypeError를 던지도록 정해져 있습니다. JSON 문법에 `1` 같은 숫자를 쓸 수 없어서가 아니라, 명세가 BigInt에 기본 직렬화 방법을 정하지 않고 예외로 정한 것입니다. 예외를 잡는 try...catch는 별도 개념이므로 예제로는 보이지 않습니다.
+
+### toJSON과 Date
+
+SerializeJSONProperty는 값이 객체(또는 BigInt)이면 먼저 값에서 `toJSON`을 찾습니다. 이때 쓰는 GetV는 원시 값인 BigInt에서도 래퍼 객체를 거쳐 프로퍼티를 찾을 수 있는 조회이고, 프로토타입 체인도 따라갑니다. 호출할 수 있는 함수이면 값을 `this`로, 키를 인수로 해서 부르고, 그 반환값을 대신 직렬화합니다. replacer 함수가 있으면 그 다음 단계에서 불립니다. BigInt도 이 단계를 거치므로 `BigInt.prototype.toJSON`을 정의하면 TypeError 대신 그 반환값이 직렬화됩니다. 예를 들어 `toJSON`이 `this.toString()`을 돌려주게 하면 `JSON.stringify({ v: 1n })`이 `{"v":"1"}`입니다. 기본 상태에는 이 메서드가 없어서 TypeError 분기에 닿습니다.
+
+Date가 문자열이 되는 이유가 이것입니다. `Date.prototype.toJSON`은 `this`를 숫자 힌트로 원시 값으로 바꾼 결과(Date라면 시간 값)가 유한하지 않은 숫자이면 `null`을 돌려주고, 아니면 `toISOString`을 부른 결과(UTC 문자열)를 돌려줍니다. 명세는 이 메서드가 일부러 범용이라 `this`가 Date가 아니어도 `toISOString` 메서드만 있으면 쓸 수 있다고 적습니다. 반대로 `JSON.parse`는 텍스트만 보고 값을 만들기 때문에 그 문자열이 Date였다는 정보가 없습니다. 되돌려도 `typeof`가 `'string'`인 문자열이고 `instanceof Date`는 `false`입니다.
+
+### 자기 열거 가능한 문자열 키만
+
+replacer 배열이 없을 때 SerializeJSONObject는 키를 EnumerableOwnProperties(value, key)로 모읍니다. 자기(own) 프로퍼티 중 키가 문자열이고 `[[Enumerable]]`이 `true`인 것입니다. 그래서 다음이 결과에서 빠집니다.
+
+- 프로토타입 체인으로 상속한 프로퍼티([프로토타입 체인](/concepts/prototype-chain))
+- `enumerable: false`인 프로퍼티([프로퍼티 어트리뷰트](/concepts/property-attributes))
+- 키가 심벌인 프로퍼티
+
+접근자 프로퍼티는 자기 것이고 열거 가능하면 getter가 돌려준 값으로 직렬화됩니다. 키 순서는 자기 키를 나열하는 OrdinaryOwnPropertyKeys의 순서(배열 인덱스 형태의 문자열 키를 오름차순으로 먼저, 나머지는 만든 순서)라서 `{ 2: 'b', z: 'z', 1: 'a' }`는 `1`, `2`, `z` 순서가 됩니다([프로퍼티 키](/concepts/property-keys)).
+
+배열은 SerializeJSONArray가 0부터 `length` 앞까지의 인덱스만 읽습니다. 명세 Note가 "Properties whose keys are not array indices are excluded from the stringification."이라고 적은 대로 `scores.label = 'math'` 같은 인덱스가 아닌 프로퍼티는 빠집니다.
+
+### 직접 만든 toJSON
+
+객체에 `toJSON` 메서드를 두면 그 반환값이 대신 직렬화됩니다. 인수 `key`는 그 값이 들어 있던 프로퍼티의 이름입니다. 객체 프로퍼티이면 이름, 배열 요소이면 인덱스 문자열(`"0"`), 최상위 값이면 wrapper의 키인 빈 문자열입니다. `toJSON`이 `undefined`를 돌려주면 그 값은 위와 같은 이유로 객체에서는 빠지고 배열에서는 `null`이 됩니다. `toJSON`이라는 이름의 프로퍼티가 함수가 아니면(예: `{ toJSON: 1 }`) 호출하지 않고 일반 프로퍼티로 직렬화합니다.
+
+### replacer와 space
+
+replacer가 함수이면 `toJSON` 다음에, 값을 가진 객체(holder)를 `this`로 하고 `(key, value)`를 인수로 해서 불립니다. 반환값이 직렬화될 값이 됩니다. 첫 호출은 wrapper의 빈 문자열 키라 `key`가 `""`, `value`가 최상위 값 전체이고, 그다음부터는 객체나 배열을 만날 때 그 값에 대해 먼저 불린 뒤 안쪽 프로퍼티로 내려갑니다. 그래서 `buyer`에 대한 호출이 `buyer`의 `id`, `name`에 대한 호출보다 앞섭니다.
+
+replacer가 배열이면 PropertyList가 되어, SerializeJSONObject가 모든 깊이의 객체에서 EnumerableOwnProperties 대신 이 목록을 키로 씁니다. 목록의 키를 목록 순서대로 `Get`으로 읽으므로, 목록에 없는 키는 나오지 않고 중첩된 `buyer`의 `name`도 빠집니다. 자기 열거 가능 여부는 검사하지 않으므로, 앞 절에서 빠진다고 한 상속한 프로퍼티나 `enumerable: false`인 프로퍼티도 목록에 있으면 직렬화되고 키 순서도 목록 순서를 따릅니다(값이 `undefined`인 키는 여전히 빠집니다). 배열 요소는 PropertyList와 상관없이 직렬화됩니다. PropertyList는 SerializeJSONObject에서만 쓰이기 때문입니다.
+
+space는 들여쓰기입니다. 숫자이면 최대 10칸의 공백, 문자열이면 앞 10자를 한 단계의 들여쓰기로 씁니다(숫자가 1보다 작으면 들여쓰기가 없습니다). 예제 6은 들여쓰기를 눈으로 셀 수 있도록 문자열 `'--'`를 씁니다.
+
+### JSON.parse와 reviver
+
+`JSON.parse`는 ECMA-404의 JSON 문법만 받습니다. 명세는 `JSON.parse`와 `JSON.stringify`가 ECMA-404의 형식을 "without any deletions or extensions"로 지원해야 한다고 정합니다. 그래서 작은따옴표 문자열, 끝 쉼표, 따옴표 없는 키, `undefined`·`NaN`, 빈 텍스트(`JSON.parse('')`), `01` 같은 앞자리 0은 SyntaxError입니다. 결과 객체의 프로토타입은 `Object.prototype`이고, 배열은 Array 인스턴스입니다. 최상위가 원시 값인 텍스트도 받아서 `JSON.parse('42')`는 숫자 `42`입니다.
+
+reviver가 호출 가능하면 `JSON.parse`는 결과를 빈 문자열 키로 담은 root 객체를 만들고 InternalizeJSONProperty로 값을 가공합니다. 이 연산은 값이 객체이면 자식(배열은 인덱스마다, 객체는 EnumerableOwnProperties의 키마다)을 먼저 같은 방식으로 처리한 뒤, 마지막에 자기 자신에 대해 reviver를 `this`가 holder인 채로 `(name, value)`로 부릅니다. 그래서 가장 깊은 곳부터 방문하고, 배열 요소 `"0"`이 그 배열을 가진 `tags`보다 먼저, 맨 마지막이 빈 문자열 키(최상위)입니다. 자식에 대한 reviver가 `undefined`를 돌려주면 그 프로퍼티를 `[[Delete]]`로 지우고(배열 요소이면 구멍이 됩니다), 다른 값이면 그 값으로 바꿉니다. 예제는 문자열 `at`을 Date로 바꾸는 데 이 방법을 씁니다.
+
+### 깊은 복사로 쓸 때 잃는 것
+
+`JSON.parse(JSON.stringify(x))`는 위 규칙을 그대로 거친 결과입니다. 깊은 복사를 위한 기능이 아니라 문자열로 바꿨다가 다시 값을 만드는 두 단계이므로, 각 단계가 정한 것만 남습니다. 아래 목록 외에 앞 절의 변환(`NaN`·`Infinity`는 `null`, `-0`은 `0`, 배열의 구멍은 `null`, 래퍼 객체는 원시 값)도 모두 적용됩니다.
+
+- 생성자 함수로 만든 객체는 자기 열거 가능 프로퍼티만 남고, `JSON.parse`가 만드는 것은 일반 객체라 `instanceof Point`가 `false`입니다.
+- Map의 엔트리는 프로퍼티가 아니므로 `{}`가 됩니다([Set과 Map](/concepts/set-map)).
+- Date는 `toJSON`을 거친 문자열이 되고 되돌아오지 않습니다.
+- 값이 `undefined`·함수·심벌인 프로퍼티는 빠집니다(메서드도 사라집니다).
+- 같은 객체를 가리키던 두 프로퍼티는 서로 다른 객체가 됩니다. `stringify`의 `[[Stack]]`은 지금 직렬화하고 있는 객체만 검사하므로, 같은 객체를 두 번 만나는 것은 순환이 아닙니다. 그래서 두 번 모두 직렬화되고, `JSON.parse`는 텍스트에 객체 표기(`{...}`)가 나올 때마다 새 객체를 만듭니다. 원본에서 `left === right`가 `true`였어도 사본에서는 `false`이고, 사본의 `left`를 변경해도 `right`는 그대로입니다.
+- 순환 참조는 객체가 아직 직렬화 중이라 `[[Stack]]`에 들어 있는 채로 다시 만나기 때문에 TypeError입니다.
+
+여기서 "사본"은 결과를 부르는 말입니다. 엔진이 값을 복사하는 동작이 있는 것이 아니라, 직렬화와 파싱 절차가 만든 결과가 원본과 다른 객체일 뿐입니다([원시 값과 객체](/concepts/primitives-and-objects)). `structuredClone`은 HTML 표준이 정한 호스트 API라 이 페이지에서는 다루지 않습니다.
+
+### 값별 결과표로 정리
+
+아래 표는 값 `x`마다 `x`를 객체 프로퍼티(`{ v: x }`), 배열 요소(`[x]`), 최상위 값으로 `JSON.stringify`한 결과를 정리한 것입니다. 모든 칸은 행의 준비 코드(`var x = undefined;` 같은 코드) 뒤에 열의 코드를 붙여 새 실행 환경에서 실제로 실행한 결과와 대조해 두었습니다. 최상위 값이 JSON으로 나타낼 수 없는 값이면 문자열이 아니라 `undefined` 값을 돌려주므로 "반환값 `undefined`"로 적었고, 예외가 나면 예외 이름을 적었습니다. 마지막 행의 첫 칸은 값이 아니라 준비 코드 자체입니다.
+
+<div
+  className="focus-visible:outline-accent my-6 overflow-x-auto focus-visible:outline-2"
+  tabIndex={0}
+  role="region"
+  aria-label="값마다 객체 프로퍼티, 배열 요소, 최상위 값으로 JSON.stringify한 결과를 비교한 표(좁은 화면에서는 가로로 스크롤할 수 있습니다)"
+>
+  <table className="w-full border-collapse text-left [&_code]:whitespace-nowrap">
+    <thead>
+      <tr>
+        <th scope="col" className="border-border border px-3 py-2">
+          값 <code>x</code>
+        </th>
+        {columns.map((column) => (
+          <th key={column.key} scope="col" className="border-border border px-3 py-2">
+            <code>{column.label}</code>
+          </th>
+        ))}
+      </tr>
+    </thead>
+    <tbody>
+      {rows.map((row) => (
+        <tr key={row.value}>
+          <th scope="row" className="border-border border px-3 py-2">
+            <code>{row.value}</code>
+          </th>
+          {row.cells.map((cell, i) => (
+            <td key={columns[i].key} className="border-border border px-3 py-2">
+              {cell === RETURNS_UNDEFINED ? (
+                <>
+                  반환값 <code>undefined</code>
+                </>
+              ) : cell === 'TypeError' ? (
+                'TypeError'
+              ) : (
+                <code>{cell}</code>
+              )}
+            </td>
+          ))}
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
+
+처음 세 행에서 같은 `undefined`가 열마다 다르게 쓰입니다. 객체 프로퍼티 열에서는 SerializeJSONObject가 항목을 만들지 않아 `{}`, 배열 요소 열에서는 SerializeJSONArray가 `"null"`을 넣어 `[null]`, 최상위 열에서는 `JSON.stringify`가 `undefined` 값을 그대로 돌려줍니다. `NaN`·`Infinity`·`-0`·Date·래퍼 객체는 열과 상관없이 값 자리에 같은 문자열(`null`, `0`, 날짜 문자열, `1`)이 들어갑니다. 이 값들은 SerializeJSONProperty가 문자열을 돌려주므로 받는 쪽이 달라도 같은 결과입니다. `1n`(`BigInt.prototype.toJSON`이 없는 기본 상태)과 순환 객체는 세 열 모두 TypeError입니다.
+
+## 예제
+
+예제의 `console.log`는 값을 출력하는 호스트 API이며 ECMAScript 언어의 일부가 아닙니다. 예제 코드는 `'use strict'`가 없는 sloppy mode 스크립트입니다. 객체와 배열은 `JSON.stringify`로 출력합니다. 여러 줄 출력은 퀴즈에서 ' / '로 이어 적었습니다.
+
+### 예제 1: undefined·함수·심벌
+
+```js file=./examples/omitted-values.js
+
+```
+
+<PredictQuiz
+  question="예제 1의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '{"name":"kim","nickname":null} / ["kim",null,null,null] / undefined undefined undefined / null {"empty":null}',
+    '{"name":"kim"} / ["kim"] / string string string / null {"empty":null}',
+    '{"name":"kim"} / ["kim",null,null,null] / undefined undefined undefined / null {"empty":null}',
+    '{"name":"kim"} / ["kim",null,null,null] / string string string / null {}',
+  ]}
+  answer={2}
+  explanation={
+    '함수, 심벌 값, undefined는 SerializeJSONProperty가 undefined를 돌려주는 값이라 SerializeJSONObject는 그 프로퍼티를 항목으로 만들지 않아 {"name":"kim"}입니다. SerializeJSONArray는 undefined를 "null" 문자열로 채워 요소 수가 그대로인 ["kim",null,null,null]입니다. 최상위에서는 JSON.stringify가 그 undefined를 문자열로 바꾸지 않고 그대로 돌려주어 typeof가 모두 undefined입니다. null은 "null"로 직렬화되므로 {"empty":null}도 그대로 남습니다.'
+  }
+/>
+
+### 예제 2: 숫자와 래퍼 객체
+
+```js file=./examples/numbers.js
+
+```
+
+<PredictQuiz
+  question="예제 2의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '{"avg":null,"max":null,"min":null,"zero":0} / [null,null,0,1e+21] / [7,"7",false] / [1,null,3] 3',
+    '{"zero":0} / [null,null,0,1e+21] / [7,"7",false] / [1,3] 2',
+    '{"avg":null,"max":null,"min":null,"zero":-0} / [null,null,-0,1e+21] / [{},{},{}] / [1,null,3] 3',
+    '{"avg":"NaN","max":"Infinity","min":"-Infinity","zero":0} / ["NaN","Infinity",0,1e+21] / [7,"7",false] / [1,null,3] 3',
+  ]}
+  answer={0}
+  explanation={
+    '유한하지 않은 숫자(NaN, Infinity, -Infinity)는 SerializeJSONProperty에서 "null"이 되고, -0은 ToString이 "0"을 돌려줘 0이며, 1e21은 1e+21로 쓰입니다. 래퍼 객체는 원시 값으로 바뀌어 7, "7", false가 됩니다. 구멍이 있는 배열은 인덱스 1의 Get이 undefined를 돌려줘 null이 되고, length는 3 그대로입니다.'
+  }
+/>
+
+### 예제 3: toJSON과 Date
+
+```js file=./examples/date-tojson.js
+
+```
+
+<PredictQuiz
+  question="예제 3의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '{"title":"standup","at":"2026-11-05T09:30:00.000Z"} / object true / function {"at":null}',
+    '{"title":"standup","at":{}} / string false / undefined {"at":null}',
+    '{"title":"standup","at":"2026-11-05T09:30:00.000Z"} / string false / function {"at":null}',
+    '{"title":"standup","at":"2026-11-05T09:30:00.000Z"} / string false / function {}',
+  ]}
+  answer={2}
+  explanation={
+    'SerializeJSONProperty가 at 값(Date 객체)에서 toJSON을 찾아 부르고, Date.prototype.toJSON이 toISOString의 UTC 문자열을 돌려주므로 at은 문자열입니다. JSON.parse는 텍스트만 보고 값을 만들어 그 문자열이 Date였다는 정보가 없으므로 typeof는 string이고 instanceof Date는 false입니다. 시간 값이 NaN인 Date는 toJSON이 null을 돌려줘 {"at":null}이 됩니다(undefined가 아니라 null을 돌려주므로 프로퍼티가 빠지지 않습니다).'
+  }
+/>
+
+### 예제 4: 자기 열거 가능한 문자열 키
+
+```js file=./examples/own-enumerable.js
+
+```
+
+<PredictQuiz
+  question="예제 4의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '{"name":"lee","inherited":"proto","password":"secret"} proto secret / [90,80] math / {"1":"a","2":"b","z":"z"}',
+    '{"name":"lee"} proto secret / [90,80,"math"] math / {"z":"z","2":"b","1":"a"}',
+    '{"name":"lee"} undefined undefined / [90,80] math / {"1":"a","2":"b","z":"z"}',
+    '{"name":"lee"} proto secret / [90,80] math / {"1":"a","2":"b","z":"z"}',
+  ]}
+  answer={3}
+  explanation={
+    'EnumerableOwnProperties는 자기 프로퍼티 중 문자열 키이고 열거 가능한 것만 모읍니다. 프로토타입에서 상속한 inherited, enumerable이 false인 password, 심벌 키는 빠지지만 프로퍼티 자체는 그대로 있어 user.inherited와 user.password는 읽힙니다. 배열은 인덱스 0부터 length 앞까지만 직렬화하므로 scores.label은 빠집니다. 키 순서는 배열 인덱스 형태의 키(1, 2)가 먼저이고 그다음 z입니다.'
+  }
+/>
+
+### 예제 5: 직접 만든 toJSON
+
+```js file=./examples/custom-tojson.js
+
+```
+
+<PredictQuiz
+  question="예제 5의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '{"total":"1200 KRW (total)"} / ["1200 KRW (0)"] / "1200 KRW ()" / {"a":1}',
+    '{"total":{"amount":1200,"currency":"KRW"}} / [{"amount":1200,"currency":"KRW"}] / {"amount":1200,"currency":"KRW"} / {"a":1}',
+    '{"total":"1200 KRW (total)"} / ["1200 KRW (0)"] / "1200 KRW (undefined)" / {"a":1,"b":null}',
+    '{"total":"1200 KRW (total)"} / ["1200 KRW ()"] / "1200 KRW ()" / {"a":1}',
+  ]}
+  answer={0}
+  explanation={
+    'toJSON은 값을 this로, 값이 들어 있던 프로퍼티 이름을 key 인수로 받습니다. 객체 프로퍼티이면 이름(total), 배열 요소이면 인덱스 문자열(0), 최상위 값이면 wrapper의 키인 빈 문자열입니다. 반환값이 문자열이라 따옴표로 감싸져 출력됩니다. toJSON이 undefined를 돌려주면 SerializeJSONProperty가 undefined를 돌려주는 것과 같아 객체 프로퍼티 b가 빠집니다.'
+  }
+/>
+
+### 예제 6: replacer와 space
+
+```js file=./examples/replacer-space.js
+
+```
+
+<PredictQuiz
+  question="예제 6의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '{"id":14,"item":"pen","qty":4,"buyer":{"id":6,"name":"park"}} / ["id","item","qty","buyer","id","name"] / {"id":7,"buyer":{"id":3,"name":"park"}} / ["{","--\\"a\\": 1,","--\\"b\\": [","----2","--]","}"]',
+    '{"id":14,"item":"pen","qty":4,"buyer":{"id":6,"name":"park"}} / ["","id","item","qty","buyer","id","name"] / {"id":7,"buyer":{"id":3}} / ["{","--\\"a\\": 1,","--\\"b\\": [","----2","--]","}"]',
+    '{"id":14,"item":"pen","qty":4,"buyer":{"id":6,"name":"park"}} / ["","id","item","qty","buyer","id","name"] / {"id":7,"buyer":{"id":3}} / ["{","--\\"a\\": 1,","--\\"b\\": [2]","}"]',
+    '{"id":7,"item":"pen","qty":2,"buyer":{"id":3,"name":"park"}} / ["","id","item","qty","buyer","id","name"] / {"id":7,"buyer":{"id":3}} / ["{","--\\"a\\": 1,","--\\"b\\": [","----2","--]","}"]',
+  ]}
+  answer={1}
+  explanation={
+    '함수 replacer의 첫 호출은 wrapper의 빈 문자열 키라 keys의 첫 원소가 빈 문자열이고, buyer에 대한 호출이 buyer 안쪽의 id, name보다 앞섭니다. 숫자는 두 배가 되어 id 14, qty 4, buyer.id 6이 됩니다. 배열 replacer는 모든 깊이의 객체에서 목록의 키만 읽으므로 buyer의 name도 빠집니다. space가 문자열 "--"이면 한 단계 깊어질 때마다 "--"를 하나씩 더 붙여 들여쓰고, 배열 요소도 한 줄에 하나씩 나뉩니다. 줄 배열을 JSON.stringify로 출력하므로 큰따옴표가 이스케이프됩니다.'
+  }
+/>
+
+### 예제 7: JSON.parse와 reviver
+
+```js file=./examples/parse-reviver.js
+
+```
+
+<PredictQuiz
+  question="예제 7의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'true 9 true / ["","title","at","draft","tags","0"] / 42 true true',
+    'true 9 false / ["title","at","draft","0","tags",""] / 42 true true',
+    'false 9 false / ["title","at","draft","0","tags",""] / 42 true true',
+    'true 9 false / ["title","at","draft","tags","0",""] / 42 false true',
+  ]}
+  answer={1}
+  explanation={
+    'InternalizeJSONProperty는 객체의 자식을 먼저 처리한 뒤 자기 자신에 대해 reviver를 부르므로 배열 요소 0이 tags보다 먼저, 맨 마지막이 최상위의 빈 문자열 키입니다. reviver가 at에 대해 새 Date를 돌려주면 그 값으로 바뀌어 meeting.at이 Date가 되고(UTC 9시), draft에 대해 undefined를 돌려주면 그 프로퍼티가 지워져 in 연산자가 false입니다. 최상위가 숫자나 문자열, null인 텍스트도 받아서 JSON.parse에서 42는 숫자, 따옴표로 감싼 42는 문자열 42, null은 null입니다.'
+  }
+/>
+
+### 예제 8: JSON.parse(JSON.stringify(x))
+
+```js file=./examples/deep-copy.js
+
+```
+
+<PredictQuiz
+  question="예제 8의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'true {"x":1} / {} string false / false true / 99 1',
+    'false {"x":1} / {} string false / true false / 1 1',
+    'false {"x":1} / {"admin":true} object true / true true / 99 99',
+    'true {"x":1} / {} object true / true false / 99 1',
+  ]}
+  answer={1}
+  explanation={
+    'JSON.parse는 일반 객체를 만들므로 Point의 인스턴스가 아니고(false), x는 자기 열거 가능 프로퍼티라 남습니다. Map은 엔트리가 프로퍼티가 아니라 {}가 되고 Date는 문자열이 되며 undefined 값의 memo는 빠집니다. 원본에서 left와 right는 같은 객체이지만 stringify가 두 번 직렬화하고 parse가 객체 표기가 나올 때마다 새 객체를 만들어, 원본은 true이고 결과는 false입니다. 결과의 left를 바꿔도 결과의 right는 그대로 1이고 원본의 left.n도 1입니다.'
+  }
+/>
+
+## 결과와 이유
+
+### 예제 1
+
+2번 줄은 1번 줄의 `nickname`(`undefined`), `greet`(함수), `id`(심벌 값)를 SerializeJSONProperty가 `undefined`로 돌려주어 SerializeJSONObject가 항목을 만들지 않으므로 `{"name":"kim"}`입니다. 4번 줄은 3번 줄의 배열에서 같은 세 값을 SerializeJSONArray가 `"null"`로 채워 `["kim",null,null,null]`입니다. 5번 줄은 최상위 값이 `undefined`, 함수, 심벌이라 `JSON.stringify`가 문자열이 아니라 `undefined` 값을 돌려주므로 `typeof`가 셋 다 `'undefined'`여서 `undefined undefined undefined`입니다. 6번 줄은 `null`이 `"null"`로 직렬화되어 `null`, 객체 프로퍼티로도 `{"empty":null}`처럼 남는 결과입니다.
+
+### 예제 2
+
+2번 줄은 1번 줄의 `NaN`(`0 / 0`), `Infinity`, `-Infinity`가 유한하지 않은 숫자라 `null`이 되고, `-0`은 ToString이 `"0"`을 돌려줘 `0`이 된 `{"avg":null,"max":null,"min":null,"zero":0}`입니다. 3번 줄은 배열에서도 같아서 `NaN`과 `Infinity`는 `null`, `-0`은 `0`, `1e21`은 `1e+21`로 쓰인 `[null,null,0,1e+21]`입니다. 4번 줄은 `new Number(7)`, `new String('7')`, `new Boolean(false)`가 원시 값으로 바뀐 `[7,"7",false]`입니다. 6번 줄은 5번 줄의 구멍(`[1, , 3]`)을 SerializeJSONArray가 `Get`으로 읽어 `undefined`가 나오므로 `null`이 되어 `[1,null,3]`이고, `length`는 `3`이라 `[1,null,3] 3`입니다.
+
+### 예제 3
+
+3번 줄은 1번 줄의 `at`(Date)을 SerializeJSONProperty가 `toJSON`을 거쳐 `Date.prototype.toJSON`이 돌려준 `toISOString`의 결과로 바꾸어 `{"title":"standup","at":"2026-11-05T09:30:00.000Z"}`입니다. `Date.UTC(2026, 10, 5, 9, 30)`의 월 인수 `10`은 0부터 세는 11월입니다. 5번 줄은 4번 줄의 `JSON.parse(text)`가 만든 `restored.at`이 문자열이라 `typeof`가 `'string'`이고 `instanceof Date`가 `false`여서 `string false`입니다. 6번 줄은 `Date.prototype.toJSON`이 함수이고(`function`), 시간 값이 `NaN`인 Date는 `toJSON`이 `null`을 돌려주어 `{"at":null}`이 되는 결과입니다.
+
+### 예제 4
+
+6번 줄은 2번 줄의 `Object.create(base)`로 만든 `user`에 3번 줄의 `name`만 자기 열거 가능한 문자열 키라 `{"name":"lee"}`입니다. 상속한 `inherited`, 4번 줄에서 `enumerable: false`로 정의한 `password`, 5번 줄의 심벌 키는 EnumerableOwnProperties가 모으지 않아 빠지지만, 프로퍼티 자체는 있어서 `user.inherited`는 `'proto'`, `user.password`는 `'secret'`이라 `{"name":"lee"} proto secret`입니다. 9번 줄은 7번 줄의 배열에서 SerializeJSONArray가 인덱스 0과 1만 읽고 8번 줄의 `label`을 읽지 않아 `[90,80]`이고 `scores.label`은 그대로 `'math'`여서 `[90,80] math`입니다. 10번 줄은 키 `2`, `z`, `1`을 OrdinaryOwnPropertyKeys가 인덱스 형태의 `1`, `2`를 오름차순으로 먼저, 그다음 `z`로 나열해 `{"1":"a","2":"b","z":"z"}`입니다.
+
+### 예제 5
+
+8번 줄은 7번 줄까지 정의한 `price`의 `toJSON`이 `key`로 프로퍼티 이름 `'total'`을 받아 `"1200 KRW (total)"`을 돌려주므로 `{"total":"1200 KRW (total)"}`입니다. 9번 줄은 배열 요소이므로 `key`가 `'0'`이라 `["1200 KRW (0)"]`, 10번 줄은 최상위 값이라 wrapper의 키인 빈 문자열이 `key`가 되어 `"1200 KRW ()"`입니다. 문자열을 직렬화한 결과이므로 따옴표가 출력에 들어 있습니다. 12번 줄은 11번 줄의 `hidden.toJSON`이 `undefined`를 돌려주어 객체 프로퍼티 `b`가 항목으로 만들어지지 않으므로 `{"a":1}`입니다.
+
+### 예제 6
+
+7번 줄은 3번 줄의 함수 replacer가 숫자를 두 배로 바꾼 결과로, `id` 7이 14, `qty` 2가 4, `buyer.id` 3이 6이 되고 문자열은 그대로여서 `{"id":14,"item":"pen","qty":4,"buyer":{"id":6,"name":"park"}}`입니다. 8번 줄은 4번 줄의 `keys.push(key)`가 모은 호출 순서로, 첫 호출이 wrapper의 빈 문자열 키이고 `buyer`에 대한 호출이 안쪽 `id`, `name`에 대한 호출보다 앞서 `["","id","item","qty","buyer","id","name"]`입니다. 9번 줄은 배열 replacer가 모든 깊이의 객체에서 목록의 키 `id`와 `buyer`만 읽어 `buyer`의 `name`도 빠진 `{"id":7,"buyer":{"id":3}}`입니다. 11번 줄은 10번 줄에서 space `'--'`로 만든 텍스트를 줄 단위로 나눈 배열입니다. 한 단계 깊어질 때마다 `--`를 하나씩 더 붙여 들여쓰고 `b`의 배열 요소도 한 줄을 차지해 `["{","--\"a\": 1,","--\"b\": [","----2","--]","}"]`입니다. 공백 대신 `--`를 쓴 것은 들여쓰기를 눈으로 셀 수 있게 하려는 것이고, 숫자 `2`를 주면 같은 자리에 공백 두 칸이 들어갑니다. 큰따옴표는 `JSON.stringify`가 이스케이프합니다.
+
+### 예제 7
+
+9번 줄은 3번 줄의 `JSON.parse`가 `at`에 대해 `new Date(value)`를 돌려주어 `meeting.at`이 Date가 되므로 `instanceof Date`가 `true`, `09:30` UTC라 `getUTCHours()`가 `9`입니다. `draft`에 대해 `undefined`를 돌려주어 그 프로퍼티가 지워지므로 `'draft' in meeting`은 `false`여서 `true 9 false`입니다. 10번 줄은 2번 줄의 `visited`에 쌓인 방문 순서로, InternalizeJSONProperty가 자식을 먼저 처리하므로 `title`, `at`, `draft`, 배열 요소 `"0"`, `tags` 순서이고 최상위의 빈 문자열 키가 마지막인 `["title","at","draft","0","tags",""]`입니다. 11번 줄은 최상위가 원시 값인 텍스트도 받아서 `JSON.parse('42')`가 숫자 `42`, `JSON.parse('"42"') === '42'`가 `true`, `JSON.parse('null') === null`이 `true`라 `42 true true`입니다.
+
+### 예제 8
+
+12번 줄은 11번 줄의 `JSON.parse`가 일반 객체를 만들기 때문에 `copy.point instanceof Point`가 `false`이고, `x`는 자기 열거 가능 프로퍼티라 남아 `{"x":1}`이어서 `false {"x":1}`입니다. 13번 줄은 Map이 엔트리를 프로퍼티로 두지 않아 `copy.roles`가 `{}`이고, `created`는 `toJSON`을 거친 문자열이라 `typeof`가 `'string'`, 값이 `undefined`였던 `memo`는 빠져 `'memo' in copy`가 `false`라 `{} string false`입니다. 14번 줄은 원본의 `left`와 `right`가 같은 객체라 `true`이지만, `stringify`가 `[[Stack]]`에 지금 직렬화 중인 객체만 두므로 같은 객체를 두 번 직렬화하고 `JSON.parse`가 텍스트에 객체 표기가 나올 때마다 새 객체를 만들어 `copy.left === copy.right`가 `false`여서 `true false`입니다. 16번 줄은 15번 줄이 `copy.left`가 가리키는 객체를 변경해도 `copy.right`는 다른 객체라 `copy.right.n`이 `1`이고, 원본 `source.left.n`도 `1`이라 `1 1`입니다.
+
+### 흔한 오해
+
+<Callout type="misconception" title="JSON.stringify는 undefined를 문자열 'undefined'로 바꾼다">
+
+`undefined`는 SerializeJSONProperty에서 어느 분기에도 걸리지 않아 `undefined` 값 자체를 돌려줍니다. 객체에서는 그 프로퍼티가 빠지고, 배열에서는 `"null"`이 들어가고, 최상위에서는 `JSON.stringify`가 `undefined`를 돌려줍니다(예제 1, 값별 결과표). 문자열 `"undefined"`가 만들어지는 곳은 없습니다.
+
+</Callout>
+
+<Callout type="misconception" title="JSON.parse를 거치면 Date가 돌아온다">
+
+`JSON.stringify`가 `toJSON`으로 Date를 문자열로 바꾸고, `JSON.parse`는 텍스트만 보므로 그 문자열이 Date였다는 정보가 없습니다. 되돌려도 문자열입니다(예제 3). Date로 되돌리려면 reviver에서 직접 `new Date`를 만들어 돌려줍니다(예제 7).
+
+</Callout>
+
+<Callout type="misconception" title="toJSON이 있으면 replacer는 원래 값을 받는다">
+
+`toJSON`이 replacer보다 먼저 불립니다. replacer 함수의 `value`에는 원래 값이 아니라 `toJSON`의 반환값이 들어옵니다. 예를 들어 Date 프로퍼티에 대해 replacer가 받는 `value`는 Date 객체가 아니라 문자열입니다. 원래 값을 보려면 replacer 안에서 `this[key]`를 읽습니다. 이때 replacer는 화살표 함수가 아닌 함수여야 합니다. 화살표 함수는 자기 `this`가 없어 holder를 가리키지 않습니다.
+
+</Callout>
+
+<Callout type="misconception" title="JSON.parse(JSON.stringify(x))는 원본과 같은 구조를 만든다">
+
+이 식은 직렬화와 파싱의 규칙을 그대로 거친 결과를 만들 뿐입니다. 프로토타입, Map의 엔트리, Date, `undefined` 값을 가진 프로퍼티, 같은 객체를 가리키던 관계가 보존되지 않고, 앞 절의 숫자·구멍 변환도 그대로 적용되며, 순환 참조는 TypeError입니다(예제 8, 값별 결과표).
+
+</Callout>
