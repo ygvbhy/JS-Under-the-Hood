@@ -95,6 +95,7 @@ export const concept = {
     'this의 세부(call, apply, bind로 정하는 값 등)는 this 페이지에서 다루고 여기서는 요약만 합니다.',
     '예제의 console은 ECMAScript 언어가 아니라 호스트가 제공하는 API입니다.',
     "이 페이지의 예제는 스크립트로 실행한 결과를 기준으로 합니다. Node의 CommonJS 파일로 실행하면 호스트가 파일을 함수로 감싸 실행하므로, 예제 4의 12번 줄이 'undefined' 대신 'object'를 출력합니다.",
+    '예제는 오류를 보이려고 try…catch와 e.name을 씁니다. 오류 처리는 별도 개념에서 다룹니다.',
   ],
   references: [
     {

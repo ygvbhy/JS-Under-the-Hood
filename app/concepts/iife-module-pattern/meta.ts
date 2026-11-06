@@ -110,6 +110,7 @@ export const concept = {
     '예제의 console은 ECMAScript 언어가 아니라 호스트가 제공하는 API입니다.',
     '이 페이지의 예제는 스크립트로 실행한 결과를 기준으로 합니다. 모듈은 strict mode이고 최상위 선언이 전역이 아니라 모듈 환경에 생기며, CommonJS는 파일을 함수로 감싸 실행하므로 결과가 달라지는 예제가 있습니다.',
     '화살표 함수 IIFE, 클래스 private 필드, 반복문 안에서 IIFE로 var의 문제를 푸는 방법은 다루지 않습니다.',
+    '예제는 오류를 보이려고 try…catch와 e.name을 씁니다. 오류 처리는 별도 개념에서 다룹니다.',
   ],
   references: [
     {

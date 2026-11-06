@@ -118,6 +118,7 @@ export const concept = {
     '전역 객체의 [[Prototype]](호스트가 정함)과 그 프로토타입 체인으로 찾히는 이름, 여러 realm은 다루지 않습니다.',
     'eval은 직접·간접 호출이 평가되는 환경과 var·let이 놓이는 위치만 다룹니다. new.target·super 제약, 문자열 컴파일을 막는 호스트 정책(HostEnsureCanCompileStrings), eval 안의 함수 선언은 다루지 않습니다.',
     '모듈과 CommonJS에서는 최상위 코드가 전역 코드가 아니어서 결과가 달라지는 예제가 있습니다. 이 페이지의 예제는 스크립트로 실행한 결과를 기준으로 합니다.',
+    '예제는 오류를 보이려고 try…catch와 e.name을 씁니다. 오류 처리는 별도 개념에서 다룹니다.',
   ],
   references: [
     {

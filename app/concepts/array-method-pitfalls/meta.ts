@@ -99,6 +99,7 @@ export const concept = {
     'toSorted·toReversed·toSpliced·with는 『모던 자바스크립트 Deep Dive』 출간 이후에 추가된 메서드입니다. 예제는 이 메서드를 지원하는 환경(Node 24 기준)에서 실행한 결과입니다.',
     "예제 5의 people.map((p) => p.name).join('')은 이름을 이어 붙여 정렬 결과를 한 줄로 보이는 용도로만 쓰며, 이 페이지의 설명 대상이 아닙니다.",
     '예제의 console은 ECMAScript 언어가 아니라 호스트가 제공하는 API입니다.',
+    '예제는 오류를 보이려고 try…catch와 e.name을 씁니다. 오류 처리는 별도 개념에서 다룹니다.',
   ],
   references: [
     {

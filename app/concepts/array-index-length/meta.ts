@@ -101,6 +101,7 @@ export const concept = {
     '시뮬레이터는 length를 뺀 자기 프로퍼티만 그리고, 프로토타입(Array.prototype)은 그리지 않습니다.',
     '시뮬레이터의 칸 보기(0부터 length - 1까지 늘어놓은 표)는 이해를 돕는 설명용 표현이며, 엔진의 저장 구조가 아닙니다.',
     '예제의 console은 ECMAScript 언어가 아니라 호스트가 제공하는 API입니다.',
+    '예제는 오류를 보이려고 try…catch와 e.name을 씁니다. 오류 처리는 별도 개념에서 다룹니다.',
   ],
   references: [
     {
