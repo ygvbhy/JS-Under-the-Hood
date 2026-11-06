@@ -52,6 +52,8 @@ import {
   REGEXP_LASTINDEX_SIMULATOR_NAME,
   STRING_UTF16_PATH,
   STRING_UTF16_VIEW_NAME,
+  NUMBER_PITFALLS_PATH,
+  NUMBER_PITFALLS_VIEW_NAME,
   ITERABLE_FOR_OF_PATH,
   ITERABLE_FOR_OF_SIMULATOR_NAME,
   DOM_TREE_NODES_PATH,
@@ -762,6 +764,39 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await region.getByRole('radio', { name: '가족 이모지', exact: true }).check()
       await expect(region.getByText('length 8 · 코드 포인트 5개')).toBeVisible()
       await expect(region.getByText('ZWJ(폭 없는 결합자)').first()).toBeVisible()
+    })
+
+    test('개념 페이지: 숫자의 함정', async ({ page }) => {
+      await page.goto(NUMBER_PITFALLS_PATH)
+      await waitForHydration(page)
+      await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
+      await expectNoSeriousViolations(page)
+    })
+
+    test('개념 페이지: 숫자의 함정 판정 보기의 모든 프리셋', async ({ page }) => {
+      await page.goto(NUMBER_PITFALLS_PATH)
+      await waitForHydration(page)
+      const region = page.getByRole('region', { name: NUMBER_PITFALLS_VIEW_NAME })
+      for (const label of [
+        '(1.005).toFixed(2)',
+        '(1.015).toFixed(2)',
+        '(8.345).toFixed(2)',
+        '(2.5).toFixed(0)',
+        '(0.125).toFixed(2)',
+        '(-2.5).toFixed(0)',
+      ]) {
+        await region.getByRole('radio', { name: label, exact: true }).check()
+        await expectNoSeriousViolations(page)
+      }
+    })
+
+    test('개념 페이지: 숫자의 함정 판정 보기에서 2.5를 고르면 정확히 가운데', async ({ page }) => {
+      await page.goto(NUMBER_PITFALLS_PATH)
+      await waitForHydration(page)
+      const region = page.getByRole('region', { name: NUMBER_PITFALLS_VIEW_NAME })
+      await region.getByRole('radio', { name: '(2.5).toFixed(0)', exact: true }).check()
+      await expect(region.getByText('정확히 가운데').first()).toBeVisible()
+      await expect(region.getByText('결과 3')).toBeVisible()
     })
 
     test('개념 페이지: 심벌', async ({ page }) => {

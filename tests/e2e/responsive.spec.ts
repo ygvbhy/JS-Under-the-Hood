@@ -50,6 +50,8 @@ import {
   REGEXP_LASTINDEX_SIMULATOR_NAME,
   STRING_UTF16_PATH,
   STRING_UTF16_VIEW_NAME,
+  NUMBER_PITFALLS_PATH,
+  NUMBER_PITFALLS_VIEW_NAME,
   ITERABLE_FOR_OF_PATH,
   ITERABLE_FOR_OF_SIMULATOR_NAME,
   DOM_TREE_NODES_PATH,
@@ -906,6 +908,38 @@ test('문자열 길이와 UTF-16 개념 페이지: 코드 유닛 보기의 문�
   }
 })
 
+test(`${NUMBER_PITFALLS_PATH}: 숫자의 함정 가로 스크롤이 없다`, async ({ page }) => {
+  await page.goto(NUMBER_PITFALLS_PATH)
+  await waitForHydration(page)
+  const { scrollWidth, innerWidth } = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    innerWidth: window.innerWidth,
+  }))
+  expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
+})
+
+test('숫자의 함정 개념 페이지: 반올림 판정 보기의 프리셋을 바꿔도 가로 스크롤이 없다', async ({
+  page,
+}) => {
+  await page.goto(NUMBER_PITFALLS_PATH)
+  await waitForHydration(page)
+  const region = page.getByRole('region', { name: NUMBER_PITFALLS_VIEW_NAME })
+  for (const label of [
+    '(1.005).toFixed(2)',
+    '(1.015).toFixed(2)',
+    '(8.345).toFixed(2)',
+    '(2.5).toFixed(0)',
+    '(0.125).toFixed(2)',
+    '(-2.5).toFixed(0)',
+  ]) {
+    await region.getByRole('radio', { name: label, exact: true }).check()
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - window.innerWidth,
+    )
+    expect(overflow).toBeLessThanOrEqual(0)
+  }
+})
+
 test(`${SYMBOL_PATH}: 가로 스크롤이 없다`, async ({ page }) => {
   await page.goto(SYMBOL_PATH)
   await waitForHydration(page)
@@ -1276,7 +1310,7 @@ test('ES 모듈 개념 페이지: 순환 import 시나리오를 끝까지 진행
 test('홈 학습 순서 보기: 가로 스크롤이 없다', async ({ page }) => {
   await page.goto('/?view=order')
   await waitForHydration(page)
-  await expect(page.getByRole('article')).toHaveCount(51)
+  await expect(page.getByRole('article')).toHaveCount(52)
   const { scrollWidth, innerWidth } = await page.evaluate(() => ({
     scrollWidth: document.documentElement.scrollWidth,
     innerWidth: window.innerWidth,

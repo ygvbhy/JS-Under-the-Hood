@@ -943,6 +943,30 @@ describe('프리렌더 (string-utf16)', () => {
   })
 })
 
+// 숫자의 함정(number-pitfalls)의 반올림 판정 보기와 정수 표, 퀴즈도 프리렌더 HTML에 정적으로 들어 있어야 한다.
+describe('프리렌더 (number-pitfalls)', () => {
+  const html = read('concepts/number-pitfalls/index.html')
+  const text = htmlToText(html)
+
+  it('반올림 판정 보기 region과 첫 프리셋의 저장 값·결과가 HTML에 있다', () => {
+    expect(html).toMatch(/role="region"[^>]*aria-label="반올림 판정 보기"/)
+    expect(text).toContain('1.00499999999999989')
+    expect(text).toContain('결과 1.00')
+  })
+
+  it('프리셋 선택 라디오 6개 이상이 있다', () => {
+    expect(html.match(/type="radio"/g)?.length).toBeGreaterThanOrEqual(6)
+  })
+
+  it('정수 표에 9007199254740994 행이 있다', () => {
+    expect(text).toContain('9007199254740994')
+  })
+
+  it('퀴즈 정답이 <details>로 프리렌더된다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(1)
+  })
+})
+
 // 25~37장 로드맵 8번(symbol)의 비교 표와 퀴즈도 프리렌더 HTML에 정적으로 들어 있어야 한다.
 describe('프리렌더 (symbol)', () => {
   const html = read('concepts/symbol/index.html')
