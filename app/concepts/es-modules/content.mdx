@@ -1,0 +1,816 @@
+import { Simulator } from './Simulator'
+import { scenarios } from './scenarios'
+
+`import`한 변수는 왜 저절로 바뀔까요? `count`를 `import`해 둔 모듈은 `count`에 대입한 적이 없는데도, `inc()`를 부르고 나면 `count`의 값이 바뀌어 있습니다. 반대로 그 모듈에서 `count = 5`를 쓰면 에러가 납니다. 이 페이지는 이 질문에서 출발해, `import`한 이름이 값이 아니라 다른 모듈의 바인딩(binding)을 가리킨다는 규칙을 모듈 환경과 간접 바인딩으로 설명하고, 모듈의 로드·링크·평가 순서, 순환 `import`, `default`와 네임스페이스, 동적 `import()`와 최상위 `await`, 브라우저가 맡는 로딩까지 예제 열여덟 개로 차례로 확인합니다. 바인딩, 모듈 환경, 링크 오류, 평가 순서, 네임스페이스, `import()` 구문, 최상위 `await`는 ECMAScript 언어의 동작이고, URL 해석, 모듈 맵, 지연 실행, `import.meta.url`의 값은 브라우저가 따르는 WHATWG HTML 표준이 정하며, `console`은 호스트가 제공하는 API입니다. 예제 열여덟 개의 출력은 모두 Chromium에서 실제로 실행한 값이고 다른 브라우저는 확인하지 않았습니다. 이 페이지는 [TDZ](/concepts/tdz), [스코프 체인](/concepts/scope-chain), [실행 컨텍스트](/concepts/execution-context), [script의 async와 defer](/concepts/script-async-defer), [프로미스](/concepts/promise), [async/await](/concepts/async-await)를 전제합니다.
+
+## 동작 원리
+
+### 모듈은 자기 환경을 가진다
+
+ECMAScript 명세에서 모듈 코드는 모듈 환경 레코드(Module Environment Record)라는 환경에서 실행됩니다. 모듈마다 환경이 하나씩 있고, 그 바깥 환경은 전역 환경입니다. 모듈 코드가 클래식 스크립트와 다른 점을 세 가지로 나눠 봅니다.
+
+첫째, 모듈 최상위의 `var`와 `let`은 그 모듈의 환경에 선언되는 바인딩입니다. 클래식 스크립트의 최상위 `var`가 전역 객체(`window`)의 프로퍼티가 되는 것과 달리 모듈의 최상위 `var`는 전역 객체의 프로퍼티가 되지 않고, 다른 모듈은 `export`하지 않은 이름을 볼 수 없습니다. 바깥 환경이 전역 환경이므로 클래식 스크립트가 선언한 전역 이름은 모듈 안에서도 보입니다. 클래식 스크립트의 최상위 `let`도 전역 객체의 프로퍼티는 아니므로, `let`에서 달라지는 것은 `window`가 아니라 다른 스크립트에서 보이는지입니다. 클래식 스크립트의 최상위 `let`은 뒤의 스크립트에서 보이지만([전역 객체](/concepts/global-object) 참고) 모듈의 최상위 `let`은 보이지 않습니다. 예제 6이 모듈 쪽을 확인합니다.
+
+둘째, 모듈 환경 레코드는 항상 `this` 바인딩을 제공하고, 명세가 모듈의 `this`를 `undefined`로 정하므로 모듈 최상위의 `this`는 `undefined`입니다.
+
+> Module Environment Records always provide a this binding.
+
+셋째, 모듈 코드는 `'use strict';` 지시어가 없어도 항상 strict mode입니다.
+
+> Module code is always strict mode code.
+
+그래서 선언하지 않은 변수에 대입하면 ReferenceError가 나고, 일반 호출한 함수 안의 `this`도 `undefined`입니다. 예제 7이 이를 확인합니다.
+
+### import는 값이 아니라 바인딩을 가리킨다
+
+`import { count } from './counter.js'`가 만드는 `count`는 값을 담은 변수가 아닙니다. 명세는 모듈 환경 레코드가 변경할 수 없는 import 바인딩(immutable import binding)을 가진다고 설명합니다.
+
+> immutable import bindings which are bindings that provide indirect access to a target binding
+
+이런 바인딩을 만드는 연산 CreateImportBinding은 간접 접근을 이렇게 서술합니다.
+
+> Accesses to the value of the new binding will indirectly access the bound value of the target binding.
+
+이 페이지는 `import`한 쪽의 이름을 간접 바인딩(indirect binding), 그것이 가리키는 `export`한 모듈 안의 바인딩을 대상 바인딩(target binding)이라고 부릅니다. `count`를 읽으면 그 시점에 대상 바인딩의 값을 읽습니다. 그래서 `export`한 모듈 안에서 `count += 1`이 대상 바인딩의 값을 바꾸면, `import`한 쪽에서 `count`를 다시 읽을 때 바뀐 값이 보입니다. 이 동작을 흔히 라이브 바인딩(live binding)이라고 부르고, 예제 1이 보입니다. 간접 바인딩은 명세가 이 동작을 설명하려고 쓰는 장치이고, 엔진이 이런 구조를 실제로 만든다는 뜻이 아닙니다.
+
+간접 바인딩은 변경할 수 없는 바인딩이고 모듈 코드는 strict mode이므로, `import`한 이름에 대입하면 TypeError입니다. 대상 바인딩이 변경할 수 있는 바인딩이어도 값을 바꾸는 대입은 그 바인딩이 있는 모듈 안의 코드에서만 할 수 있습니다. 예제 2가 이를 확인합니다. 여기서 구분할 것은 바인딩의 불변과 값의 변경입니다. 바인딩이 변경할 수 없다는 것은 그 이름에 다른 값을 대입할 수 없다는 뜻이고, 이름이 가리키는 객체의 프로퍼티를 바꾸는 것은 별개의 동작입니다. `const`로 `export`한 객체여도 `import`한 쪽이든 다른 모듈이든 그 객체의 프로퍼티는 바꿀 수 있고, 바꾼 결과는 같은 객체를 쓰는 모든 모듈에서 보입니다. 예제 3이 이를 보입니다. 객체의 변경은 [원시 값과 객체](/concepts/primitives-and-objects)에서 본 재할당과 변경의 구분과 같은 것입니다.
+
+### 로드, 링크, 평가
+
+모듈은 코드를 실행하기 전에 의존 모듈까지 준비하는 과정을 거칩니다. 명세는 모듈 레코드의 LoadRequestedModules, Link, Evaluate 메서드로 이 과정을 서술하고, 이 페이지는 그것을 로드, 링크, 평가라는 교육용 이름으로 부릅니다.
+
+- 로드: `import` 선언과 `export … from` 선언의 모듈 지정자(specifier)를 요청으로 보고, 의존 모듈을 찾아 모듈로 만듭니다. 이 과정에서 모듈 코드는 실행되지 않습니다. 지정자를 URL로 해석하고 같은 URL의 모듈을 찾는 일은 ECMAScript가 아니라 호스트인 HTML이 맡습니다.
+- 링크: 모듈 환경을 만들고, 이 선언들이 요구한 이름을 `export`한 모듈의 바인딩과 연결합니다. 요구한 이름을 찾지 못하거나 모호하면 이 단계에서 SyntaxError가 나고, 평가 단계로 넘어가지 않습니다. 함수 선언은 링크 단계에서 함수 값으로, `var`는 `undefined`로 초기화되고, `let`·`const`·`class` 바인딩은 만들어지기만 하고 초기화되기 전입니다.
+- 평가: 모듈의 코드를 실행합니다. 평가는 깊이 우선(depth-first)이어서, 모듈은 자기 본문보다 먼저 자신이 `import`한 의존 모듈을 평가합니다(이미 평가 중인 모듈로 되돌아오는 순환은 아래에서 따로 봅니다). 선언이 파일 안의 어느 줄에 있는지는 본문과의 순서에 영향을 주지 않습니다. 의존 모듈은 선언이 쓰인 순서대로 평가를 시작합니다.
+
+예제 8은 `import` 선언이 본문 중간에 있어도 의존 모듈이 먼저 평가되는 것을, 예제 9는 없는 이름을 `import`하면 링크에서 SyntaxError가 나고 의존 모듈조차 평가되지 않는 것을 보입니다.
+
+같은 모듈이 한 번만 평가되는 이유는 두 층으로 나뉩니다. ECMAScript는 한 모듈 안에서 같은 지정자를 두 번 쓰면 하나의 요청으로 합치고, 같은 (참조하는 모듈, 요청) 쌍의 로드가 성공했다면 호스트가 그 뒤로도 같은 결과를 돌려주도록 요구합니다. 서로 다른 모듈이 같은 파일을 요청해도 같은 모듈을 얻는 것은 ECMAScript가 아니라 HTML의 모듈 맵이 URL로 모듈을 찾기 때문입니다. 평가를 마친 모듈 레코드는 다시 실행되지 않으므로 여러 모듈이 같은 의존 모듈을 `import`해도 그 모듈은 한 번 평가됩니다. 예제 4가 보입니다. 평가 중에 에러가 던져져 평가가 실패해도 모듈은 다시 실행되지 않습니다. 명세는 실패한 평가의 에러를 모듈에 기록해 두고, 이후의 요청에는 같은 에러를 돌려줍니다. 예제 5가 이를 보입니다.
+
+### 순환 import와 TDZ
+
+모듈 A가 B를 `import`하고 B가 다시 A를 `import`하는 순환(cycle)이어도 링크는 평가보다 먼저 끝나므로 모든 간접 바인딩이 연결됩니다. 평가에서는 깊이 우선으로 의존 모듈을 먼저 평가하되, 이미 평가가 진행 중인 모듈로 되돌아오면 다시 평가하지 않습니다. 그래서 A를 평가하다 B로 가고, B가 A의 이름을 쓰는 시점에 A의 본문은 아직 실행되지 않았습니다.
+
+이때 A의 바인딩이 어떻게 보이는지는 선언 종류에 달려 있습니다. 함수 선언은 링크 단계에서 함수로 초기화되어 있으므로 B가 호출할 수 있습니다. `var`는 링크 단계에서 `undefined`로 초기화되어 있으므로 에러 없이 `undefined`로 읽힙니다. `let`과 `const`, `class`는 선언이 평가되기 전까지 초기화되지 않은 바인딩이므로 읽으면 ReferenceError입니다. 이것이 [TDZ](/concepts/tdz)입니다. 예제 10이 보입니다. 이 페이지는 TDZ를 모듈에 적용한 결과만 확인하고, TDZ 자체의 규칙은 TDZ 개념에서 다룹니다.
+
+### default와 네임스페이스
+
+`default`라는 이름으로 내보내는 대표적인 형태는 다음과 같고, 형태에 따라 그 이름이 가리키는 바인딩이 다릅니다.
+
+- `export default 식`: 식의 값을 담는 바인딩이 만들어집니다. 명세는 이 바인딩의 이름을 합성 이름 `*default*`로 서술하고, 이 이름은 ECMAScript 코드나 링크 알고리즘에서 접근할 수 없는 명세 서술용 이름입니다. 식을 평가한 값이 이 바인딩에 담깁니다. 식이 `n`이라는 변수여도 `*default*`에 담기는 것은 그 시점의 `n`의 값이고, 이후에 `n`을 바꿔도 이 바인딩은 `n`을 따라가지 않습니다.
+- `export { n as default }`: `n` 바인딩을 `default`라는 이름으로 내보냅니다. 새 바인딩이 아니라 `n`을 가리키므로 `n`이 바뀌면 `import`한 쪽에서도 바뀐 값이 보입니다.
+- `export default function f() {}`처럼 이름 있는 함수 선언: 그 이름 `f`의 바인딩이 `default`로 내보내집니다. 모듈 안에서 `f`에 재할당하면 `import`한 쪽에도 보입니다. 이름 있는 클래스 선언도 그 이름의 바인딩입니다.
+- `export default function () {}`처럼 이름 없는 함수·클래스 선언: `*default*` 바인딩을 쓰지만 식이 아니라 선언입니다. 그래서 이름 없는 함수는 링크 단계에서 함수로 초기화되고, 클래스는 평가될 때 초기화됩니다.
+
+그래서 `default`가 라이브인지 아닌지는 `default`라는 이름이 아니라 어떤 바인딩을 가리키는지에 달려 있습니다. 예제 11이 앞의 세 경우를 비교합니다.
+
+`import * as ns from ...`가 만드는 `ns`는 간접 바인딩이 아니라 모듈 네임스페이스 객체(module namespace exotic object)로 초기화된 변경할 수 없는 바인딩입니다. 라이브인 것은 이 객체의 프로퍼티입니다. 문자열 키는 내보낸 이름이고 코드 유닛 순으로 정렬되며, `default`로 내보낸 이름도 키에 들어갑니다. 프로토타입은 `null`이고 `Symbol.toStringTag`는 `'Module'`입니다. 각 프로퍼티의 값은 그 이름의 바인딩을 읽으므로 라이브입니다. 네임스페이스 객체의 `[[Set]]`은 항상 `false`를 돌려주므로 strict mode 코드의 대입은 TypeError입니다. 이미 있는 이름에 대입해도, 새 이름을 만들어도 마찬가지입니다. 예제 12가 보입니다.
+
+`export * from './m.js'`는 `m.js`가 내보낸 이름을 다시 내보내되 `default`는 뺍니다. 두 `export *`가 같은 이름을 서로 다른 바인딩으로 내보내면 모호해져서 그 이름은 네임스페이스 객체의 키에서 빠지고, 그 이름을 지정해 `import`하면 SyntaxError입니다. 같은 바인딩으로 풀리면 모호하지 않고, 모듈이 직접 내보낸 이름은 `export *`의 이름보다 우선합니다. `export { x } from './m.js'`처럼 이름을 직접 적어 다시 내보낼 수도 있습니다. 다시 내보내는 모듈의 환경에는 `x` 바인딩이 생기지 않고, 그 모듈에서 `import`한 이름의 대상 바인딩은 링크 단계에서 `m.js`의 `x`로 풀립니다. 그래서 다시 내보낸 이름도 라이브입니다. 예제 13이 보입니다.
+
+### 동적 import와 최상위 await
+
+`import` 선언은 모듈 목표(Module)의 문법입니다. 클래식 스크립트(Script)에서 `import { x } from './m.js'`를 쓰면 SyntaxError입니다. 반면 `import('./m.js')`는 문장이 아니라 프로미스를 돌려주는 식이므로 클래식 스크립트에서도 쓸 수 있습니다. 이 프로미스는 모듈의 로드, 링크, 평가가 끝나면 모듈 네임스페이스 객체로 이행되고, 그 과정이 실패하면 거부됩니다. 예제 14에서 `eval`로 `import` 선언을 평가하면 SyntaxError가 나고, `import()`의 `then` 콜백은 클래식 스크립트가 끝난 뒤에 실행됩니다. 이 콜백이 스크립트의 동기 코드 뒤에 실행되는 것은 [프로미스](/concepts/promise)의 `then` 콜백이 항상 나중에 실행되는 규칙입니다.
+
+최상위 `await`(top-level await)는 모듈의 최상위에서 쓰는 `await`이고 모듈에서만 쓸 수 있습니다. 최상위에 `await`가 있는 모듈의 평가는 [async/await](/concepts/async-await)의 `await`처럼 그 자리에서 멈췄다가 프로미스가 정해지면 이어집니다. 이 모듈을 `import`한 모듈은 그 평가가 끝날 때까지 자신의 본문을 실행하지 않고 기다립니다. 하지만 그 모듈과 의존 관계가 없는 형제 모듈은 기다리지 않고 평가됩니다. 멈추는 것은 최상위 `await`가 있는 그 모듈의 평가이고, 호출 스택이나 이벤트 루프가 아닙니다. 예제 15가 이를 보입니다. 두 가지 예외가 있습니다. 기다린 프로미스의 거부를 그 모듈 안에서 잡지 않으면 그 모듈의 평가가 실패하고 그 모듈을 `import`한 모듈의 본문은 실행되지 않습니다. 또 같은 순환 안에서는 이미 평가 중인 모듈로 되돌아온 쪽이 이 대기를 하지 않으므로, 최상위 `await`가 있는 모듈을 `import`했어도 먼저 실행될 수 있습니다.
+
+### 브라우저가 맡는 부분
+
+여기서부터는 ECMAScript가 아니라 호스트(브라우저)의 동작이며 WHATWG HTML 표준이 정합니다.
+
+HTML 문서에 쓴 `<script type="module">`은 `async` 속성이 없으면 [script의 async와 defer](/concepts/script-async-defer)에서 본 `defer` 스크립트처럼 파싱이 끝난 뒤 실행됩니다. 표준은 파서가 넣은 모듈 스크립트에 `async`가 없으면 외부 클래식 스크립트의 `defer`와 같은 목록, 즉 문서 파싱이 끝났을 때 실행할 스크립트 목록에 넣는다고 정하며, 모듈 스크립트에 대해서는 이렇게 덧붙입니다.
+
+> (The defer attribute has no effect on module scripts.)
+
+그래서 `defer` 속성을 따로 붙이지 않아도 이런 모듈 스크립트는 이미 지연 실행이고, `defer` 속성은 모듈에 효과가 없습니다. 예제 16이 이를 보입니다. 이 페이지는 `async` 속성을 준 모듈 스크립트와 스크립트 코드로 문서에 넣은 모듈 스크립트는 다루지 않습니다.
+
+모듈 맵(module map)은 문서나 워커마다 있는, 이미 가져온 모듈 스크립트를 보관하는 표준의 자료 구조입니다.
+
+> A module map is a map keyed by tuples consisting of a URL record and a string.
+
+키는 URL과 모듈 유형을 묶은 쌍입니다. 키에 URL이 들어가므로 같은 파일이라도 URL이 다르면 다른 모듈이고, URL의 조각(`#` 뒤)도 URL의 일부입니다. 그래서 예제의 문서처럼 `http://example.test/`에 있는 문서에서는 `./map-log.js`와 `/map-log.js`가 지정자 문자열이 달라도 같은 URL로 해석되어 모듈 맵이 같은 모듈을 돌려주므로 한 번 평가되지만, `./map-log.js#again`은 다른 URL이므로 따로 평가됩니다. 예제 17이 이를 보입니다.
+
+모듈 지정자는 HTML의 규칙으로 URL로 해석됩니다. `./`, `../`, `/`로 시작하거나 URL로 해석되는 지정자는 URL이 됩니다. 이름만 쓴 `'counter.js'` 같은 지정자(bare specifier)는 import map으로 대응 URL이 지정되지 않았다면 해석 규칙이 TypeError를 던집니다. `import.meta`는 모듈 안에서 쓰는 ECMAScript 구문이고, 거기에 어떤 프로퍼티와 값이 들어가는지는 호스트가 정합니다. HTML은 `url` 프로퍼티를 정하고, 그 값은 모듈 스크립트의 base URL입니다. 외부 파일이면 그 파일의 응답 URL이고(리다이렉트가 없으면 요청한 주소입니다), 인라인 모듈은 자기 파일이 없으므로 문서의 base URL이며 예제에서는 문서 주소 `http://example.test/`입니다. 예제 18이 이를 보입니다.
+
+### 이 페이지가 다루지 않는 것
+
+Node.js의 모듈 동작과 CommonJS 호환, import map, import attributes와 JSON·CSS 모듈, 번들러, `export * as ns from`, `async` 속성을 준 모듈 스크립트와 스크립트 코드로 넣은 모듈 스크립트, `nomodule`, 다른 출처 모듈의 CORS, 워커 모듈, `import.meta.resolve`는 다루지 않습니다. 정적 `import`가 실패했을 때 `script` 요소의 `error` 이벤트나 전역 `error`로 어떻게 보고되는지도 다루지 않으며, 링크 실패와 평가 실패는 `import()`의 `catch`로 잡아 보입니다. 시뮬레이터는 모듈 환경의 바인딩 이름과 값, `import`의 대상만 그립니다. 명세 링크는 현재 초안을 가리키고 인용은 ES2026판과 현재 초안에 똑같이 있는 문장만 씁니다.
+
+## 예제
+
+예제의 `console.log`는 ECMAScript 언어가 아니라 호스트가 제공하는 API입니다. 예제 1~18의 출력은 테스트가 Chromium에서 문서를 열어 실제로 실행해 얻은 값입니다. 각 예제는 `.html` 문서이고, 문서가 `import`하는 `.js` 모듈이 있으면 문서와 같은 곳에서 제공됩니다.
+
+### 예제 1: 내보낸 쪽이 바꾸면 import한 쪽에서도 바뀐다
+
+`counter.js`가 `count`와 `inc`를 `export`하고, 문서의 모듈이 이를 `import`합니다. `inc()`를 부르기 전후에 `count`를 찍으면 어떤 값이 나올지 예측해 보세요.
+
+```html file=./examples/live-binding.html
+
+```
+
+```js file=./examples/counter.js
+
+```
+
+<PredictQuiz
+  question="예제 1의 출력은 무엇일까요?"
+  choices={['0, 0', '0, 1', '1, 1', 'TypeError']}
+  answer={1}
+  explanation="import한 count는 counter.js의 count 바인딩에 대한 간접 바인딩이어서 읽을 때마다 대상 바인딩의 현재 값을 읽습니다. inc는 counter.js 안에서 count += 1로 대상 바인딩의 값을 바꾸므로 두 번째 console.log는 1을 찍습니다."
+/>
+
+시뮬레이터로 이 과정을 한 단계씩 따라가 보세요. 시나리오는 두 개입니다. 첫 번째 `라이브 바인딩`은 예제 1을 따라갑니다. 로드 단계에서 `counter.js`를 가져오고, 링크 단계에서 main의 `count`와 `inc`가 `counter.js`의 바인딩을 가리키게 되며, 평가 단계에서 `count`가 `0`이 되고, `inc()`가 `counter.js`의 `count`만 바꿨는데 main에서 읽은 값이 달라지는 것을 볼 수 있습니다. 두 번째 `순환 import와 초기화 전`은 예제 10을 따라가며, 링크 뒤에 `let`·`const` 바인딩이 초기화 전이고 함수 선언은 이미 함수인 것을 볼 수 있습니다. 화살표와 값 칸은 간접 바인딩이라는 설명을 보이는 그림이며 엔진 구조가 아닙니다.
+
+<Simulator scenarios={scenarios} />
+
+### 예제 2: import한 이름에 대입하면 TypeError다
+
+같은 `counter.js`의 `count`를 `import`한 모듈이 `count = 5`를 시도합니다. 무엇이 찍히고, `count`는 얼마일까요?
+
+```html file=./examples/readonly.html
+
+```
+
+<PredictQuiz
+  question="예제 2의 출력은 무엇일까요?"
+  choices={['TypeError, 0', 'TypeError, 5', '5', 'ReferenceError, 0']}
+  answer={0}
+  explanation="import 바인딩은 변경할 수 없는 바인딩이고 모듈 코드는 strict mode이므로 대입은 TypeError입니다. 대입은 실패했으므로 count는 counter.js의 값 0 그대로입니다."
+/>
+
+### 예제 3: const로 내보낸 객체도 프로퍼티는 바뀐다
+
+`settings.js`가 `const`로 객체를 `export`합니다. 문서의 모듈이 그 객체의 프로퍼티를 바꾼 뒤, 다른 모듈 `read-settings.js`가 같은 객체에서 값을 읽습니다. 마지막에 `settings`에 새 객체를 대입하면 어떻게 될까요?
+
+```html file=./examples/shared-object.html
+
+```
+
+```js file=./examples/settings.js
+
+```
+
+```js file=./examples/read-settings.js
+
+```
+
+<PredictQuiz
+  question="예제 3의 출력은 무엇일까요?"
+  choices={['1, TypeError', '2, TypeError', '2, 2', 'TypeError, 1']}
+  answer={1}
+  explanation="settings 바인딩은 변경할 수 없지만 그 바인딩이 가리키는 객체의 프로퍼티는 바꿀 수 있습니다. read-settings.js의 settings도 같은 대상 바인딩의 객체를 읽으므로 2가 보입니다. settings 자체에 대입하는 것은 import 바인딩에 대한 대입이므로 TypeError입니다."
+/>
+
+### 예제 4: 여러 곳에서 import해도 모듈은 한 번 평가된다
+
+`once-a.js`와 `once-b.js`가 모두 `once-shared.js`를 `import`합니다. `once-shared.js`의 평가를 알리는 줄이 몇 번 찍힐지 예측해 보세요.
+
+```html file=./examples/evaluate-once.html
+
+```
+
+```js file=./examples/once-a.js
+
+```
+
+```js file=./examples/once-b.js
+
+```
+
+```js file=./examples/once-shared.js
+
+```
+
+<PredictQuiz
+  question="예제 4의 출력은 무엇일까요?"
+  choices={[
+    'shared 평가, a, shared 평가, b, main',
+    'shared 평가, a, b, main',
+    'a, b, shared 평가, main',
+    'a, shared 평가, b, main',
+  ]}
+  answer={1}
+  explanation="모듈은 자기 본문보다 의존 모듈을 먼저 평가합니다. once-shared.js는 a가 요청할 때 한 번 평가되고, b가 같은 모듈을 요청해도 다시 평가되지 않습니다."
+/>
+
+### 예제 5: 평가가 실패해도 다시 실행되지 않는다
+
+`boom.js`는 평가되면 한 줄을 찍고 에러를 던집니다. 문서가 `import('./boom.js')`를 두 번 부르고, 두 번 모두 거부된 사유를 확인합니다. 줄은 몇 번 찍히고, 두 사유는 같은 값일까요?
+
+```html file=./examples/evaluate-error.html
+
+```
+
+```js file=./examples/boom.js
+
+```
+
+<PredictQuiz
+  question="예제 5의 출력은 무엇일까요?"
+  choices={[
+    'boom 평가, 평가 실패, true',
+    'boom 평가, 평가 실패, boom 평가, false',
+    'boom 평가, 평가 실패, false',
+    '평가 실패, true',
+  ]}
+  answer={0}
+  explanation="평가가 실패한 모듈은 에러를 기록해 두고 이후의 요청에도 같은 에러를 돌려줍니다. boom.js의 본문은 한 번만 실행되어 boom 평가가 한 번 찍히고, 두 번째 거부 사유는 첫 번째와 같은 값이라 true입니다."
+/>
+
+### 예제 6: 모듈의 var는 전역 객체의 프로퍼티가 되지 않는다
+
+클래식 스크립트가 `var`로 전역 이름 두 개를 만듭니다. 이어지는 모듈은 `fromClassic`을 읽고, 같은 이름 `shared`를 자기 `var`로 다시 선언하고, 자기 `let`을 만듭니다. 마지막 모듈은 앞 모듈의 `let` 이름을 읽어 봅니다.
+
+```html file=./examples/module-scope.html
+
+```
+
+<PredictQuiz
+  question="예제 6의 출력은 어떻게 될까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'classic / module의 shared / classic의 shared, false / undefined',
+    'classic / module의 shared / module의 shared, true / number',
+    'ReferenceError / module의 shared / classic의 shared, false / undefined',
+    'classic / classic의 shared / classic의 shared, false / ReferenceError',
+  ]}
+  answer={0}
+  explanation="모듈의 바깥 환경은 전역 환경이라 클래식 스크립트의 fromClassic이 보입니다. 모듈의 최상위 var는 모듈 환경의 바인딩이라 전역 객체의 프로퍼티가 되지 않고, window.shared는 클래식 스크립트가 만든 값 그대로입니다. 다른 모듈의 최상위 let은 export 없이는 보이지 않으므로 typeof는 undefined를 돌려줍니다."
+/>
+
+### 예제 7: 모듈의 this는 undefined이고 코드는 strict다
+
+모듈 최상위의 `this`, 일반 호출한 함수 안의 `this`, 선언하지 않은 변수에 대한 대입을 확인합니다.
+
+```html file=./examples/module-this-strict.html
+
+```
+
+<PredictQuiz
+  question="예제 7의 출력은 무엇일까요?"
+  choices={[
+    'false, false, 아무것도 찍히지 않음',
+    'true, true, ReferenceError',
+    'true, false, ReferenceError',
+    'true, true, 아무것도 찍히지 않음',
+  ]}
+  answer={1}
+  explanation="모듈 환경 레코드의 this는 undefined이고 모듈 코드는 항상 strict mode입니다. strict mode에서 일반 호출한 함수의 this는 undefined이고, 선언하지 않은 변수에 대한 대입은 ReferenceError입니다."
+/>
+
+### 예제 8: import 선언의 위치는 평가 순서와 무관하다
+
+문서의 모듈이 본문 첫 줄에서 `console.log`를 부른 뒤 `import` 선언을 씁니다. `order-a.js`는 `order-c.js`를 `import`합니다.
+
+```html file=./examples/evaluation-order.html
+
+```
+
+```js file=./examples/order-a.js
+
+```
+
+```js file=./examples/order-b.js
+
+```
+
+```js file=./examples/order-c.js
+
+```
+
+<PredictQuiz
+  question="예제 8의 출력은 무엇일까요?"
+  choices={[
+    'main 첫 줄, c, a, b, main 끝',
+    'c, a, b, main 첫 줄, main 끝',
+    'a, b, c, main 첫 줄, main 끝',
+    'main 첫 줄, a, b, c, main 끝',
+  ]}
+  answer={1}
+  explanation="import 선언이 어디에 쓰였든 의존 모듈은 본문보다 먼저 평가됩니다. 평가는 깊이 우선이어서 order-a.js의 의존 모듈 order-c.js가 먼저 평가되고, 그다음 a, b 순서이며, 그 뒤에야 main의 본문이 실행됩니다."
+/>
+
+### 예제 9: 없는 이름을 import하면 링크에서 SyntaxError다
+
+`bad-import.js`는 먼저 `logger.js`를 `import`하고, `counter.js`가 내보내지 않는 `missing`을 `import`합니다. 문서는 `import()`로 이 모듈을 불러 에러 이름을 찍습니다. `logger.js`의 평가를 알리는 줄이 찍힐까요?
+
+```html file=./examples/missing-export.html
+
+```
+
+```js file=./examples/bad-import.js
+
+```
+
+```js file=./examples/logger.js
+
+```
+
+<PredictQuiz
+  question="예제 9의 출력은 무엇일까요?"
+  choices={[
+    'SyntaxError',
+    'logger 평가, SyntaxError',
+    'logger 평가, bad-import 평가',
+    'logger 평가, ReferenceError',
+  ]}
+  answer={0}
+  explanation="없는 이름을 import한 것은 링크 단계에서 걸러져 SyntaxError가 됩니다. 링크가 평가보다 먼저 끝나야 하므로 logger.js를 포함해 어느 모듈도 평가되지 않고, 따라서 모듈의 console.log도 찍히지 않습니다."
+/>
+
+### 예제 10: 순환 import에서 함수는 호출되고 let은 ReferenceError다
+
+`cycle-a.js`는 `cycle-b.js`를 `import`하고 `cycle-b.js`는 다시 `cycle-a.js`를 `import`합니다. 문서는 `cycle-a.js`를 `import`합니다. `cycle-b.js`가 평가될 때 `cycle-a.js`의 함수 선언 `hello`와 `let`으로 선언된 `value`를 읽으면 각각 어떻게 될까요?
+
+```html file=./examples/cycle-tdz.html
+
+```
+
+```js file=./examples/cycle-a.js
+
+```
+
+```js file=./examples/cycle-b.js
+
+```
+
+<PredictQuiz
+  question="예제 10의 출력은 무엇일까요?"
+  choices={[
+    'a 본문 b의 값, b 본문 hello, a의 값, main',
+    'b 본문 hello, ReferenceError, a 본문 b의 값, main',
+    'ReferenceError, b 본문 hello, a 본문 b의 값, main',
+    'b 본문 hello, a의 값, a 본문 b의 값, main',
+  ]}
+  answer={1}
+  explanation="a의 의존 모듈인 b가 먼저 평가됩니다. 링크가 평가 전에 끝나므로 순환이어도 바인딩은 연결되어 있고, 함수 선언 hello는 링크 단계에서 이미 함수라 호출됩니다. let으로 선언한 value는 a의 선언이 평가되기 전이라 초기화 전이므로 읽으면 ReferenceError입니다. b의 평가가 끝난 뒤에야 a의 본문과 main이 실행됩니다."
+/>
+
+### 예제 11: default가 라이브인지는 가리키는 바인딩에 달려 있다
+
+세 모듈이 각각 다른 방식으로 `default`를 내보냅니다. `default-expr.js`는 `export default n`, `default-alias.js`는 `export { n as default }`, `default-decl.js`는 `export default function f() {}`입니다. 문서가 각 모듈의 바꾸는 함수를 부른 뒤 세 `default`를 찍습니다.
+
+```html file=./examples/default-live.html
+
+```
+
+```js file=./examples/default-expr.js
+
+```
+
+```js file=./examples/default-alias.js
+
+```
+
+```js file=./examples/default-decl.js
+
+```
+
+<PredictQuiz
+  question="예제 11의 출력은 무엇일까요?"
+  choices={['0 1 g', '1 1 g', '0 0 f', '0 1 f']}
+  answer={0}
+  explanation="export default n은 식 n을 평가한 값 0을 합성 이름 *default* 바인딩에 담으므로 이후 n의 변경을 따라가지 않습니다. export { n as default }는 n 바인딩을 default라는 이름으로 내보내므로 1이 보입니다. 이름 있는 함수 선언은 그 이름 f의 바인딩이 default이고, swap이 f에 재할당하면 import한 쪽에서도 새 함수가 보여 g를 돌려줍니다."
+/>
+
+### 예제 12: 네임스페이스 객체는 라이브이고 대입할 수 없다
+
+`import * as ns`로 모듈 네임스페이스 객체를 받습니다. 키, 프로토타입, `Symbol.toStringTag`를 확인하고, `bump()`로 값을 바꾼 뒤 읽고, 이미 있는 이름과 없는 이름에 각각 대입해 봅니다.
+
+```html file=./examples/namespace.html
+
+```
+
+```js file=./examples/ns-target.js
+
+```
+
+<PredictQuiz
+  question="예제 12의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '["zeta","alpha","bump"] / Module true / 1 / TypeError / TypeError',
+    '["alpha","bump","zeta"] / Module true / 1 / TypeError / TypeError',
+    '["alpha","bump","zeta"] / Object false / 0 / TypeError / TypeError',
+    '["alpha","bump","zeta"] / Module true / 1 / 아무것도 찍히지 않음 / 아무것도 찍히지 않음',
+  ]}
+  answer={1}
+  explanation="네임스페이스 객체의 키는 코드 유닛 순으로 정렬되고 프로토타입은 null이며 Symbol.toStringTag는 Module입니다. 프로퍼티는 바인딩을 읽으므로 bump() 뒤의 zeta는 1입니다. 네임스페이스 객체의 [[Set]]은 항상 false를 돌려주므로 strict mode에서 기존 이름과 새 이름 모두 대입이 TypeError입니다."
+/>
+
+### 예제 13: export \*는 default를 빼고 다시 내보낸다
+
+`star-index.js`는 `export *`로 `star-source.js`의 이름을 다시 내보내고, `export { count, inc }`로 `counter.js`의 두 이름을 다시 내보냅니다. `star-source.js`는 `default`와 `named`를 `export`합니다. 문서는 `star-source.js`와 `star-index.js`를 각각 `import * as`로 받아 키를 비교합니다.
+
+```html file=./examples/reexport-star.html
+
+```
+
+```js file=./examples/star-index.js
+
+```
+
+```js file=./examples/star-source.js
+
+```
+
+<PredictQuiz
+  question="예제 13의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '["default","named"] / ["count","default","inc","named"] / 1 1',
+    '["named"] / ["count","inc","named"] / 1 1',
+    '["default","named"] / ["count","inc","named"] / 1 1',
+    '["default","named"] / ["count","inc","named"] / 0 0',
+  ]}
+  answer={2}
+  explanation="star-source.js를 직접 받은 네임스페이스에는 default 키가 있습니다. export *는 default를 뺀 이름을 다시 내보내므로 star-index.js의 키는 count, inc, named입니다. 다시 내보낸 이름도 counter.js의 대상 바인딩을 따라가므로 inc() 뒤에는 이름으로 import한 count와 네임스페이스의 ns.count가 모두 1입니다."
+/>
+
+### 예제 14: import 선언은 클래식 스크립트에서 SyntaxError이고 import()는 쓸 수 있다
+
+클래식 스크립트에서 `eval`로 `import` 선언을 평가해 보고, 같은 `counter.js`를 `import()`로 불러 `inc()`를 부른 뒤 `count`를 읽습니다. `import` 선언을 스크립트에 직접 쓰면 스크립트 전체가 파싱에서 실패해 잡을 수 없으므로 `eval`로 확인합니다. `eval` 코드는 어디서 부르든 Script로 파싱되므로 모듈 안에서 `eval`해도 `import` 선언은 SyntaxError입니다.
+
+```html file=./examples/dynamic-import.html
+
+```
+
+<PredictQuiz
+  question="예제 14의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'SyntaxError / 클래식 시작 / 클래식 끝 / 1',
+    'SyntaxError / 클래식 시작 / 1 / 클래식 끝',
+    '클래식 시작 / 1 / 클래식 끝 / SyntaxError',
+    '클래식 시작 / 클래식 끝 / 1',
+  ]}
+  answer={0}
+  explanation="import 선언은 모듈 목표의 문법이라 스크립트로 평가되는 eval에서는 SyntaxError입니다. import()는 프로미스를 돌려주는 식이므로 클래식 스크립트에서도 쓸 수 있고, then 콜백은 스크립트의 동기 코드가 끝난 뒤에 실행되어 마지막에 1이 찍힙니다."
+/>
+
+### 예제 15: 최상위 await는 import한 쪽만 기다리게 한다
+
+`tla-slow.js`는 최상위에서 `await`하고, `tla-fast.js`는 평범한 모듈입니다. 문서는 두 모듈을 `import`하고, `tla-slow.js`가 내보낸 `value`를 씁니다. 형제인 `tla-fast.js`는 기다릴까요?
+
+```html file=./examples/top-level-await.html
+
+```
+
+```js file=./examples/tla-slow.js
+
+```
+
+```js file=./examples/tla-fast.js
+
+```
+
+<PredictQuiz
+  question="예제 15의 출력은 무엇일까요?"
+  choices={[
+    'slow 시작, slow 끝, fast, main 준비됨',
+    'slow 시작, fast, slow 끝, main 준비됨',
+    'fast, slow 시작, slow 끝, main 준비됨',
+    'slow 시작, fast, main 준비됨, slow 끝',
+  ]}
+  answer={1}
+  explanation="tla-slow.js는 await에서 평가가 멈추지만 tla-fast.js는 tla-slow.js에 의존하지 않는 형제라 기다리지 않고 평가됩니다. 그 모듈을 import한 main은 tla-slow.js의 평가가 끝난 뒤에야 실행되므로 마지막에 준비됨과 함께 찍힙니다."
+/>
+
+### 예제 16: type="module"은 파싱이 끝난 뒤에 실행된다
+
+문서에서 모듈 스크립트가 클래식 스크립트보다 앞에 있습니다. 둘 다 뒤에 있는 `div#below`를 찾습니다. 어느 쪽이 먼저 찍히고, 각각 `div`를 찾을까요?
+
+```html file=./examples/deferred-module.html
+
+```
+
+<PredictQuiz
+  question="예제 16의 출력 순서는 무엇일까요?"
+  choices={[
+    'module true, classic false',
+    'classic false, module true',
+    'classic true, module true',
+    'module false, classic true',
+  ]}
+  answer={1}
+  explanation="클래식 인라인 스크립트는 파서가 읽는 도중에 실행되어 뒤의 div가 아직 없고, 모듈 스크립트는 문서 파싱이 끝난 뒤에 실행되므로 div가 있습니다. 모듈 스크립트가 문서에서 앞에 있어도 클래식 스크립트가 먼저 찍힙니다."
+/>
+
+### 예제 17: URL이 다르면 다른 모듈이다
+
+문서가 `./map-log.js`, `/map-log.js`, `./map-log.js#again`을 차례로 `import`합니다. 문서가 `http://example.test/`에 있으므로 앞의 두 지정자는 모두 `http://example.test/map-log.js`로 해석됩니다. 문서가 하위 경로에 있다면 둘은 다른 URL입니다. `map-log.js`는 평가될 때 한 줄을 찍습니다. 모두 몇 번 평가될까요?
+
+```html file=./examples/module-map.html
+
+```
+
+```js file=./examples/map-log.js
+
+```
+
+<PredictQuiz
+  question="예제 17의 출력은 무엇일까요?"
+  choices={[
+    'map-log 평가, 끝',
+    'map-log 평가, map-log 평가, 끝',
+    'map-log 평가, map-log 평가, map-log 평가, 끝',
+    '끝, map-log 평가, map-log 평가',
+  ]}
+  answer={1}
+  explanation="모듈 맵의 키는 URL과 모듈 유형의 쌍입니다. 문서가 http://example.test/에 있으므로 ./map-log.js와 /map-log.js는 지정자 문자열이 달라도 같은 URL이라 한 번 평가되지만, URL의 조각이 다른 ./map-log.js#again은 다른 URL이라 따로 평가됩니다. 의존 모듈은 main의 본문보다 먼저 평가되므로 끝이 마지막입니다."
+/>
+
+### 예제 18: 이름만 쓴 지정자는 TypeError이고 인라인 모듈의 import.meta.url은 문서의 base URL이다
+
+문서의 모듈이 `import.meta.url`을 찍고, `where.js`가 내보낸 자기 `import.meta.url`을 찍고, 이름만 쓴 지정자 `'counter.js'`를 `import()`합니다.
+
+```html file=./examples/specifier.html
+
+```
+
+```js file=./examples/where.js
+
+```
+
+<PredictQuiz
+  question="예제 18의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'http://example.test/where.js / http://example.test/ / TypeError',
+    'http://example.test/ / http://example.test/where.js / TypeError',
+    'http://example.test/ / http://example.test/where.js / SyntaxError',
+    'undefined / http://example.test/where.js / TypeError',
+  ]}
+  answer={1}
+  explanation="인라인 모듈의 import.meta.url은 문서의 base URL로 여기서는 문서 주소이고, where.js의 import.meta.url은 그 파일의 URL입니다. 이름만 쓴 지정자는 import map이 없으면 HTML의 해석 규칙이 TypeError를 던지고, import()의 거부 콜백은 동기 출력 뒤에 실행되어 마지막에 찍힙니다."
+/>
+
+## 결과와 이유
+
+예제 1~18의 출력은 두 갈래의 규칙으로 읽을 수 있습니다. 언어 쪽 규칙은 이름을 지정해 `import`한 이름이 값이 아니라 `export`한 모듈의 대상 바인딩에 대한 간접 바인딩이고 변경할 수 없다는 것입니다. 그래서 대상 바인딩이 바뀌면 `import`한 쪽에서도 바뀐 값이 보이고, 이름에 대입하면 TypeError입니다. 모듈은 자기 환경을 가지며 `this`는 `undefined`이고 항상 strict mode입니다. 링크가 평가보다 먼저 끝나므로 없는 이름은 평가 전에 SyntaxError이고, 순환에서는 함수 선언이 초기화되어 있는 반면 `let`·`const`는 초기화 전입니다. 평가는 깊이 우선으로 의존 모듈이 먼저이고, 평가를 마쳤거나 실패한 모듈은 다시 실행되지 않으며, 최상위 `await`는 그 모듈의 평가를 멈추고 그 모듈을 `import`한 모듈은 끝날 때까지 기다립니다. 호스트 쪽 규칙은 모듈 스크립트가 파싱이 끝난 뒤 실행되고, 모듈 맵이 URL과 모듈 유형의 쌍을 키로 모듈을 찾으며, 이름만 쓴 지정자와 `import.meta.url`의 값을 HTML이 정한다는 것입니다. 다음 표는 예제마다 결과와 근거를 정리한 것입니다. 결과 열은 Chromium에서 실행한 출력입니다. 근거 열은 이 페이지에서 설명한 명세의 연산과 표준의 절을 뜻합니다.
+
+<Wide>
+  <div
+    className="focus-visible:outline-accent my-6 overflow-x-auto focus-visible:outline-2"
+    tabIndex={0}
+    role="region"
+    aria-label="예제마다 핵심 동작, 결과, 근거를 정리한 표(좁은 화면에서는 가로로 스크롤할 수 있습니다)"
+  >
+    <table className="w-full border-collapse text-left">
+      <thead>
+        <tr>
+          <th scope="col" className="border-border border px-3 py-2">
+            상황
+          </th>
+          <th scope="col" className="border-border border px-3 py-2">
+            핵심 동작
+          </th>
+          <th scope="col" className="border-border border px-3 py-2">
+            결과(예제 출력)
+          </th>
+          <th scope="col" className="border-border border px-3 py-2">
+            근거
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            예제 1: 내보낸 쪽이 바꿈
+          </th>
+          <td className="border-border border px-3 py-2">
+            간접 바인딩이 읽는 시점의 대상 바인딩 값을 읽음
+          </td>
+          <td className="border-border border px-3 py-2">0, 1</td>
+          <td className="border-border border px-3 py-2">
+            CreateImportBinding, Module Environment Records
+          </td>
+        </tr>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            예제 2: import한 이름에 대입
+          </th>
+          <td className="border-border border px-3 py-2">
+            변경할 수 없는 바인딩이고 모듈은 strict mode라 대입이 TypeError
+          </td>
+          <td className="border-border border px-3 py-2">TypeError, 0</td>
+          <td className="border-border border px-3 py-2">
+            Module Environment Records, 모듈 코드는 strict mode
+          </td>
+        </tr>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            예제 3: const로 내보낸 객체
+          </th>
+          <td className="border-border border px-3 py-2">
+            바인딩은 불변이지만 객체의 프로퍼티는 변경 가능, 같은 객체를 쓰는 모듈에서 보임
+          </td>
+          <td className="border-border border px-3 py-2">2, TypeError</td>
+          <td className="border-border border px-3 py-2">간접 바인딩, 프로퍼티 대입</td>
+        </tr>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            예제 4: 한 번만 평가
+          </th>
+          <td className="border-border border px-3 py-2">
+            서로 다른 모듈의 요청이 같은 URL이면 같은 모듈, 의존 모듈이 먼저
+          </td>
+          <td className="border-border border px-3 py-2">shared 평가, a, b, main</td>
+          <td className="border-border border px-3 py-2">
+            HostLoadImportedModule, 모듈 맵, InnerModuleEvaluation
+          </td>
+        </tr>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            예제 5: 평가 실패
+          </th>
+          <td className="border-border border px-3 py-2">
+            실패한 평가의 에러를 기록해 두고 다시 요청하면 같은 에러
+          </td>
+          <td className="border-border border px-3 py-2">boom 평가, 평가 실패, true</td>
+          <td className="border-border border px-3 py-2">Cyclic Module Records의 Evaluate</td>
+        </tr>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            예제 6: 모듈 스코프
+          </th>
+          <td className="border-border border px-3 py-2">
+            바깥 환경은 전역 환경, 모듈의 var는 전역 객체 프로퍼티가 아님
+          </td>
+          <td className="border-border border px-3 py-2">
+            classic, module의 shared / classic의 shared, false, undefined
+          </td>
+          <td className="border-border border px-3 py-2">
+            Module Environment Records, InitializeEnvironment
+          </td>
+        </tr>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            예제 7: this와 strict
+          </th>
+          <td className="border-border border px-3 py-2">
+            최상위 this는 undefined, 모듈 코드는 항상 strict mode
+          </td>
+          <td className="border-border border px-3 py-2">true, true, ReferenceError</td>
+          <td className="border-border border px-3 py-2">
+            Module Environment Records, 모듈 코드는 strict mode
+          </td>
+        </tr>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            예제 8: 평가 순서
+          </th>
+          <td className="border-border border px-3 py-2">
+            import 선언의 위치와 무관하게 깊이 우선으로 의존 모듈이 먼저
+          </td>
+          <td className="border-border border px-3 py-2">c, a, b, main 첫 줄, main 끝</td>
+          <td className="border-border border px-3 py-2">InnerModuleEvaluation</td>
+        </tr>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            예제 9: 없는 이름
+          </th>
+          <td className="border-border border px-3 py-2">
+            링크에서 SyntaxError, 어떤 모듈도 평가되지 않음
+          </td>
+          <td className="border-border border px-3 py-2">SyntaxError</td>
+          <td className="border-border border px-3 py-2">InitializeEnvironment, ResolveExport</td>
+        </tr>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            예제 10: 순환 import
+          </th>
+          <td className="border-border border px-3 py-2">
+            링크에서 바인딩 연결, 함수 선언은 초기화됨, let은 초기화 전
+          </td>
+          <td className="border-border border px-3 py-2">
+            b 본문 hello, ReferenceError, a 본문 b의 값, main
+          </td>
+          <td className="border-border border px-3 py-2">
+            InitializeEnvironment, InnerModuleEvaluation, TDZ
+          </td>
+        </tr>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            예제 11: default
+          </th>
+          <td className="border-border border px-3 py-2">
+            식은 <code>{'*default*'}</code>에 값을 담고, 별칭과 함수 선언은 그 이름의 바인딩
+          </td>
+          <td className="border-border border px-3 py-2">0 1 g</td>
+          <td className="border-border border px-3 py-2">
+            Exports, 합성 이름 <code>{'*default*'}</code>
+          </td>
+        </tr>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            예제 12: 네임스페이스
+          </th>
+          <td className="border-border border px-3 py-2">
+            정렬된 문자열 키, 프로토타입 null, 라이브 값, [[Set]]은 항상 false
+          </td>
+          <td className="border-border border px-3 py-2">
+            ["alpha","bump","zeta"], Module true, 1, TypeError, TypeError
+          </td>
+          <td className="border-border border px-3 py-2">Module Namespace Exotic Objects</td>
+        </tr>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            예제 13: <code>{'export *'}</code>
+          </th>
+          <td className="border-border border px-3 py-2">
+            default를 뺀 이름을 다시 내보내고 다시 내보낸 이름도 라이브
+          </td>
+          <td className="border-border border px-3 py-2">
+            ["default","named"], ["count","inc","named"], 1 1
+          </td>
+          <td className="border-border border px-3 py-2">
+            Exports, Module Namespace Exotic Objects
+          </td>
+        </tr>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            예제 14: 동적 import
+          </th>
+          <td className="border-border border px-3 py-2">
+            import 선언은 스크립트에서 SyntaxError, import()는 프로미스를 돌려주는 식
+          </td>
+          <td className="border-border border px-3 py-2">SyntaxError, 클래식 시작, 클래식 끝, 1</td>
+          <td className="border-border border px-3 py-2">Import Calls, Imports</td>
+        </tr>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            예제 15: 최상위 await
+          </th>
+          <td className="border-border border px-3 py-2">
+            import한 쪽은 기다리고 형제 모듈은 기다리지 않음
+          </td>
+          <td className="border-border border px-3 py-2">slow 시작, fast, slow 끝, main 준비됨</td>
+          <td className="border-border border px-3 py-2">Cyclic Module Records의 Evaluate</td>
+        </tr>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            예제 16: 지연 실행
+          </th>
+          <td className="border-border border px-3 py-2">
+            모듈 스크립트는 파싱이 끝난 뒤 실행, defer 속성은 효과 없음
+          </td>
+          <td className="border-border border px-3 py-2">classic false, module true</td>
+          <td className="border-border border px-3 py-2">HTML script 요소 준비 단계</td>
+        </tr>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            예제 17: 모듈 맵
+          </th>
+          <td className="border-border border px-3 py-2">
+            키가 URL과 모듈 유형의 쌍이라 지정자가 달라도 같은 URL이면 같은 모듈, URL이 다르면 다른
+            모듈
+          </td>
+          <td className="border-border border px-3 py-2">map-log 평가, map-log 평가, 끝</td>
+          <td className="border-border border px-3 py-2">HTML 모듈 맵</td>
+        </tr>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            예제 18: 지정자와 import.meta
+          </th>
+          <td className="border-border border px-3 py-2">
+            이름만 쓴 지정자는 TypeError, import.meta.url의 값은 HTML이 정함
+          </td>
+          <td className="border-border border px-3 py-2">
+            http://example.test/, http://example.test/where.js, TypeError
+          </td>
+          <td className="border-border border px-3 py-2">
+            HTML resolve a module specifier, HostGetImportMetaProperties
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</Wide>
+
+### 흔한 오해
+
+<Callout type="misconception" title="import는 export한 값을 복사해 온다">
+
+이름을 지정해 `import`한 이름은 값을 담은 변수가 아닙니다. 명세는 그 이름을 `export`한 모듈의 대상 바인딩에 대한 간접 바인딩으로 서술하고, 그 이름을 읽으면 대상 바인딩의 값을 읽습니다. 값을 복사해 온 것이라면 예제 1의 두 번째 출력이 `0`이어야 하지만 `1`이었습니다. 반대로 간접 바인딩은 변경할 수 없으므로, 예제 2에서 보았듯 `import`한 쪽에서 대입하면 TypeError입니다. 바꿀 수 있는 쪽은 바인딩이 있는 모듈 안의 코드뿐입니다. 간접 바인딩은 명세의 설명 장치이며 엔진 구조를 서술한 것이 아닙니다.
+
+</Callout>
+
+<Callout type="misconception" title="const로 export하면 객체의 내용도 바꿀 수 없다">
+
+`const`와 `import`가 막는 것은 이름에 다른 값을 대입하는 것, 즉 바인딩의 변경입니다. 이름이 가리키는 객체의 프로퍼티를 바꾸는 것은 막지 않습니다. 예제 3에서 `settings.size = 2`는 성공했고 다른 모듈 `read-settings.js`도 바뀐 `2`를 읽었으며, `settings = {}`만 TypeError였습니다.
+
+</Callout>
+
+<Callout type="misconception" title="export default는 언제나 라이브 바인딩이다">
+
+`default`가 라이브인지는 `default`라는 이름이 아니라 그 이름이 가리키는 바인딩에 달려 있습니다. 예제 11에서 `export default n`은 식 `n`을 평가한 값을 담은 바인딩이라 `n`이 바뀌어도 `0`이었고, `export { n as default }`는 `n` 바인딩 자체를 내보내므로 `1`이었으며, 이름 있는 함수 선언은 그 이름의 바인딩이라 재할당이 보여 `g`였습니다. 그렇다고 `default`가 라이브가 아니라고 말할 수도 없습니다.
+
+</Callout>
+
+<Callout type="misconception" title="최상위 await는 페이지 전체를 멈춘다">
+
+최상위 `await`가 멈추는 것은 그 모듈의 평가이고, 그 모듈을 `import`한 모듈은 끝날 때까지 기다립니다. 의존 관계가 없는 형제 모듈은 기다리지 않습니다. 예제 15에서 `tla-slow.js`가 멈춘 동안 `tla-fast.js`는 평가되어 `fast`가 찍혔고, `main`은 `tla-slow.js`가 끝난 뒤에야 실행되었습니다. 최상위 `await`는 [async/await](/concepts/async-await)의 `await`처럼 프로미스가 정해지면 이어서 실행하도록 평가를 멈추는 것이므로 호출 스택을 붙잡아 이벤트 루프를 막는 것이 아닙니다.
+
+</Callout>
+
+<Callout type="misconception" title="같은 파일이면 어떤 URL로 불러도 한 번만 평가된다">
+
+한 번만 평가되는 단위는 파일이 아니라 모듈 맵이 찾아낸 모듈이고, 모듈 맵의 키는 URL과 모듈 유형의 쌍입니다. 같은 URL로 해석되는 요청은 지정자 문자열이 달라도 한 번 평가되지만(예제 4와 예제 17의 처음 두 `import`), URL이 다르면 같은 파일을 가리켜도 다른 모듈로 취급되어 따로 평가됩니다. 예제 17에서 `./map-log.js#again`은 조각만 다른 URL이어서 한 번 더 평가되었습니다. 이 결과는 Chromium에서 실행한 값이고, 다른 URL이 다른 모듈이 되는 근거는 모듈 맵의 키가 URL이라는 표준의 서술입니다.
+
+</Callout>

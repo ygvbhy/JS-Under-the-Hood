@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"></head>
+<body>
+<script type="module">
+import * as ns from './star-index.js';
+import * as source from './star-source.js';
+import { count, inc } from './star-index.js';
+console.log(JSON.stringify(Object.keys(source)));
+console.log(JSON.stringify(Object.keys(ns)));
+inc();
+console.log(count, ns.count);
+</script>
+</body>
+</html>

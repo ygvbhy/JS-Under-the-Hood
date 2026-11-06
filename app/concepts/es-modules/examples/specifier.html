@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"></head>
+<body>
+<script type="module">
+import { where } from './where.js';
+console.log(import.meta.url);
+console.log(where);
+import('counter.js').catch((e) => {
+  console.log(e.name);
+});
+</script>
+</body>
+</html>

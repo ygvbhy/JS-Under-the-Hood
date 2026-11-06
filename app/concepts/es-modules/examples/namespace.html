@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"></head>
+<body>
+<script type="module">
+import * as ns from './ns-target.js';
+console.log(JSON.stringify(Object.keys(ns)));
+console.log(ns[Symbol.toStringTag], Object.getPrototypeOf(ns) === null);
+ns.bump();
+console.log(ns.zeta);
+try {
+  ns.zeta = 9;
+} catch (e) {
+  console.log(e.name);
+}
+try {
+  ns.extra = 9;
+} catch (e) {
+  console.log(e.name);
+}
+</script>
+</body>
+</html>

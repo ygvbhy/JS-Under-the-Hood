@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"></head>
+<body>
+<script type="module">
+import { settings } from './settings.js';
+import { readSize } from './read-settings.js';
+settings.size = 2;
+console.log(readSize());
+try {
+  settings = {};
+} catch (e) {
+  console.log(e.name);
+}
+</script>
+</body>
+</html>

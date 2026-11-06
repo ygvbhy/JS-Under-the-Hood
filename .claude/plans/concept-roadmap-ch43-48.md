@@ -1,6 +1,6 @@
 # 개념 로드맵 (Deep Dive 43~48장 범위)
 
-- 상태: 확정 (진행 중)
+- 상태: 완료
 - 작성일: 2026-11-05
 - 기준: `main` @ `1be09da`
 
@@ -26,7 +26,7 @@
 | 4 | 제너레이터는 멈췄다 다시 시작한다 | 46 | 제너레이터 함수를 불러도 본문이 실행되지 않음(`created` 뒤 첫 `next`에서 `body start`). 첫 `next`의 인자는 버려지고, 두 번째 `next('hi')`의 인자가 `yield` 식의 값 | ecmascript | 단계 시뮬레이터 후보 | 완료 |
 | 5 | async/await는 어디서 멈출까 | 46 | async 함수는 첫 `await`까지 동기로 실행(`a1 → after call → a2`)하고 항상 프로미스를 반환. `await` 뒤 코드는 마이크로태스크로 이어짐 | ecmascript (+browser 필요 시) | 시뮬레이터 또는 표 | 완료 |
 | 6 | try/catch/finally와 비동기 에러 | 47 | `finally`의 `return`이 `try`의 `return`을 덮음(`'finally'`). `try`에서 `return x` 뒤 `finally`가 `x`를 바꿔도 반환값은 그대로(`1`). `setTimeout` 콜백의 throw는 바깥 `try`에 안 잡히고 `window`의 `error` 이벤트로, 처리 안 된 rejection은 `unhandledrejection`으로 | ecmascript + browser | 표 + 퀴즈 | 완료 |
-| 7 | ES 모듈: 라이브 바인딩과 모듈 스코프 | 48 | `import { count, inc }` 뒤 `inc()`를 부르면 `count`가 `0 → 1`(값을 받은 게 아니라 바인딩을 봄). `count = 5`는 TypeError. 같은 모듈을 두 번 import해도 평가는 한 번. 모듈 최상위 `this`는 `undefined`, 모듈 코드는 항상 strict | browser | 표 + 퀴즈 | 대기 |
+| 7 | ES 모듈: 라이브 바인딩과 모듈 스코프 | 48 | `import { count, inc }` 뒤 `inc()`를 부르면 `count`가 `0 → 1`(값을 받은 게 아니라 바인딩을 봄). `count = 5`는 TypeError. 같은 모듈을 두 번 import해도 평가는 한 번. 모듈 최상위 `this`는 `undefined`, 모듈 코드는 항상 strict | browser | 바인딩 시뮬레이터 + 퀴즈 | 완료 |
 
 - 위 결과는 2026-11-05 Node(로컬)와 Playwright Chromium 156.0.8078.4(`page.route`로 모듈 파일 제공)로 확인했다. 페이지에 쓸 때는 각 계획에서 프로젝트 실행기로 다시 실행하고 명세·표준 원문과 대조한다.
 - 시각화는 각 계획에서 사용자와 다시 정한다. 위 칸은 출발점이다.
@@ -61,3 +61,5 @@
 - 2026-11-06: 5번 `async-await`(order 460, async, 48번째·마지막, 상태 시뮬레이터 basic 14·interleave 16단계 + 퀴즈 18개, 예제 9개) 완료. Opus 명세 정확성 교차 검토와 사용자 콘텐츠 검토 두 차례(6건, 2건) 반영 — return은 이행이 아니라 resolve(프로미스면 그 결과를 따름), await는 스택 바로 아래 컨텍스트로 돌아감(첫 await만 함수를 부른 코드), 피연산자는 멈추기 전에 평가, 프로미스를 그대로 쓰는 조건(constructor가 %Promise%), CreateResolvingFunctions 링크는 현재 id. generator·promise·microtask-queue의 '작성 예정' 4곳 연결. 다음은 6번 try/catch/finally와 비동기 에러.
 - 2026-11-06: 6번 계획 작성(`error-handling.md`, 사용자 결정: 추가 주제 4개 모두 — 에러 전파와 throw, finally가 예외를 삼킴, return await와 try, 거부 알림 세부 / 완료 시뮬레이터 / slug `error-handling`, 제목 "try/catch/finally: finally의 return은 왜 try의 return을 덮어쓸까", category `execution`, order 470). 전역 에러 예제는 `preventDefault()`로 실행기의 `pageerror` 실패를 피함(공통 코드 변경 없음).
 - 2026-11-06: 6번 `error-handling`(order 470, execution, 49번째·마지막, 완료 시뮬레이터 override 8·fixed 10단계 + 퀴즈 21개, 예제 13개: ecmascript 9·browser 4) 완료. 로드맵 초안의 표+퀴즈 대신 사용자 결정으로 시뮬레이터. Opus 명세 정확성 교차 검토와 사용자 콘텐츠 검토 두 차례 반영 — 거부 추적 조건은 [[PromiseIsHandled]], 호출의 프로미스가 try 뒤 거부, finally는 p를 기다리지 않음까지만 보장, 콘솔 보고는 may, report는 Web IDL. try...catch '작성 예정' 15곳과 놓쳤던 async/await 4곳 연결. 다음은 7번 ES 모듈.
+- 2026-11-06: 7번 계획 작성(`es-modules.md`, 사용자 결정: 추가 주제 4개 모두 — 로드·링크·평가와 순환, default와 네임스페이스, 동적 import·최상위 await, 브라우저 모듈 로딩 / 바인딩 시뮬레이터 / slug `es-modules`, 제목 "ES 모듈: import한 변수는 왜 저절로 바뀔까", category `execution`, order 480).
+- 2026-11-06: 7번 `es-modules`(order 480, execution, 50번째·마지막, 바인딩 시뮬레이터 live 8·cycle 12단계 + 퀴즈 18개, 브라우저 예제 18개) 완료. 로드맵 초안의 표+퀴즈 대신 사용자 결정으로 시뮬레이터. Opus 명세 정확성 교차 검토와 사용자 콘텐츠 검토 두 차례(8건, 2건) 반영 — import 네임스페이스는 간접 바인딩이 아님, default 형태 열거, 재내보내기는 환경에 바인딩을 만들지 않음, 최상위 await의 거부·순환 예외, 같은 지정자는 ModuleRequests가 합쳐 모듈 맵까지 가지 않음(예제 17 교체), `eval`은 Script 목표. async-await·error-handling의 최상위 await '작성 예정' 4곳 연결. **43~48장 로드맵 7개 모두 완료.**

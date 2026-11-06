@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"></head>
+<body>
+<script type="module">
+import exprValue, { bump as bumpExpr } from './default-expr.js';
+import aliasValue, { bump as bumpAlias } from './default-alias.js';
+import declValue, { swap } from './default-decl.js';
+bumpExpr();
+bumpAlias();
+swap();
+console.log(exprValue, aliasValue, declValue());
+</script>
+</body>
+</html>

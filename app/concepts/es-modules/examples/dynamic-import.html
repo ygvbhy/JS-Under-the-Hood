@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"></head>
+<body>
+<script>
+try {
+  eval("import { count } from './counter.js';");
+} catch (e) {
+  console.log(e.name);
+}
+console.log('클래식 시작');
+import('./counter.js').then((module) => {
+  module.inc();
+  console.log(module.count);
+});
+console.log('클래식 끝');
+</script>
+</body>
+</html>

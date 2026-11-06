@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"></head>
+<body>
+<script type="module">
+import { count } from './counter.js';
+try {
+  count = 5;
+} catch (e) {
+  console.log(e.name);
+}
+console.log(count);
+</script>
+</body>
+</html>

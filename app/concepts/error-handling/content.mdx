@@ -82,7 +82,7 @@ HTML이 넘긴 `"report"`는 Web IDL의 콜백 호출(invoke) 단계에서, 콜�
 
 ### 이 페이지가 다루지 않는 것
 
-`Error`의 `cause`, `AggregateError`, `stack`(ECMAScript 표준이 아님), 사용자 정의 에러 클래스는 다루지 않습니다. 스크립트 최상위에서 잡히지 않은 예외와 `onerror` 핸들러 속성, 다른 출처 스크립트의 `Script error.`, 워커의 에러, Node.js의 `process` 이벤트도 다루지 않습니다. 최상위 `await`는 별도 개념(작성 예정)입니다. 시뮬레이터는 `catch`가 없는 `try...finally`만 단계별로 보이고, `catch`를 거치는 경우는 위 규칙과 예제로 설명했습니다. 완료는 명세의 설명 장치이며, 명세 링크는 현재 초안을 가리키고 인용은 ES2026판과 현재 초안에 똑같이 있는 문장만 씁니다.
+`Error`의 `cause`, `AggregateError`, `stack`(ECMAScript 표준이 아님), 사용자 정의 에러 클래스는 다루지 않습니다. 스크립트 최상위에서 잡히지 않은 예외와 `onerror` 핸들러 속성, 다른 출처 스크립트의 `Script error.`, 워커의 에러, Node.js의 `process` 이벤트도 다루지 않습니다. 최상위 `await`는 [ES 모듈](/concepts/es-modules)에서 다룹니다. 시뮬레이터는 `catch`가 없는 `try...finally`만 단계별로 보이고, `catch`를 거치는 경우는 위 규칙과 예제로 설명했습니다. 완료는 명세의 설명 장치이며, 명세 링크는 현재 초안을 가리키고 인용은 ES2026판과 현재 초안에 똑같이 있는 문장만 씁니다.
 
 ## 예제
 

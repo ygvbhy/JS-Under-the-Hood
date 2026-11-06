@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"></head>
+<body>
+<script type="module">
+console.log(this === undefined);
+function whoAmI() {
+  return this === undefined;
+}
+console.log(whoAmI());
+try {
+  undeclared = 1;
+} catch (e) {
+  console.log(e.name);
+}
+</script>
+</body>
+</html>

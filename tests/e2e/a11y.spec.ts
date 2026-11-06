@@ -71,6 +71,8 @@ import {
   ASYNC_AWAIT_SIMULATOR_NAME,
   ERROR_HANDLING_PATH,
   ERROR_HANDLING_SIMULATOR_NAME,
+  ES_MODULES_PATH,
+  ES_MODULES_SIMULATOR_NAME,
   PROMISE_PATH,
   PROMISE_SIMULATOR_NAME,
   SCRIPT_ASYNC_DEFER_PATH,
@@ -1002,6 +1004,24 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await page.goto(ERROR_HANDLING_PATH)
       await waitForHydration(page)
       const region = page.getByRole('region', { name: ERROR_HANDLING_SIMULATOR_NAME })
+      const next = region.getByRole('button', { name: '다음' })
+      for (let i = 0; i < 5; i++) await next.click()
+      await expect(region).toBeVisible()
+      await expect(region.getByText(/^단계 6 \/ 8$/)).toBeVisible()
+      await expectNoSeriousViolations(page)
+    })
+
+    test('개념 페이지: ES 모듈', async ({ page }) => {
+      await page.goto(ES_MODULES_PATH)
+      await waitForHydration(page)
+      await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
+      await expectNoSeriousViolations(page)
+    })
+
+    test('개념 페이지: ES 모듈 시뮬레이터를 진행한 뒤', async ({ page }) => {
+      await page.goto(ES_MODULES_PATH)
+      await waitForHydration(page)
+      const region = page.getByRole('region', { name: ES_MODULES_SIMULATOR_NAME })
       const next = region.getByRole('button', { name: '다음' })
       for (let i = 0; i < 5; i++) await next.click()
       await expect(region).toBeVisible()

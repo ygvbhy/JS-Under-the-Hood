@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"></head>
+<body>
+<script>
+var fromClassic = 'classic';
+var shared = 'classic의 shared';
+</script>
+<script type="module">
+var shared = 'module의 shared';
+let onlyHere = 1;
+console.log(fromClassic);
+console.log(shared, '/', window.shared);
+console.log('onlyHere' in window);
+</script>
+<script type="module">
+console.log(typeof onlyHere);
+</script>
+</body>
+</html>
