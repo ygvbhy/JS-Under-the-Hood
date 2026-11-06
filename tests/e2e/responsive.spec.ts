@@ -67,6 +67,8 @@ import {
   GENERATOR_SIMULATOR_NAME,
   ASYNC_AWAIT_PATH,
   ASYNC_AWAIT_SIMULATOR_NAME,
+  ERROR_HANDLING_PATH,
+  ERROR_HANDLING_SIMULATOR_NAME,
   PROMISE_PATH,
   PROMISE_SIMULATOR_NAME,
   SCRIPT_ASYNC_DEFER_PATH,
@@ -1171,10 +1173,36 @@ test('async/await 개념 페이지: 첫 시나리오를 끝까지 진행해도 �
   expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
 })
 
+test(`${ERROR_HANDLING_PATH}: 가로 스크롤이 없다`, async ({ page }) => {
+  await page.goto(ERROR_HANDLING_PATH)
+  await waitForHydration(page)
+  const { scrollWidth, innerWidth } = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    innerWidth: window.innerWidth,
+  }))
+  expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
+})
+
+test('try/catch/finally 개념 페이지: 첫 시나리오를 끝까지 진행해도 가로 스크롤이 없다', async ({
+  page,
+}) => {
+  await page.goto(ERROR_HANDLING_PATH)
+  await waitForHydration(page)
+  const region = page.getByRole('region', { name: ERROR_HANDLING_SIMULATOR_NAME })
+  const next = region.getByRole('button', { name: '다음' })
+  for (let i = 0; i < 7; i++) await next.click()
+  await expect(region.getByText(/^단계 8 \/ 8$/)).toBeVisible()
+  const { scrollWidth, innerWidth } = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    innerWidth: window.innerWidth,
+  }))
+  expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
+})
+
 test('홈 학습 순서 보기: 가로 스크롤이 없다', async ({ page }) => {
   await page.goto('/?view=order')
   await waitForHydration(page)
-  await expect(page.getByRole('article')).toHaveCount(48)
+  await expect(page.getByRole('article')).toHaveCount(49)
   const { scrollWidth, innerWidth } = await page.evaluate(() => ({
     scrollWidth: document.documentElement.scrollWidth,
     innerWidth: window.innerWidth,

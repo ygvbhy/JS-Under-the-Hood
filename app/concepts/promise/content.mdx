@@ -3,7 +3,7 @@ import { scenarios } from './scenarios'
 
 ## 동작 원리
 
-이미 `resolve`한 프로미스에 `then`을 붙였는데, 왜 콜백이 바로 뒤의 `console.log('sync end')`보다 늦게 불릴까요? 이 페이지는 이 질문에서 출발해 프로미스의 세 상태와 executor, `then`이 반응을 등록하거나 Job을 넣는 절차(PerformPromiseThen), `then`이 돌려주는 새 프로미스, `catch`와 함수가 아닌 인수, 분기와 체인, 프로미스를 반환하는 콜백과 thenable, `finally`, `Promise.all` 같은 정적 메서드, 처리되지 않은 거부를 차례로 보고, 예제 여덟 개로 확인한 뒤 결과와 이유를 정리합니다. 실행 중인 코드가 끝나야 다음 일이 시작된다는 점은 [이벤트 루프와 태스크 큐](/concepts/event-loop), 콜백이 만들어질 때의 환경을 기억하는 방식은 [클로저](/concepts/closure), 이터러블을 받는 정적 메서드는 [이터러블과 for...of](/concepts/iterable-for-of), 출력에 쓰는 `JSON.stringify`는 [JSON](/concepts/json), 코드가 실행되는 단위는 [실행 컨텍스트](/concepts/execution-context)에서 본 것을 전제합니다. Job을 호스트가 언제 처리하는지(마이크로태스크)와 여러 체인이 끼어드는 순서는 [마이크로태스크 큐](/concepts/microtask-queue)에서 다루고, async/await와 try...catch는 별도 개념(작성 예정)입니다.
+이미 `resolve`한 프로미스에 `then`을 붙였는데, 왜 콜백이 바로 뒤의 `console.log('sync end')`보다 늦게 불릴까요? 이 페이지는 이 질문에서 출발해 프로미스의 세 상태와 executor, `then`이 반응을 등록하거나 Job을 넣는 절차(PerformPromiseThen), `then`이 돌려주는 새 프로미스, `catch`와 함수가 아닌 인수, 분기와 체인, 프로미스를 반환하는 콜백과 thenable, `finally`, `Promise.all` 같은 정적 메서드, 처리되지 않은 거부를 차례로 보고, 예제 여덟 개로 확인한 뒤 결과와 이유를 정리합니다. 실행 중인 코드가 끝나야 다음 일이 시작된다는 점은 [이벤트 루프와 태스크 큐](/concepts/event-loop), 콜백이 만들어질 때의 환경을 기억하는 방식은 [클로저](/concepts/closure), 이터러블을 받는 정적 메서드는 [이터러블과 for...of](/concepts/iterable-for-of), 출력에 쓰는 `JSON.stringify`는 [JSON](/concepts/json), 코드가 실행되는 단위는 [실행 컨텍스트](/concepts/execution-context)에서 본 것을 전제합니다. Job을 호스트가 언제 처리하는지(마이크로태스크)와 여러 체인이 끼어드는 순서는 [마이크로태스크 큐](/concepts/microtask-queue)에서 다루고, [async/await](/concepts/async-await)와 [try/catch/finally](/concepts/error-handling)는 각 개념에서 다룹니다.
 
 ### 프로미스의 세 상태와 executor
 

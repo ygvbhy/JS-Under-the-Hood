@@ -1,7 +1,7 @@
 import { Simulator } from './Simulator'
 import { scenarios } from './scenarios'
 
-제너레이터 함수를 불렀는데 왜 본문의 첫 줄도 실행되지 않을까요? 제너레이터 함수를 부르면 본문의 `console.log`는 찍히지 않고 객체 하나만 돌아옵니다. 이 페이지는 이 질문에서 출발해 제너레이터 객체가 어떤 상태로 시작하는지, `next`와 `yield`가 값을 어떻게 주고받는지, `return` 값이 어떤 결과로 나오고 `for...of`와 스프레드는 그 값을 어떻게 다루는지, 제너레이터로 이터러블을 만들 때 왜 한 번 소비하면 끝나는 객체가 생기는지, `return()`과 `throw()`가 멈춰 있던 지점에서 어떻게 재개되고 `break`로 나가도 `finally`가 실행되는 이유가 무엇인지, 값을 다른 이터러블에 어떻게 위임하는지, 제너레이터 함수에 `new`를 쓰면 왜 TypeError인지, 매개변수 기본값은 언제 평가되는지를 예제 열 개로 차례로 확인합니다. 제너레이터는 ECMAScript 언어의 동작이고, 예제의 출력은 Node.js의 `vm`에서 실행한 값이며 `console`은 호스트가 제공하는 API입니다. 이 페이지는 [실행 컨텍스트](/concepts/execution-context)에서 본 실행 컨텍스트 스택, [이터러블과 for...of](/concepts/iterable-for-of)에서 본 이터레이션 프로토콜과 `break`의 닫기 동작, [클로저](/concepts/closure)에서 본 함수가 끝나도 환경이 남을 수 있다는 점, [스프레드와 디스트럭처링](/concepts/spread-destructuring)에서 본 이터러블을 펼치는 방식을 전제합니다. `try...catch...finally` 문 자체와 `async`/`await`를 비롯한 비동기 처리는 별도 개념(작성 예정)입니다.
+제너레이터 함수를 불렀는데 왜 본문의 첫 줄도 실행되지 않을까요? 제너레이터 함수를 부르면 본문의 `console.log`는 찍히지 않고 객체 하나만 돌아옵니다. 이 페이지는 이 질문에서 출발해 제너레이터 객체가 어떤 상태로 시작하는지, `next`와 `yield`가 값을 어떻게 주고받는지, `return` 값이 어떤 결과로 나오고 `for...of`와 스프레드는 그 값을 어떻게 다루는지, 제너레이터로 이터러블을 만들 때 왜 한 번 소비하면 끝나는 객체가 생기는지, `return()`과 `throw()`가 멈춰 있던 지점에서 어떻게 재개되고 `break`로 나가도 `finally`가 실행되는 이유가 무엇인지, 값을 다른 이터러블에 어떻게 위임하는지, 제너레이터 함수에 `new`를 쓰면 왜 TypeError인지, 매개변수 기본값은 언제 평가되는지를 예제 열 개로 차례로 확인합니다. 제너레이터는 ECMAScript 언어의 동작이고, 예제의 출력은 Node.js의 `vm`에서 실행한 값이며 `console`은 호스트가 제공하는 API입니다. 이 페이지는 [실행 컨텍스트](/concepts/execution-context)에서 본 실행 컨텍스트 스택, [이터러블과 for...of](/concepts/iterable-for-of)에서 본 이터레이션 프로토콜과 `break`의 닫기 동작, [클로저](/concepts/closure)에서 본 함수가 끝나도 환경이 남을 수 있다는 점, [스프레드와 디스트럭처링](/concepts/spread-destructuring)에서 본 이터러블을 펼치는 방식을 전제합니다. `try...catch...finally` 문 자체는 [try/catch/finally](/concepts/error-handling)에서, `async`/`await`는 [async/await](/concepts/async-await)에서 다룹니다.
 
 ## 동작 원리
 
@@ -73,7 +73,7 @@ GeneratorResume은 먼저 GeneratorValidate로 `this`가 제너레이터인지, 
 
 이미 completed인 제너레이터도 이 갈래를 탑니다. 본문을 재개하지 않고 `return(v)`이면 `value`가 `v`이고 `done`이 `true`인 결과를 곧바로 돌려주며, `throw(e)`이면 `e`를 호출한 쪽으로 던집니다. completed 뒤의 `next`가 `undefined`와 `true`를 돌려주는 것과 다른 점입니다. 예제 5의 마지막 `it.return('또')`는 `또 true`를, 예제 6의 마지막 `it.throw(new Error('또'))`는 예외를 그대로 던져 바깥의 `catch`가 `바깥에서 잡음: 또`를 찍습니다.
 
-다음으로 `yield`에서 멈춘 suspended-yield일 때입니다. 상태를 executing으로 바꾸고 제너레이터의 실행 컨텍스트를 스택에 올려, 멈춰 있던 `yield` 지점에서 재개합니다. `next`는 거기서 값을 주어 재개하지만 `return()`은 그 자리에서 `return`이 일어난 것처럼, `throw()`는 그 자리에서 예외가 던져진 것처럼 재개합니다. 멈춘 `yield`가 `finally`가 있는 `try` 블록 안에 있으면, 본문을 빠져나가려는 이 흐름은 그 `finally` 블록을 실행하고 지나갑니다. `try...catch...finally` 문의 의미는 별도 개념(작성 예정)이고, 이 페이지는 빠져나갈 때 `finally` 블록이 실행된다는 결과만 씁니다. 예제 5에서 `it.return('중단')`을 부르면 `yield 'step 1'`에서 재개되어 `정리`가 찍힌 뒤 `중단 true`가 돌아옵니다. 그 뒤의 `next()`는 completed라서 `undefined true`입니다. 단, `finally` 블록 안에서 다시 `yield`하거나 `return`하면 `return()`의 결과가 인수와 `true`가 아닐 수 있고 제너레이터가 completed가 되지 않을 수도 있습니다. 이 경우는 이 페이지의 범위 밖입니다.
+다음으로 `yield`에서 멈춘 suspended-yield일 때입니다. 상태를 executing으로 바꾸고 제너레이터의 실행 컨텍스트를 스택에 올려, 멈춰 있던 `yield` 지점에서 재개합니다. `next`는 거기서 값을 주어 재개하지만 `return()`은 그 자리에서 `return`이 일어난 것처럼, `throw()`는 그 자리에서 예외가 던져진 것처럼 재개합니다. 멈춘 `yield`가 `finally`가 있는 `try` 블록 안에 있으면, 본문을 빠져나가려는 이 흐름은 그 `finally` 블록을 실행하고 지나갑니다. `try...catch...finally` 문의 의미는 [try/catch/finally](/concepts/error-handling)에서 다루고, 이 페이지는 빠져나갈 때 `finally` 블록이 실행된다는 결과만 씁니다. 예제 5에서 `it.return('중단')`을 부르면 `yield 'step 1'`에서 재개되어 `정리`가 찍힌 뒤 `중단 true`가 돌아옵니다. 그 뒤의 `next()`는 completed라서 `undefined true`입니다. 단, `finally` 블록 안에서 다시 `yield`하거나 `return`하면 `return()`의 결과가 인수와 `true`가 아닐 수 있고 제너레이터가 completed가 되지 않을 수도 있습니다. 이 경우는 이 페이지의 범위 밖입니다.
 
 `throw()`는 같은 지점에서 예외로 재개됩니다. 예제 6에서 `it.throw(new Error('boom'))`은 `yield 'ready'` 자리에서 예외가 던져진 것처럼 재개하고, 본문의 `catch`가 이를 잡아 `잡음: boom`을 찍은 뒤 `yield 'recovered'`로 새 결과를 돌려줍니다. 명세에 따르면 본문이 예외를 잡지 못하면 GeneratorStart의 단계가 상태를 completed로 바꾸고 예외는 `throw()`를 부른 쪽으로 나갑니다. 이 경우는 이 페이지의 예제로 실행해 보이지 않습니다.
 
@@ -101,7 +101,7 @@ GeneratorResume은 먼저 GeneratorValidate로 `this`가 제너레이터인지, 
 
 ### 이 페이지가 다루지 않는 것
 
-async 제너레이터와 `for await...of`, 제너레이터로 비동기 흐름을 다루는 방식은 별도 개념(작성 예정)이고, `async`/`await`는 [async/await](/concepts/async-await)에서 다룹니다. `try...catch...finally` 문 자체와 예외 처리도 별도 개념(작성 예정)이라, 이 페이지는 `finally` 블록이 실행되는지 여부만 다룹니다. `finally` 안에서 다시 `yield`하거나 `return`하는 경우, `GeneratorFunction` 생성자, Iterator helpers도 다루지 않습니다. 명세는 판마다 GeneratorResume 등의 서술 방식과 매개변수 이름이 다릅니다. 이 페이지는 ES2026판과 현재 초안에 똑같이 있는 문장만 인용하고, 링크는 현재 초안을 가리킵니다.
+async 제너레이터와 `for await...of`, 제너레이터로 비동기 흐름을 다루는 방식은 별도 개념(작성 예정)이고, `async`/`await`는 [async/await](/concepts/async-await)에서 다룹니다. `try...catch...finally` 문 자체와 예외 처리는 [try/catch/finally](/concepts/error-handling)에서 다루고, 이 페이지는 `finally` 블록이 실행되는지 여부만 다룹니다. `finally` 안에서 다시 `yield`하거나 `return`하는 경우, `GeneratorFunction` 생성자, Iterator helpers도 다루지 않습니다. 명세는 판마다 GeneratorResume 등의 서술 방식과 매개변수 이름이 다릅니다. 이 페이지는 ES2026판과 현재 초안에 똑같이 있는 문장만 인용하고, 링크는 현재 초안을 가리킵니다.
 
 ## 예제
 
@@ -275,7 +275,7 @@ async 제너레이터와 `for await...of`, 제너레이터로 비동기 흐름�
 
 ### 예제 6: throw()로 멈춘 지점에서 예외 일으키기, 끝난 뒤의 throw()
 
-`throw(new Error('boom'))`은 `yield 'ready'` 자리에서 예외가 던져진 것처럼 제너레이터를 재개합니다. 마지막에는 이미 끝난 제너레이터에 `throw()`를 한 번 더 부릅니다. `try...catch` 문 자체의 의미는 별도 개념(작성 예정)이고, 여기서는 출력만 봅니다.
+`throw(new Error('boom'))`은 `yield 'ready'` 자리에서 예외가 던져진 것처럼 제너레이터를 재개합니다. 마지막에는 이미 끝난 제너레이터에 `throw()`를 한 번 더 부릅니다. `try...catch` 문 자체의 의미는 [try/catch/finally](/concepts/error-handling)에서 다루고, 여기서는 출력만 봅니다.
 
 ```js file=./examples/throw-catch.js
 

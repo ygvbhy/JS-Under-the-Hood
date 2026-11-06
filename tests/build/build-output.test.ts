@@ -1238,6 +1238,25 @@ describe('시뮬레이터 프리렌더 (async-await)', () => {
   })
 })
 
+// 43~48장 로드맵 6번(error-handling): try/catch/finally 시뮬레이터의 첫 단계와 퀴즈가 프리렌더 HTML에 정적으로 있어야 한다.
+describe('시뮬레이터 프리렌더 (error-handling)', () => {
+  const html = read('concepts/error-handling/index.html')
+  const text = htmlToText(html)
+
+  it('try/catch/finally 시뮬레이터 region과 첫 단계가 HTML에 있다', () => {
+    expect(html).toMatch(/role="region"[^>]*aria-label="try\/catch\/finally 시뮬레이터"/)
+    expect(text).toContain('단계 1: 실행 시작')
+  })
+
+  it('첫 단계의 실행 컨텍스트 스택 항목이 정적으로 보인다', () => {
+    expect(text).toContain('전역 코드')
+  })
+
+  it('퀴즈 정답이 <details>로 21개 이상 프리렌더된다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(21)
+  })
+})
+
 // 학습 순서 이전/다음: 관련 개념 링크와 섞이지 않도록 nav 영역만 잘라 검사한다.
 describe('학습 순서 pager', () => {
   const ordered = sortByOrder(concepts)
