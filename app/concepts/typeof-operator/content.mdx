@@ -72,12 +72,12 @@ import { typeofTable } from './typeof-table'
 <PredictQuiz
   question="예제 1의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다)"
   choices={[
+    'undefined boolean number text / symbol bigint',
+    'undefined boolean number string / object bigint',
     'undefined boolean number string / symbol bigint',
     'undefined boolean number string / symbol number',
-    'undefined boolean number string / object bigint',
-    'undefined boolean number text / symbol bigint',
   ]}
-  answer={0}
+  answer={2}
   explanation="typeof는 각 값의 타입에 대응하는 문자열을 돌려줍니다. undefined, true, 42, 'hi'는 undefined, boolean, number, string이고, Symbol('id')는 symbol, 10n은 bigint입니다."
 />
 
@@ -91,9 +91,9 @@ import { typeofTable } from './typeof-table'
   question="예제 2의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다)"
   choices={[
     'object object / true false',
-    'null object / true false',
     'object object / false false',
     'null object / true true',
+    'null object / true false',
   ]}
   answer={0}
   explanation="typeof null은 명세의 규칙에 따라 object이고, { x: 1 }도 object입니다. 그래서 typeof만으로는 둘을 구별할 수 없습니다. === null 비교는 empty에서 true, point에서 false입니다."
@@ -108,12 +108,12 @@ import { typeofTable } from './typeof-table'
 <PredictQuiz
   question="예제 3의 출력은 무엇일까요?"
   choices={[
-    'function function number',
-    'object object number',
     'function function function',
+    'object object number',
     'function object number',
+    'function function number',
   ]}
-  answer={0}
+  answer={3}
   explanation="함수 선언으로 만든 add와 함수 표현식으로 만든 sub는 호출할 수 있는 객체라 둘 다 function입니다. typeof add(1, 2)는 호출 결과 3의 타입이므로 number입니다."
 />
 
@@ -126,12 +126,12 @@ import { typeofTable } from './typeof-table'
 <PredictQuiz
   question="예제 4의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다)"
   choices={[
-    'undefined / undefined',
-    'ReferenceError 발생 (아무것도 출력되지 않음)',
-    'undefined / object',
     'object / undefined',
+    'undefined / undefined',
+    'undefined / object',
+    'ReferenceError 발생 (아무것도 출력되지 않음)',
   ]}
-  answer={0}
+  answer={1}
   explanation="typeof는 이름을 찾지 못하면 값을 꺼내지 않고 undefined를 돌려주므로 notDeclared에서 오류가 나지 않습니다. 값을 넣지 않고 선언한 declared의 값은 undefined라 이것도 undefined입니다. 두 결과가 같아서 출력만으로는 둘을 구별할 수 없습니다."
 />
 
@@ -144,12 +144,12 @@ import { typeofTable } from './typeof-table'
 <PredictQuiz
   question="예제 5의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다)"
   choices={[
-    'string / number2 number',
     'number / number2 number',
-    'string / number number',
     'string / 3 number',
+    'string / number2 number',
+    'string / number number',
   ]}
-  answer={0}
+  answer={2}
   explanation="typeof typeof 42에서 안쪽 typeof 42는 문자열 number이고, 그 문자열의 typeof는 string입니다. typeof 1 + 2는 (typeof 1) + 2, 곧 number + 2의 문자열 연결이라 number2입니다. 괄호로 묶은 typeof (1 + 2)는 3의 타입이라 number입니다."
 />
 

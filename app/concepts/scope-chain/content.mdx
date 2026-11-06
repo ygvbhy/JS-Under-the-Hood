@@ -38,12 +38,12 @@ import { scenarios } from './scenarios'
 <PredictQuiz
   question="예제 1의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
   choices={[
+    '합정 undefined 서울 / undefined',
     '합정 마포 서울 / undefined',
     '합정 마포 서울 / 마포',
     'ReferenceError로 멈춤',
-    '합정 undefined 서울 / undefined',
   ]}
-  answer={0}
+  answer={1}
   explanation="8번 줄의 street는 inner 함수 스코프에서, area는 한 단계 바깥인 outer 함수 스코프에서, city는 더 바깥인 전역 스코프에서 찾습니다. 15번 줄의 area는 전역 스코프에서 찾을 수 없습니다. 찾는 방향은 바깥으로만 향하기 때문에 outer 안의 area는 보이지 않습니다. 그래도 typeof는 오류 없이 'undefined'를 돌려주므로 두 번째 줄은 undefined입니다."
 />
 
@@ -55,8 +55,8 @@ import { scenarios } from './scenarios'
 
 <PredictQuiz
   question="예제 2의 출력은 무엇일까요?"
-  choices={['전역', 'run 안', 'undefined', 'ReferenceError로 멈춤']}
-  answer={0}
+  choices={['undefined', 'run 안', 'ReferenceError로 멈춤', '전역']}
+  answer={3}
   explanation="show는 전역 스코프에서 정의되었으므로 show를 호출할 때 만들어지는 함수 스코프의 바깥 스코프는 전역 스코프입니다. 4번 줄의 level은 show 안에 없으니 바깥인 전역 스코프에서 찾아 '전역'이 나옵니다. show를 run 안에서 호출했더라도 run의 level은 찾는 경로에 들어 있지 않습니다."
 />
 
@@ -68,7 +68,7 @@ import { scenarios } from './scenarios'
 
 <PredictQuiz
   question="예제 3의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
-  choices={['빨강 / 파랑', '빨강 / 빨강', '파랑 / 파랑', '파랑 / 빨강']}
+  choices={['빨강 / 파랑', '파랑 / 빨강', '파랑 / 파랑', '빨강 / 빨강']}
   answer={0}
   explanation="5번 줄의 color는 paint 함수 스코프에 있는 color를 찾고 거기서 멈추므로 '빨강'입니다. 9번 줄은 전역 스코프의 코드라 전역 스코프의 color를 찾습니다. 함수 안의 var color는 새 이름을 만들 뿐 전역 color의 값을 바꾸지 않았으므로 '파랑'입니다."
 />
@@ -81,8 +81,8 @@ import { scenarios } from './scenarios'
 
 <PredictQuiz
   question="예제 4의 출력은 무엇일까요?"
-  choices={['2', '0', '1', 'ReferenceError로 멈춤']}
-  answer={0}
+  choices={['0', '1', '2', 'ReferenceError로 멈춤']}
+  answer={2}
   explanation="addOne 안에는 count 선언이 없으므로 4번 줄의 count는 읽을 때도, 대입할 때도 바깥 스코프인 전역 스코프에서 찾습니다. 그래서 addOne을 호출할 때마다 전역 count의 값이 바뀌어 두 번 호출한 뒤 2입니다."
 />
 
@@ -94,8 +94,8 @@ import { scenarios } from './scenarios'
 
 <PredictQuiz
   question="예제 5의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
-  choices={['undefined / 20 / 10', '10 / 20 / 10', '10 / 20 / 20', 'undefined / 20 / 20']}
-  answer={0}
+  choices={['10 / 20 / 20', 'undefined / 20 / 10', 'undefined / 20 / 20', '10 / 20 / 10']}
+  answer={1}
   explanation="report를 호출하면 본문을 실행하기 전에 report 함수 스코프의 var total 선언이 처리되어 total이 undefined로 만들어집니다. 그래서 4번 줄의 total은 report 함수 스코프에서 찾아 undefined이고, 바깥의 total(10)은 가려집니다. 5번 줄의 대입도 report의 total만 20으로 바꾸고, 6번 줄은 20을 출력합니다. 전역 total은 바뀌지 않아 10번 줄은 10입니다."
 />
 
