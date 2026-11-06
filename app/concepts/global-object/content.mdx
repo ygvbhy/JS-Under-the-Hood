@@ -67,7 +67,7 @@ import { globalProps } from './global-props'
 
 그런데 이 값이 전역 객체 자신이어야 한다는 규칙은 없습니다. 호스트가 전역 스코프의 `this`를 다른 객체로 요구하면 그 객체가 이 값이 됩니다. 브라우저에서는 `globalThis`가 Window 객체 자체가 아니라, 그 객체로 동작을 넘기는 WindowProxy입니다. 이는 ECMAScript가 아니라 호스트(브라우저)의 동작으로, HTML 표준이 전역 객체는 Window, 전역 this 바인딩은 WindowProxy로 정합니다. 스크립트에서는 전역 객체 자체를 직접 참조할 수 없으므로 둘을 코드로 구별할 방법이 없고, 이 페이지의 예제는 그 구별에 따라 결과가 달라지지 않습니다.
 
-`globalThis` 프로퍼티는 쓰기 가능하고 재정의 가능해서 다른 값으로 바꿀 수 있습니다. 모듈의 최상위 `this`는 `undefined`인데, 모듈은 이 페이지가 다루지 않는 별도 개념입니다. 함수 안에서 `this`가 정해지는 방식은 [this 바인딩](/concepts/this-binding)에서 다룹니다.
+`globalThis` 프로퍼티는 쓰기 가능하고 재정의 가능해서 다른 값으로 바꿀 수 있습니다. 모듈의 최상위 `this`는 `undefined`인데, [ES 모듈](/concepts/es-modules)은 이 페이지가 다루지 않고 해당 개념에서 다룹니다. 함수 안에서 `this`가 정해지는 방식은 [this 바인딩](/concepts/this-binding)에서 다룹니다.
 
 ### 이름은 어디서 찾나
 
