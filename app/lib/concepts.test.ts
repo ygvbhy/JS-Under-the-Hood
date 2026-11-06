@@ -101,15 +101,15 @@ describe('getAdjacentConcepts', () => {
     expect(adj.prev).toBeNull()
     expect(adj.next?.slug).toBe('short-circuit-evaluation')
     expect(adj.position).toBe(1)
-    expect(adj.total).toBe(50)
+    expect(adj.total).toBe(51)
   })
 
   it('마지막 개념은 다음이 없다', () => {
     const adj = getAdjacentConcepts('es-modules')
     expect(adj.prev?.slug).toBe('error-handling')
     expect(adj.next).toBeNull()
-    expect(adj.position).toBe(50)
-    expect(adj.total).toBe(50)
+    expect(adj.position).toBe(51)
+    expect(adj.total).toBe(51)
   })
 
   it('중간 개념은 앞뒤 개념을 돌려준다', () => {

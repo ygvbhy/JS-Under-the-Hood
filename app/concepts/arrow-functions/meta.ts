@@ -34,7 +34,14 @@ export const concept = {
     { label: '클래스 상속과 super', slug: 'class-inheritance' },
     { label: '스코프 체인', slug: 'scope-chain' },
   ],
-  related: ['this-binding', 'function-calls', 'class-basics', 'class-inheritance', 'closure'],
+  related: [
+    'this-binding',
+    'function-calls',
+    'class-basics',
+    'class-inheritance',
+    'closure',
+    'default-parameters',
+  ],
   examples: [
     {
       id: 'arrow-syntax',
@@ -80,7 +87,7 @@ export const concept = {
     },
   ],
   simplifications: [
-    '매개변수 기본값은 다루지 않고 별도 개념으로만 언급합니다.',
+    '매개변수 기본값은 매개변수 기본값 개념에서 다룹니다.',
     'sloppy mode에서 arguments[0]과 매개변수가 연동되는 것(mapped arguments)과 arguments.callee는 다루지 않습니다. 예제 3·4의 arguments는 sloppy mode의 단순한 매개변수 목록이라 명세상 mapped 객체(CreateMappedArgumentsObject)이지만, 배열이 아니고 [[Prototype]]이 Object.prototype인 점은 unmapped 객체와 같습니다.',
     'arguments를 진짜 배열로 바꾸는 방법(배열 메서드를 빌려 쓰기, 이터러블과 스프레드)은 이 사이트에서 아직 다루지 않은 별도 개념으로만 언급합니다.',
     '제너레이터와 async 화살표 함수, getter와 setter 축약은 다루지 않습니다.',

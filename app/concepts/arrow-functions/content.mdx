@@ -2,7 +2,7 @@ import { comparison } from './comparison'
 
 ## 동작 원리
 
-`function` 키워드로 만든 일반 함수, 객체 리터럴의 메서드 축약(method shorthand), 화살표 함수(arrow function)는 모두 `typeof`가 `'function'`입니다. 그렇다면 셋은 같은 함수일까요? 호출할 수 있다는 점은 같지만, `new`로 부를 수 있는지, `prototype` 프로퍼티가 있는지, `this`·`arguments`·`new.target`·`super`를 어떻게 다루는지가 다릅니다. 이 페이지는 화살표 함수 문법, 생성자가 아닌 까닭, `arguments` 객체, 화살표 함수가 바깥에서 찾는 이름들, 메서드 축약과 `super`, 중복 매개변수, rest 파라미터(rest parameter)를 예제 여섯 개로 살펴보고, 마지막에 비교표로 정리합니다. 함수 호출은 [함수 호출](/concepts/function-calls), `this`는 [this](/concepts/this-binding), `new`는 [new 연산자](/concepts/new-operator), `super`는 [클래스 상속과 super](/concepts/class-inheritance), 이름을 바깥 환경에서 찾는 과정은 [스코프 체인](/concepts/scope-chain)에서 본 것을 전제합니다. 매개변수 기본값은 별도 개념이라 여기서 다루지 않습니다.
+`function` 키워드로 만든 일반 함수, 객체 리터럴의 메서드 축약(method shorthand), 화살표 함수(arrow function)는 모두 `typeof`가 `'function'`입니다. 그렇다면 셋은 같은 함수일까요? 호출할 수 있다는 점은 같지만, `new`로 부를 수 있는지, `prototype` 프로퍼티가 있는지, `this`·`arguments`·`new.target`·`super`를 어떻게 다루는지가 다릅니다. 이 페이지는 화살표 함수 문법, 생성자가 아닌 까닭, `arguments` 객체, 화살표 함수가 바깥에서 찾는 이름들, 메서드 축약과 `super`, 중복 매개변수, rest 파라미터(rest parameter)를 예제 여섯 개로 살펴보고, 마지막에 비교표로 정리합니다. 함수 호출은 [함수 호출](/concepts/function-calls), `this`는 [this](/concepts/this-binding), `new`는 [new 연산자](/concepts/new-operator), `super`는 [클래스 상속과 super](/concepts/class-inheritance), 이름을 바깥 환경에서 찾는 과정은 [스코프 체인](/concepts/scope-chain)에서 본 것을 전제합니다. [매개변수 기본값](/concepts/default-parameters)은 별도 페이지에서 다루므로 여기서 다루지 않습니다.
 
 ### 화살표 함수 문법
 

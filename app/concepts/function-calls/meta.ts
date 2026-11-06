@@ -28,7 +28,12 @@ export const concept = {
     { label: '암묵적 타입 변환', slug: 'type-coercion' },
     { label: 'switch와 break·continue', slug: 'switch-break-continue' },
   ],
-  related: ['primitives-and-objects', 'short-circuit-evaluation', 'typeof-operator'],
+  related: [
+    'primitives-and-objects',
+    'short-circuit-evaluation',
+    'typeof-operator',
+    'default-parameters',
+  ],
   examples: [
     {
       id: 'arg-count',
@@ -72,7 +77,7 @@ export const concept = {
     '남는 인수는 매개변수에 들어가지 않을 뿐, 함수 안에서 arguments 객체로 읽을 수 있습니다. arguments는 별도 개념이며 시각화에 표시하지 않습니다.',
     '함수 선언으로 만들어지는 변수(add 등)와 함수 객체는 표시하지 않습니다. 함수 선언이 코드 실행 전에 처리되는 과정(호이스팅)은 다음 개념에서 다룹니다.',
     "'인수 평가 중' 패널은 바깥 호출의 인수 목록을 왼쪽부터 채우는 과정을 보여 주는 교육용 표현입니다. console.log도 함수 호출이지만 호스트가 제공하는 함수라 호출 영역으로 그리지 않고, 그 인수를 평가하는 과정도 '인수 평가 중' 패널에 그리지 않습니다(console.log(add(1, 2))에서는 add(1, 2) 호출만 보입니다).",
-    '매개변수 기본값이 있는 함수에서 매개변수가 만들어지는 세부 과정(기본값 식이 평가되는 환경 등)은 다루지 않습니다. 기본값 식은 기본값이 필요한 호출마다 평가됩니다.',
+    '매개변수 기본값이 있는 함수에서 매개변수가 만들어지는 세부 과정(기본값 식이 평가되는 환경 등)은 매개변수 기본값 개념에서 다룹니다. 기본값 식은 기본값이 필요한 호출마다 평가됩니다.',
     'this, 메서드 호출, 화살표 함수처럼 호출 방식에 따른 차이는 다루지 않습니다.',
     '변수는 선언문이 실행된 뒤에만 표시합니다(TDZ는 별도 개념).',
   ],

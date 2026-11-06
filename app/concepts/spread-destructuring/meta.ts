@@ -41,6 +41,7 @@ export const concept = {
     'prototype-chain',
     'type-coercion',
     'string-utf16',
+    'default-parameters',
   ],
   examples: [
     {
@@ -107,7 +108,7 @@ export const concept = {
   simplifications: [
     '"얕은 복사"는 관용 용어입니다. 객체 스프레드가 부르는 CopyDataProperties도 이름과 달리 원본에서 값을 읽어 새 객체의 프로퍼티로 정의할 뿐이고, 배열 스프레드도 이터레이터에서 꺼낸 값을 요소로 정의할 뿐입니다. 읽은 값이 객체여도 그 객체를 새로 만드는 단계는 없습니다.',
     '이터레이터 호출 횟수와 IteratorClose는 이터러블과 for...of 페이지에서 다루며 여기서는 링크로만 다룹니다.',
-    '매개변수 기본값은 값이 undefined일 때 쓰인다는 것까지만 다룹니다. 호출마다 평가되는 시점, length에서 빠지는 것, 매개변수 스코프는 별도 개념입니다.',
+    '매개변수 기본값은 값이 undefined일 때 쓰인다는 것까지만 다룹니다. 호출마다 평가되는 시점, length에서 빠지는 것, 매개변수 스코프는 매개변수 기본값 개념에서 다룹니다.',
     '깊은 복사와 structuredClone(호스트 API)은 다루지 않습니다.',
     'for...of 머리와 catch 매개변수의 디스트럭처링, 계산된 키 패턴, 프로퍼티를 대상으로 하는 할당 디스트럭처링은 다루지 않습니다.',
     'TypeError와 SyntaxError는 try...catch(47장)를 쓰지 않고 본문 문장과 테스트로 확인합니다.',

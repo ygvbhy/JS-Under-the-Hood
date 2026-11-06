@@ -62,7 +62,7 @@ const state = (running: string, promises: PromiseInfo[], jobs: string[]): Promis
 const SYNC = '동기 코드'
 const NONE = '없음'
 
-const HOST_NOTE = 'Job을 호스트가 언제 처리하는지는 별도 개념(작성 예정)에서 다룹니다.'
+const HOST_NOTE = 'Job을 호스트가 언제 처리하는지는 마이크로태스크 큐 개념에서 다룹니다.'
 
 // --- 1. 체인: 이미 이행된 프로미스의 then (chain.js) ----------------------------------------------
 
