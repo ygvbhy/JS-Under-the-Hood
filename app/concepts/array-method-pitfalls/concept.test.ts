@@ -29,6 +29,14 @@ describe('본문 주장 검증', () => {
     ).toBe('3 false [1,3,null]')
   })
 
+  it('프로토타입 체인에 같은 인덱스가 있으면 구멍에서도 콜백이 불리고 그 값을 읽는다', () => {
+    expect(
+      runInNewContext(
+        'Array.prototype[1] = "P"; var a = [1, , 3]; var n = 0; a.forEach(() => n++); n + " " + a.includes("P")',
+      ),
+    ).toBe('3 true')
+  })
+
   it('비교 함수가 내림차순이어도 undefined는 끝으로 가고 비교 함수에 넘어가지 않는다', () => {
     expect(
       runInNewContext(

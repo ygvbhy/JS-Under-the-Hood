@@ -309,7 +309,7 @@ console.log(JSON.stringify(sparse), JSON.stringify([1, undefined, 3]));
 ### 후속 작업
 
 - [ ] this-binding·typeof-operator의 "배열은 별도 개념" 문구를 이 페이지 링크로 바꾸기 — 역방향 연결 일괄 처리 때
-- [ ] "(이 페이지의 테스트가 확인합니다)" 표현을 class-basics(3곳)·arrow-functions(5곳)에서도 바꿀지 사용자 결정
+- [x] "(이 페이지의 테스트가 확인합니다)" 표현을 class-basics(3곳)·arrow-functions(5곳)에서도 바꿀지 사용자 결정 — 2026-11-06 `copy-accuracy-fixes.md`로 수정
 
 ### 이해 확인
 

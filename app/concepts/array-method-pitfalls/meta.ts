@@ -94,6 +94,7 @@ export const concept = {
     '정렬 알고리즘과 비교 함수를 부르는 순서·횟수는 명세가 정하지 않는 구현 정의 사항이라 다루지 않습니다. 비교 함수가 일관된 비교자가 아니면(예: 불리언을 반환하면) 결과 순서도 명세가 정하지 않으므로 출력 예제를 두지 않고 문장으로만 설명합니다.',
     'filter·some·every·find·flat·flatMap 같은 고차 함수의 사용법과 thisArg는 다루지 않습니다. 콜백 메서드는 구멍을 만났을 때의 forEach·map과 초기값 없는 reduce만 살펴봅니다.',
     'Symbol.species와 ArraySpeciesCreate에 따른 하위 클래스의 동작, 배열 메서드를 유사 배열에 빌려 쓰는 경우, 콜백 안에서 배열을 바꾸는 경우는 다루지 않습니다.',
+    '구멍 설명은 Array.prototype과 Object.prototype에 인덱스 프로퍼티가 없는 보통의 경우를 전제합니다. 명세의 HasProperty와 Get은 프로토타입 체인까지 보므로, 그곳에 같은 인덱스가 있으면 구멍에서도 콜백이 불리고 그 값을 읽습니다.',
     'localeCompare·Intl.Collator에 의한 언어별 정렬과 유니코드 정규화는 다루지 않습니다. 기본 sort의 문자열 비교는 코드 유닛 순서입니다.',
     '스프레드·Array.from·이터러블은 이 사이트에서 아직 다루지 않은 별도 개념이라 예제에 쓰지 않으며, 깊은 복사와 structuredClone도 다루지 않습니다.',
     'toSorted·toReversed·toSpliced·with는 『모던 자바스크립트 Deep Dive』 출간 이후에 추가된 메서드입니다. 예제는 이 메서드를 지원하는 환경(Node 24 기준)에서 실행한 결과입니다.',

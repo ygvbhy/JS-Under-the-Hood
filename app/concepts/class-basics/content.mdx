@@ -34,7 +34,7 @@ import { comparison } from './comparison'
 
 클래스 안에서 쓰는 클래스 이름은 변경할 수 없는(immutable) 바인딩입니다. 예제 6의 2번 줄에서 `static reset` 메서드가 `Config = null`을 하려고 하면, 4번 줄이 보이듯 `TypeError`가 납니다. 명세(ClassDefinitionEvaluation)는 클래스 안쪽 이름을 클래스만을 위한 환경 레코드에 strict 바인딩인 변경할 수 없는 바인딩(`CreateImmutableBinding`의 두 번째 인수가 `true`)으로 만듭니다. strict 바인딩에 대입하면 대입하는 코드의 모드와 관계없이 항상 TypeError입니다. 이름 있는 함수 식의 이름도 변경할 수 없는 바인딩이지만 strict 바인딩이 아니어서, sloppy mode 함수 안에서 대입하면 오류 없이 무시됩니다([즉시 실행 함수와 모듈 패턴](/concepts/iife-module-pattern)). 반면 바깥의 클래스 선언이 만든 바인딩은 `let`처럼 다시 대입할 수 있어서, 5번 줄의 `Config = 'replaced'`는 오류 없이 6번 줄에서 `'replaced'`를 출력합니다. 안쪽 이름과 바깥 이름은 서로 다른 바인딩이므로, 바깥 `Config`에 다른 값을 대입한 뒤에도 클래스 안의 `Config`는 여전히 원래 클래스를 가리킵니다.
 
-클래스 식의 이름은 클래스 안에서만 보입니다. 7번 줄의 `class Inner`에서 `Inner`는 메서드 안에서는 `typeof Inner`가 `'function'`이지만, 8번 줄의 바깥에서 `typeof Inner`는 `'undefined'`입니다. 한편 같은 스코프에 `let A;`가 있는데 `class A {}`를 또 선언하면 문법 오류(SyntaxError)입니다. 문법 오류는 코드가 실행되기 전에 걸러지므로 그런 줄이 하나라도 있으면 스크립트 전체가 한 줄도 실행되지 않습니다. 그래서 예제로 출력을 보일 수 없고, 이 페이지의 테스트가 확인합니다.
+클래스 식의 이름은 클래스 안에서만 보입니다. 7번 줄의 `class Inner`에서 `Inner`는 메서드 안에서는 `typeof Inner`가 `'function'`이지만, 8번 줄의 바깥에서 `typeof Inner`는 `'undefined'`입니다. 한편 같은 스코프에 `let A;`가 있는데 `class A {}`를 또 선언하면 문법 오류(SyntaxError)입니다. 문법 오류는 코드가 실행되기 전에 걸러지므로 그런 줄이 하나라도 있으면 스크립트 전체가 한 줄도 실행되지 않습니다. 그래서 예제로 출력을 보일 수 없습니다.
 
 ### 인스턴스 필드와 static
 
@@ -46,7 +46,7 @@ import { comparison } from './comparison'
 
 예제 8의 `#balance`는 프로퍼티가 아닙니다. 프로퍼티 키(문자열이나 심볼)로 관리되는 것이 아니라, 명세가 Private Name으로 구분하는 별도의 private 요소입니다. 그래서 클래스 안의 3번 줄 `this.#balance`로는 읽고 쓸 수 있어서 `w.spend(30)`이 `70`을 돌려주지만(6번 줄), 프로퍼티 목록에는 나타나지 않습니다. 7번 줄에서 `Object.keys(w)`는 `[]`, `JSON.stringify(w)`는 `{}`이고 `w.balance`는 `undefined`입니다.
 
-8번 줄의 `w['#balance'] = 0`은 private 필드를 건드리는 것이 아닙니다. 이름이 `'#balance'`라는 문자열인 보통의 프로퍼티를 새로 만들 뿐입니다. 그래서 9번 줄의 `w.spend(10)`은 private 필드 `70`에서 `10`을 뺀 `60`을 돌려주고, 보통 프로퍼티 `w['#balance']`는 `0`입니다. 한편 클래스 밖에서 `w.#balance`라고 쓰면 문법 오류(SyntaxError)입니다. 이것도 실행 전에 걸러지는 오류라서 스크립트 전체가 실행되지 않으므로 예제로 보이지 않고 테스트가 확인합니다.
+8번 줄의 `w['#balance'] = 0`은 private 필드를 건드리는 것이 아닙니다. 이름이 `'#balance'`라는 문자열인 보통의 프로퍼티를 새로 만들 뿐입니다. 그래서 9번 줄의 `w.spend(10)`은 private 필드 `70`에서 `10`을 뺀 `60`을 돌려주고, 보통 프로퍼티 `w['#balance']`는 `0`입니다. 한편 클래스 밖에서 `w.#balance`라고 쓰면 문법 오류(SyntaxError)입니다. 이것도 실행 전에 걸러지는 오류라서 스크립트 전체가 실행되지 않으므로 예제로 보이지 않습니다.
 
 상태를 숨기는 다른 방법인 클로저([클로저](/concepts/closure), [모듈 패턴](/concepts/iife-module-pattern))와는 숨기는 위치가 다릅니다. 클로저는 변수 바인딩을 함수가 만든 환경 레코드에 두어 바깥에서 닿지 못하게 하고, private 필드는 숨은 상태를 인스턴스마다 붙여 둡니다. 클로저는 클래스의 `constructor` 안에서도 그대로 쓸 수 있으므로 "생성자 함수는 클로저, 클래스는 private 필드"처럼 나뉘는 것은 아닙니다. 차이는 private 필드를 클래스 본문 안에서만 쓸 수 있다는 것입니다. private 이름은 그것을 선언한 클래스 본문 안에서만 유효해서(명세의 AllPrivateIdentifiersValid 검사), 클래스 본문 밖의 생성자 함수에서 `this.#secret = 1`처럼 쓰면 SyntaxError입니다. 반대로 클래스 본문 안에 들어 있는 함수라면 `function` 키워드로 만든 함수에서도 그 클래스의 private 이름을 쓸 수 있습니다. 기준은 함수의 종류가 아니라 코드가 어느 클래스 본문 안에 있느냐입니다.
 
@@ -58,7 +58,7 @@ import { comparison } from './comparison'
 
 ### 비교표
 
-아래 표는 지금까지 본 차이를 정리한 것입니다. 칸마다 짧은 코드를 실제로 실행한 결과를 테스트가 확인합니다. "생성자 함수" 칸은 `function` 선언으로 만든 생성자 함수 기준입니다.
+아래 표는 지금까지 본 차이를 정리한 것입니다. 칸마다 짧은 코드를 실제로 실행해 확인했습니다. "생성자 함수" 칸은 `function` 선언으로 만든 생성자 함수 기준입니다.
 
 <div
   className="focus-visible:outline-accent my-6 overflow-x-auto focus-visible:outline-2"

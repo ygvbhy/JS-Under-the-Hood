@@ -2,13 +2,13 @@ import { globalProps } from './global-props'
 
 ## 동작 원리
 
-`Math.max(1, 2)`나 `parseInt('12px')`를 쓸 때 우리는 `Math`와 `parseInt`를 선언한 적이 없습니다. 그런데도 이름이 찾힙니다. 이 페이지는 그 이름들이 어디에 있고 어떤 순서로 찾히는지, 전역 객체의 프로퍼티는 누가 만드는지, `undefined`·`NaN`·`Infinity`가 왜 바뀌지 않는지, 빌트인 전역 함수(`isNaN`, `parseInt`, URI 함수)와 `eval`이 어떻게 동작하는지를 설명합니다. 실행 컨텍스트와 환경 레코드는 [실행 컨텍스트](/concepts/execution-context), `var`·`let`과 암묵적 전역은 [블록 스코프](/concepts/block-scope)에서 본 것을 전제합니다.
+`Math.max(1, 2)`나 `parseInt('12px')`를 쓸 때 우리는 `Math`와 `parseInt`를 선언한 적이 없습니다. 그런데도 이름이 찾아집니다. 이 페이지는 그 이름들이 어디에 있고 어떤 순서로 찾아지는지, 전역 객체의 프로퍼티는 누가 만드는지, `undefined`·`NaN`·`Infinity`가 왜 바뀌지 않는지, 빌트인 전역 함수(`isNaN`, `parseInt`, URI 함수)와 `eval`이 어떻게 동작하는지를 설명합니다. 실행 컨텍스트와 환경 레코드는 [실행 컨텍스트](/concepts/execution-context), `var`·`let`과 암묵적 전역은 [블록 스코프](/concepts/block-scope)에서 본 것을 전제합니다.
 
 ### 전역 객체는 코드보다 먼저 있다
 
 전역 객체(global object)는 어떤 실행 컨텍스트에 들어가기 전에 만들어집니다. 명세의 InitializeHostDefinedRealm이 realm을 준비할 때 호스트가 특정 객체를 전역 객체로 요구하면 그 객체를 쓰고, 그렇지 않으면 `Object.prototype`을 프로토타입으로 하는 보통 객체를 새로 만듭니다. 그래서 전역 객체의 `[[Prototype]]`은 호스트가 따로 요구하지 않으면 `Object.prototype`이고, 요구하면 호스트가 정한 값입니다(브라우저의 Window 객체는 다른 프로토타입 체인을 가집니다). 이어서 SetDefaultGlobalBindings가 명세가 정한 프로퍼티를 전역 객체에 정의하고, 그 뒤에 호스트가 정한 프로퍼티가 더해집니다. 그래서 우리 코드가 한 줄도 실행되기 전에 `Math`와 `parseInt`는 이미 있습니다.
 
-전역 객체에는 `[[Construct]]`도 `[[Call]]`도 없습니다. 그래서 `new globalThis()`와 `globalThis()`는 모두 TypeError입니다. 이 페이지는 전역 객체의 프로토타입 체인으로 찾히는 이름은 다루지 않습니다.
+전역 객체에는 `[[Construct]]`도 `[[Call]]`도 없습니다. 그래서 `new globalThis()`와 `globalThis()`는 모두 TypeError입니다. 이 페이지는 전역 객체의 프로토타입 체인으로 찾아지는 이름은 다루지 않습니다.
 
 ### 전역 객체 프로퍼티의 출처
 
@@ -71,9 +71,9 @@ import { globalProps } from './global-props'
 
 ### 이름은 어디서 찾나
 
-식별자를 찾을 때 전역 환경 레코드는 두 칸을 차례로 봅니다. 먼저 선언적 칸(전역 `let`·`const`·`class`)을 보고, 거기 없으면 객체 칸을 봅니다. 객체 칸의 binding object가 전역 객체이므로, 전역 객체의 프로퍼티는 식별자로 찾힙니다([실행 컨텍스트](/concepts/execution-context)). `Math`와 `parseInt`가 선언 없이 쓰이는 이유가 이것이고, `globalThis.answer = 42;`를 실행하면 그 뒤에 `answer`라는 식별자도 찾힙니다(예제 1).
+식별자를 찾을 때 전역 환경 레코드는 두 칸을 차례로 봅니다. 먼저 선언적 칸(전역 `let`·`const`·`class`)을 보고, 거기 없으면 객체 칸을 봅니다. 객체 칸의 binding object가 전역 객체이므로, 전역 객체의 프로퍼티는 식별자로 찾아집니다([실행 컨텍스트](/concepts/execution-context)). `Math`와 `parseInt`가 선언 없이 쓰이는 이유가 이것이고, `globalThis.answer = 42;`를 실행하면 그 뒤에 `answer`라는 식별자도 찾아집니다(예제 1).
 
-선언적 칸이 먼저이므로 전역 `let Math`는 `Math`를 가립니다. 전역 객체의 `Math` 프로퍼티는 그대로 있고 `globalThis.Math`로 여전히 읽을 수 있습니다. 선언문 앞에서 `Math`를 쓰면 `Math`는 이미 선언적 칸의 초기화되지 않은 바인딩으로 찾히므로 ReferenceError입니다([TDZ](/concepts/tdz), 예제 2). 반면 전역 `var Math`는 새 바인딩을 만들지 않습니다. 이미 있는 전역 객체의 `Math` 프로퍼티에 값을 대입하는 결과가 됩니다(예제 3).
+선언적 칸이 먼저이므로 전역 `let Math`는 `Math`를 가립니다. 전역 객체의 `Math` 프로퍼티는 그대로 있고 `globalThis.Math`로 여전히 읽을 수 있습니다. 선언문 앞에서 `Math`를 쓰면 `Math`는 이미 선언적 칸의 초기화되지 않은 바인딩으로 찾아지므로 ReferenceError입니다([TDZ](/concepts/tdz), 예제 2). 반면 전역 `var Math`는 새 바인딩을 만들지 않습니다. 이미 있는 전역 객체의 `Math` 프로퍼티에 값을 대입하는 결과가 됩니다(예제 3).
 
 전역 `var`와 함수 선언으로 새로 생긴 전역 객체의 프로퍼티는 configurable이 `false`입니다. 전역 코드의 선언 처리(GlobalDeclarationInstantiation)가 CreateGlobalVarBinding과 CreateGlobalFunctionBinding을 deletable `false`로 부르기 때문입니다. 그래서 전역 선언으로 만든 프로퍼티는 `delete`가 실패합니다. 다만 strict가 아닌 `eval` 코드가 전역에 `var`를 만들 때는 eval의 선언 처리(EvalDeclarationInstantiation)가 같은 연산을 `true`로 불러, 그렇게 만든 전역 `var`는 지울 수 있습니다(전역 코드에서 부른 직접 호출이나 간접 호출이 이 경우입니다).
 
@@ -103,7 +103,7 @@ import { globalProps } from './global-props'
 
 예제의 `console.log`는 값을 출력하는 호스트 API이며 ECMAScript 언어의 일부가 아닙니다. 예제는 스크립트로 실행되고, 파일 첫 줄이나 함수 본문 첫 줄에 `'use strict';`가 없으면 sloppy mode입니다. 여러 줄 출력은 퀴즈에서 ' / '로 이어 적었습니다.
 
-### 예제 1: 선언 없이 찾히는 이름
+### 예제 1: 선언 없이 찾아지는 이름
 
 ```js file=./examples/builtin-lookup.js
 
@@ -124,7 +124,7 @@ import { globalProps } from './global-props'
     '2 / mine / 2',
   ]}
   answer={1}
-  explanation="전역 let Math는 선언적 칸에 바인딩을 만들어 전역 객체의 Math보다 먼저 찾힙니다. 2번 줄은 아직 초기화되지 않은 그 바인딩을 읽으므로 ReferenceError이고, 7번 줄은 mine입니다. 전역 객체의 Math 프로퍼티는 그대로여서 8번 줄 globalThis.Math.max(1, 2)는 2입니다."
+  explanation="전역 let Math는 선언적 칸에 바인딩을 만들어 전역 객체의 Math보다 먼저 찾아집니다. 2번 줄은 아직 초기화되지 않은 그 바인딩을 읽으므로 ReferenceError이고, 7번 줄은 mine입니다. 전역 객체의 Math 프로퍼티는 그대로여서 8번 줄 globalThis.Math.max(1, 2)는 2입니다."
 />
 
 ### 예제 3: var Math
@@ -253,7 +253,7 @@ import { globalProps } from './global-props'
 
 ### 예제 1
 
-1, 2번 줄은 `Math`와 `parseInt`가 각각 전역 객체의 같은 이름 프로퍼티와 같은 값이라서 `true`입니다. 3번 줄은 `globalThis`의 초기값과 최상위 `this`가 모두 전역 환경의 `[[GlobalThisValue]]`이므로, 그 값이 전역 객체 자신이든 아니든 `true`입니다. 4번 줄이 전역 객체에 `answer` 프로퍼티를 만들기 때문에 5번 줄의 식별자 `answer`가 전역 환경 레코드의 객체 칸에서 찾혀 `42`가 출력됩니다.
+1, 2번 줄은 `Math`와 `parseInt`가 각각 전역 객체의 같은 이름 프로퍼티와 같은 값이라서 `true`입니다. 3번 줄은 `globalThis`의 초기값과 최상위 `this`가 모두 전역 환경의 `[[GlobalThisValue]]`이므로, 그 값이 전역 객체 자신이든 아니든 `true`입니다. 4번 줄이 전역 객체에 `answer` 프로퍼티를 만들기 때문에 5번 줄의 식별자 `answer`가 전역 환경 레코드의 객체 칸에서 찾아져 `42`가 출력됩니다.
 
 ### 예제 2
 
@@ -293,7 +293,7 @@ import { globalProps } from './global-props'
 
 ### 예제 11
 
-2번 줄의 `eval('var made = 1')`은 직접 호출이고 함수가 strict가 아니므로 `made`가 함수 `run`의 VariableEnvironment에 만들어집니다. 4번 줄의 `typeof made`는 `number`입니다. 3번 줄의 `eval('let kept = 2')`는 eval이 만든 새 선언적 환경 레코드에 머물러서 4번 줄에서 `kept`는 찾히지 않고 `typeof kept`는 `undefined`입니다. 7번 줄의 `typeof made`는 `made`가 함수의 var라서 전역에는 없으므로 `undefined`입니다.
+2번 줄의 `eval('var made = 1')`은 직접 호출이고 함수가 strict가 아니므로 `made`가 함수 `run`의 VariableEnvironment에 만들어집니다. 4번 줄의 `typeof made`는 `number`입니다. 3번 줄의 `eval('let kept = 2')`는 eval이 만든 새 선언적 환경 레코드에 머물러서 4번 줄에서 `kept`는 찾아지지 않고 `typeof kept`는 `undefined`입니다. 7번 줄의 `typeof made`는 `made`가 함수의 var라서 전역에는 없으므로 `undefined`입니다.
 
 ### 예제 12
 

@@ -355,7 +355,7 @@ setter만 있는 접근자 프로퍼티를 상속받은 객체에 대입합니�
 
 예제 1에서 `book`의 `[[Prototype]]`은 `Object.prototype`이라 2번 줄이 `true`입니다. `book.toString`은 `book`에 없으므로 `Object.prototype`에서 읽혀 [typeof 연산자](/concepts/typeof-operator)가 `function`을 돌려주고(3번 줄), 자기 프로퍼티는 아니므로 `Object.hasOwn`은 `false`입니다(4번 줄). `Object.prototype`의 `[[Prototype]]`은 `null`이고(5번 줄), 체인 어디에도 없는 `price`는 `undefined`입니다(6번 줄).
 
-예제 2에서 `item.title`은 `item`의 자기 프로퍼티이고, `item.lang`은 `item`에 없어 `mid`에서, `item.kind`는 `mid`에도 없어 `base`에서 찾힙니다. `item.price`는 `item`, `mid`, `base`, `Object.prototype`을 차례로 확인하고 `null`에 닿아 `undefined`입니다. 값이 어디에서 왔는지는 체인에서 처음 그 이름을 찾은 객체가 정합니다.
+예제 2에서 `item.title`은 `item`의 자기 프로퍼티이고, `item.lang`은 `item`에 없어 `mid`에서, `item.kind`는 `mid`에도 없어 `base`에서 찾아집니다. `item.price`는 `item`, `mid`, `base`, `Object.prototype`을 차례로 확인하고 `null`에 닿아 `undefined`입니다. 값이 어디에서 왔는지는 체인에서 처음 그 이름을 찾은 객체가 정합니다.
 
 예제 3의 `function Book` 선언은 코드를 실행하기 전에 처리되어([호이스팅](/concepts/hoisting)) 함수 객체와 그 `prototype` 객체가 처음부터 있습니다. 4번 줄은 `Book`의 `prototype` 프로퍼티가 가리키는 객체에 `kind`를 추가합니다. 5번 줄의 `new`는 새 객체 `a`를 만들고 그 `[[Prototype]]`을 `Book.prototype`으로 정합니다. 그래서 6번 줄은 `true`이고, 7번 줄은 `Book` 자신의 `[[Prototype]]`이 `Function.prototype`이라서 `false`, 8번 줄은 `true`입니다. `a.kind`는 `a`에 없어 `Book.prototype`에서 읽히고(9번 줄), `a.prototype`은 `a`의 체인에 `prototype` 프로퍼티가 없어 `undefined`입니다(10번 줄). 11번 줄의 `Book.prototype.constructor`는 `Book`입니다. `new`의 내부 단계는 [new 연산자](/concepts/new-operator)에서 다룹니다.
 

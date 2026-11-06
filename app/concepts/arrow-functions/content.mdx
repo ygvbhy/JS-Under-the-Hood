@@ -6,7 +6,7 @@ import { comparison } from './comparison'
 
 ### 화살표 함수 문법
 
-예제 1의 1번 줄처럼 매개변수가 식별자 하나뿐이면 괄호를 생략할 수 있습니다. rest 파라미터, 기본값, 구조 분해가 하나라도 있으면 괄호가 필요해서 `...a => a`는 SyntaxError입니다(테스트로 확인합니다). 화살표 뒤가 `{`로 시작하지 않으면 식 본문(expression body)이고, 그 식의 값이 함수의 반환값입니다. 그래서 2번 줄의 `add(2, 3)`은 `5`를 돌려줍니다. 화살표 뒤가 `{`로 시작하면 이것은 식이 아니라 일반 함수와 같은 함수 본문(블록 본문)입니다. 3번 줄의 `noReturn`은 본문에서 `a + b`를 계산만 하고 `return`이 없으므로 `undefined`를 돌려주고, 4번 줄의 `withReturn`은 `return`이 있어 `5`를 돌려줍니다.
+예제 1의 1번 줄처럼 매개변수가 식별자 하나뿐이면 괄호를 생략할 수 있습니다. rest 파라미터, 기본값, 구조 분해가 하나라도 있으면 괄호가 필요해서 `...a => a`는 SyntaxError입니다. 화살표 뒤가 `{`로 시작하지 않으면 식 본문(expression body)이고, 그 식의 값이 함수의 반환값입니다. 그래서 2번 줄의 `add(2, 3)`은 `5`를 돌려줍니다. 화살표 뒤가 `{`로 시작하면 이것은 식이 아니라 일반 함수와 같은 함수 본문(블록 본문)입니다. 3번 줄의 `noReturn`은 본문에서 `a + b`를 계산만 하고 `return`이 없으므로 `undefined`를 돌려주고, 4번 줄의 `withReturn`은 `return`이 있어 `5`를 돌려줍니다.
 
 6번 줄은 흔한 함정입니다. `() => { value: 1 }`에서 `{`는 객체 리터럴이 아니라 본문의 시작입니다. `value:`는 레이블이고 `1`은 그냥 식문장이라 `return`이 없는 함수가 되어, `label()`은 `undefined`입니다. 객체를 바로 돌려주려면 7번 줄처럼 `({ value: 1 })`로 괄호를 씌워 `{`가 식의 시작이 되게 합니다.
 
@@ -26,29 +26,29 @@ import { comparison } from './comparison'
 
 `this`와 `new.target`, `super`는 이 규칙이 환경 레코드에서 이렇게 나타납니다. 화살표 함수의 함수 환경 레코드는 `this` 바인딩을 갖지 않는 상태(lexical)라서 `HasThisBinding()`이 `false`입니다. `this`를 평가하거나 `new.target`을 읽을 때 명세는 GetThisEnvironment로 바깥으로 올라가며 처음 `this` 바인딩이 있는 환경을 찾고, 거기서 값을 읽습니다. `super`도 같습니다. 명세는 `super.x`를 평가할 때도 GetThisEnvironment로 환경을 찾으므로, 화살표 함수 안의 `super`는 바깥 메서드의 함수 환경에서 그 메서드의 `[[HomeObject]]`의 `[[Prototype]]`을 출발점으로 씁니다. `arguments`는 `this`·`new.target`·`super`와 달리 GetThisEnvironment를 거치지 않습니다. 일반 함수의 `arguments`도 FunctionDeclarationInstantiation이 함수 환경에 만든 보통의 바인딩이고, 이름을 찾는 과정은 다른 식별자와 같습니다. 명세는 `[[ThisMode]]`가 lexical인 함수에는 이 바인딩을 만들지 않는다고 정하므로, 화살표 함수 안의 `arguments`는 식별자 해석이 그대로 스코프 체인을 따라 바깥 함수의 `arguments` 바인딩에 닿습니다.
 
-예제 4에서 확인합니다. 1번 줄의 `Box`는 3번 줄에서 화살표 함수를 `this.read`에 담고, 4번 줄에서는 같은 식을 돌려주는 일반 함수를 `this.plain`에 담습니다. 6번 줄의 `new Box('A', 'extra')`로 `Box`가 호출될 때 `this`는 새 객체(`box`), `arguments.length`는 `2`, `new.target`은 `Box`입니다. 8번 줄의 `box.read(1, 2, 3)`은 `A 2 true`를 출력합니다. 인수를 세 개 넘겼는데도 `arguments.length`가 `2`인 것은, 화살표 함수 안의 `arguments`가 `read`의 인수가 아니라 `Box` 호출의 `arguments`를 가리키기 때문입니다. 7번 줄에서 `read`와 `plain`을 다른 객체 `other`에 옮겨 담고 호출해도 9번 줄의 `other.read()`는 여전히 `A 2 true`입니다. `this`를 바깥 `Box`의 환경에서 찾기 때문입니다. 반면 10번 줄의 `other.plain(1, 2, 3)`은 `B 3 false`입니다. 일반 함수는 자기 `this`(`other.plain(...)`이라는 호출에서 정해지는 `other`), 자기 `arguments`(길이 `3`), 자기 `new.target`(`new` 없이 불렀으므로 `undefined`)를 가집니다([this](/concepts/this-binding)). 마지막으로 11번 줄의 `topLevel`은 어떤 함수 안에도 있지 않아 찾아 올라갈 곳에 `arguments`가 없습니다. 그래서 12번 줄의 `typeof arguments`는 `'undefined'`입니다. 선언되지 않은 이름에 `typeof`를 쓰면 오류 없이 `'undefined'`가 되기 때문이고, 같은 이름을 `typeof` 없이 읽으면 ReferenceError입니다(이 페이지의 테스트가 확인합니다). 객체 리터럴의 화살표 함수에서 `this`를 쓰는 경우나 `call`, `apply`, `bind`와의 관계는 [this](/concepts/this-binding)에서 다룹니다.
+예제 4에서 확인합니다. 1번 줄의 `Box`는 3번 줄에서 화살표 함수를 `this.read`에 담고, 4번 줄에서는 같은 식을 돌려주는 일반 함수를 `this.plain`에 담습니다. 6번 줄의 `new Box('A', 'extra')`로 `Box`가 호출될 때 `this`는 새 객체(`box`), `arguments.length`는 `2`, `new.target`은 `Box`입니다. 8번 줄의 `box.read(1, 2, 3)`은 `A 2 true`를 출력합니다. 인수를 세 개 넘겼는데도 `arguments.length`가 `2`인 것은, 화살표 함수 안의 `arguments`가 `read`의 인수가 아니라 `Box` 호출의 `arguments`를 가리키기 때문입니다. 7번 줄에서 `read`와 `plain`을 다른 객체 `other`에 옮겨 담고 호출해도 9번 줄의 `other.read()`는 여전히 `A 2 true`입니다. `this`를 바깥 `Box`의 환경에서 찾기 때문입니다. 반면 10번 줄의 `other.plain(1, 2, 3)`은 `B 3 false`입니다. 일반 함수는 자기 `this`(`other.plain(...)`이라는 호출에서 정해지는 `other`), 자기 `arguments`(길이 `3`), 자기 `new.target`(`new` 없이 불렀으므로 `undefined`)를 가집니다([this](/concepts/this-binding)). 마지막으로 11번 줄의 `topLevel`은 어떤 함수 안에도 있지 않아 찾아 올라갈 곳에 `arguments`가 없습니다. 그래서 12번 줄의 `typeof arguments`는 `'undefined'`입니다. 선언되지 않은 이름에 `typeof`를 쓰면 오류 없이 `'undefined'`가 되기 때문이고, 같은 이름을 `typeof` 없이 읽으면 ReferenceError입니다. 객체 리터럴의 화살표 함수에서 `this`를 쓰는 경우나 `call`, `apply`, `bind`와의 관계는 [this](/concepts/this-binding)에서 다룹니다.
 
 ### 메서드 축약과 super
 
-메서드 축약은 `m: function () {}`을 짧게 쓴 것과 같지 않습니다. 명세의 `DefineMethod`는 메서드를 만든 뒤 `MakeMethod`로 `[[HomeObject]]` 내부 슬롯에 그 메서드가 정의된 객체(여기서는 객체 리터럴이 만든 객체)를 넣습니다. `super.x`는 그 `[[HomeObject]]`의 `[[Prototype]]`에서 `x`를 찾기 시작합니다. `function` 식과 선언 안에서 `super` 프로퍼티를 쓰면 실행 전에 걸러지는 SyntaxError라서, 객체 리터럴에서 `super`를 쓰려면 메서드 축약으로 정의해야 합니다(그 안의 화살표 함수는 아래처럼 바깥 메서드의 `super`를 씁니다). `{ m: function () { super.x } }` 같은 줄이 하나라도 있으면 스크립트 전체가 실행되지 않으므로 이 SyntaxError는 예제가 아니라 이 페이지의 테스트가 확인합니다.
+메서드 축약은 `m: function () {}`을 짧게 쓴 것과 같지 않습니다. 명세의 `DefineMethod`는 메서드를 만든 뒤 `MakeMethod`로 `[[HomeObject]]` 내부 슬롯에 그 메서드가 정의된 객체(여기서는 객체 리터럴이 만든 객체)를 넣습니다. `super.x`는 그 `[[HomeObject]]`의 `[[Prototype]]`에서 `x`를 찾기 시작합니다. `function` 식과 선언 안에서 `super` 프로퍼티를 쓰면 실행 전에 걸러지는 SyntaxError라서, 객체 리터럴에서 `super`를 쓰려면 메서드 축약으로 정의해야 합니다(그 안의 화살표 함수는 아래처럼 바깥 메서드의 `super`를 씁니다). `{ m: function () { super.x } }` 같은 줄이 하나라도 있으면 스크립트 전체가 실행되지 않으므로 이 SyntaxError는 예제로 보이지 않습니다.
 
-예제 5의 6번 줄 `Object.setPrototypeOf(child, base)`는 `child`의 `[[Prototype]]`을 `base`로 정합니다([프로토타입 체인](/concepts/prototype-chain)). 3번 줄 `child.greet`의 `super.greet()`는 `child`의 `[[Prototype]]`인 `base`에서 `greet`을 찾아 `'base'`를 얻고 `'+child'`를 붙입니다. 4번 줄의 `later`는 안에 화살표 함수 `inner`를 만들어 `super.greet()`을 부릅니다. `inner`에는 자기 `super` 바인딩이 없어 `later`의 `super`를 쓰므로, 7번 줄에서 `child.later()`는 `'base'`입니다. 8~9번 줄은 `[[HomeObject]]`가 호출한 객체가 아니라 정의된 객체라는 점을 보입니다. `borrowed`에 `child.greet`를 옮겨 담고 `borrowed.greet()`를 불러도, 이 메서드의 `[[HomeObject]]`는 여전히 `child`라서 `super.greet()`는 `base`의 `greet`을 찾습니다. 결과는 `base+child`입니다. 다만 `[[HomeObject]]`가 정하는 것은 찾기 시작하는 곳뿐입니다. 찾아낸 `base.greet`에 넘어가는 `this`는 `[[HomeObject]]`가 아니라 호출 시점의 `this`(여기서는 `borrowed`)입니다. 예제의 `base.greet`는 `this`를 쓰지 않아 출력에는 드러나지 않고, 이 페이지의 테스트가 확인합니다.
+예제 5의 6번 줄 `Object.setPrototypeOf(child, base)`는 `child`의 `[[Prototype]]`을 `base`로 정합니다([프로토타입 체인](/concepts/prototype-chain)). 3번 줄 `child.greet`의 `super.greet()`는 `child`의 `[[Prototype]]`인 `base`에서 `greet`을 찾아 `'base'`를 얻고 `'+child'`를 붙입니다. 4번 줄의 `later`는 안에 화살표 함수 `inner`를 만들어 `super.greet()`을 부릅니다. `inner`에는 자기 `super` 바인딩이 없어 `later`의 `super`를 쓰므로, 7번 줄에서 `child.later()`는 `'base'`입니다. 8~9번 줄은 `[[HomeObject]]`가 호출한 객체가 아니라 정의된 객체라는 점을 보입니다. `borrowed`에 `child.greet`를 옮겨 담고 `borrowed.greet()`를 불러도, 이 메서드의 `[[HomeObject]]`는 여전히 `child`라서 `super.greet()`는 `base`의 `greet`을 찾습니다. 결과는 `base+child`입니다. 다만 `[[HomeObject]]`가 정하는 것은 찾기 시작하는 곳뿐입니다. 찾아낸 `base.greet`에 넘어가는 `this`는 `[[HomeObject]]`가 아니라 호출 시점의 `this`(여기서는 `borrowed`)입니다. 예제의 `base.greet`는 `this`를 쓰지 않아 출력에는 드러나지 않습니다.
 
 ### 중복 매개변수
 
 `function f(a, a)`처럼 같은 이름의 매개변수를 두 번 쓰는 것은 sloppy mode의 `function` 선언과 식에서, 매개변수 목록이 단순할(기본값·구조 분해·rest 파라미터가 없을) 때만 허용됩니다. 이때 `a`에는 뒤의 인수가 들어갑니다. `f(1, 2)`는 `2`를 돌려줍니다. 명세가 `function` 선언과 식에 중복 금지(UniqueFormalParameters) 규칙을 strict mode에서 적용하고, 그와 별도로 단순하지 않은 매개변수 목록(IsSimpleParameterList가 false)의 중복도 SyntaxError로 정하기 때문입니다. 그래서 sloppy mode라도 rest 파라미터가 있는 `function f(a, a, ...rest) {}`는 SyntaxError입니다. 반면 화살표 함수의 매개변수(ArrowFormalParameters)와 메서드 정의의 매개변수는 항상 UniqueFormalParameters라서 `(a, a) => 1`이나 `({ m(a, a) {} })`은 strict 여부와 관계없이 SyntaxError입니다.
 
-SyntaxError는 실행 전에 걸러지는 오류라서 그런 줄이 하나라도 있으면 스크립트 전체가 한 줄도 실행되지 않습니다. 그래서 예제로 출력을 보일 수 없고, 이 페이지의 테스트가 확인합니다. 아래 비교표의 마지막 행에도 들어 있습니다.
+SyntaxError는 실행 전에 걸러지는 오류라서 그런 줄이 하나라도 있으면 스크립트 전체가 한 줄도 실행되지 않습니다. 그래서 예제로 출력을 보일 수 없습니다. 아래 비교표의 마지막 행에도 들어 있습니다.
 
 ### rest 파라미터
 
-rest 파라미터(`...이름`)는 선언한 매개변수에 대응하지 않는 나머지 인수를 모아 배열로 받습니다. 문법상 매개변수 목록의 맨 마지막에만 쓸 수 있어서 `(...a, b) => 1`은 SyntaxError입니다(테스트로 확인합니다). 이 값은 명세의 바인딩 초기화가 ArrayCreate로 만든 진짜 배열이므로 `Array.isArray`가 `true`이고, 나머지 인수가 없으면 빈 배열입니다. `arguments`가 배열이 아니었던 것과 다릅니다. 또 `arguments`는 함수가 받은 모든 인수를 담지만 rest 파라미터는 선언한 매개변수 뒤의 나머지만 담습니다. 화살표 함수에는 자기 `arguments`가 없어도 rest 파라미터는 쓸 수 있습니다.
+rest 파라미터(`...이름`)는 선언한 매개변수에 대응하지 않는 나머지 인수를 모아 배열로 받습니다. 문법상 매개변수 목록의 맨 마지막에만 쓸 수 있어서 `(...a, b) => 1`은 SyntaxError입니다. 이 값은 명세의 바인딩 초기화가 ArrayCreate로 만든 진짜 배열이므로 `Array.isArray`가 `true`이고, 나머지 인수가 없으면 빈 배열입니다. `arguments`가 배열이 아니었던 것과 다릅니다. 또 `arguments`는 함수가 받은 모든 인수를 담지만 rest 파라미터는 선언한 매개변수 뒤의 나머지만 담습니다. 화살표 함수에는 자기 `arguments`가 없어도 rest 파라미터는 쓸 수 있습니다.
 
 예제 6의 9번 줄에서 `sum(1, 2, 3)`은 1번 줄의 `...nums`가 `[1, 2, 3]`이 되어 `6`이고, `sum()`은 빈 배열이라 반복문이 돌지 않고 `0`입니다. 6번 줄의 `tag(label, ...rest)`는 10번 줄에서 `tag('a', 1, 2)`가 `rest`에 `[1, 2]`를 받아 `a:2:true`, `tag('b')`는 `rest`가 빈 배열이라 `b:0:true`입니다. 11번 줄은 함수의 `length`입니다. 명세의 ExpectedArgumentCount는 rest 파라미터를 세지 않으므로 `sum.length`는 `0`, `tag.length`는 `label` 하나만 세어 `1`입니다.
 
 ### 비교표
 
-아래 표는 지금까지 본 차이를 정리한 것입니다. "일반 함수" 칸은 sloppy 스크립트의 `function` 식 기준입니다. 칸마다 짧은 코드를 실제로 실행한 결과를 테스트가 확인합니다.
+아래 표는 지금까지 본 차이를 정리한 것입니다. "일반 함수" 칸은 sloppy 스크립트의 `function` 식 기준입니다. 칸마다 짧은 코드를 실제로 실행해 확인했습니다.
 
 <div
   className="focus-visible:outline-accent my-6 overflow-x-auto focus-visible:outline-2"
@@ -242,7 +242,7 @@ rest 파라미터(`...이름`)는 선언한 매개변수에 대응하지 않는 
 
 <Callout type="misconception" title="화살표 함수는 만들 때의 this 값을 저장해 둔다">
 
-화살표 함수는 `this` 값을 가지고 있는 것이 아니라 `this` 바인딩이 없을 뿐이고, `this`를 평가할 때마다 바깥 함수의 `this` 바인딩을 찾습니다. 파생 클래스의 생성자에서 이 차이가 드러납니다. `super()`를 부르기 전의 `this`는 초기화되지 않은 상태인데([클래스 상속과 super](/concepts/class-inheritance)), `var f = () => this`를 `super()` 앞에서 만들어 두고 `super()` 뒤에 `f()`를 부르면 초기화된 `this`가 나옵니다. 반대로 `super()` 앞에서 `f()`를 부르면 ReferenceError입니다. 만들 때 값을 저장해 두는 것이었다면 `super()` 앞에서 만든 `f`는 뒤에 불러도 초기화된 `this`를 얻을 수 없었을 것입니다. 결과는 `f()`를 부르는 시점의 바깥 `this` 바인딩 상태를 따릅니다. 이 페이지의 테스트가 두 경우를 실행해 확인합니다.
+화살표 함수는 `this` 값을 가지고 있는 것이 아니라 `this` 바인딩이 없을 뿐이고, `this`를 평가할 때마다 바깥 함수의 `this` 바인딩을 찾습니다. 파생 클래스의 생성자에서 이 차이가 드러납니다. `super()`를 부르기 전의 `this`는 초기화되지 않은 상태인데([클래스 상속과 super](/concepts/class-inheritance)), `var f = () => this`를 `super()` 앞에서 만들어 두고 `super()` 뒤에 `f()`를 부르면 초기화된 `this`가 나옵니다. 반대로 `super()` 앞에서 `f()`를 부르면 ReferenceError입니다. 만들 때 값을 저장해 두는 것이었다면 `super()` 앞에서 만든 `f`는 뒤에 불러도 초기화된 `this`를 얻을 수 없었을 것입니다. 결과는 `f()`를 부르는 시점의 바깥 `this` 바인딩 상태를 따릅니다. 두 경우를 실제로 실행해 확인했습니다.
 
 </Callout>
 

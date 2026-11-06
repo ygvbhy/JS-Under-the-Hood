@@ -91,7 +91,7 @@ describe('본문 주장 검증', () => {
     ).toBe('ReferenceError')
   })
 
-  it('전역에서 같은 이름이 양쪽에 있으면 선언적 레코드의 let이 찾히고 전역 객체 프로퍼티는 가려진다', () => {
+  it('전역에서 같은 이름이 양쪽에 있으면 선언적 레코드의 let이 찾아지고 전역 객체 프로퍼티는 가려진다', () => {
     expect(
       jsonOf(
         `globalThis.dup = 'object'; let dup = 'declarative'; JSON.stringify([dup, globalThis.dup])`,
