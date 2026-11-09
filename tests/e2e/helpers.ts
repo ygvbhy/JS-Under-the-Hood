@@ -85,6 +85,8 @@ export const ASYNC_AWAIT_PATH = '/concepts/async-await'
 export const ASYNC_AWAIT_SIMULATOR_NAME = 'async/await 시뮬레이터'
 export const ERROR_HANDLING_PATH = '/concepts/error-handling'
 export const ERROR_HANDLING_SIMULATOR_NAME = 'try/catch/finally 시뮬레이터'
+export const ASYNC_GENERATOR_PATH = '/concepts/async-generator'
+export const ASYNC_GENERATOR_SIMULATOR_NAME = 'async 제너레이터 시뮬레이터'
 export const ES_MODULES_PATH = '/concepts/es-modules'
 export const ES_MODULES_SIMULATOR_NAME = 'ES 모듈 시뮬레이터'
 

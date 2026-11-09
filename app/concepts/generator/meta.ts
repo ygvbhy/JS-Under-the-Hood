@@ -35,7 +35,13 @@ export const concept = {
     { label: '실행 컨텍스트', slug: 'execution-context' },
     { label: '이터러블과 for...of', slug: 'iterable-for-of' },
   ],
-  related: ['iterable-for-of', 'execution-context', 'spread-destructuring', 'new-operator'],
+  related: [
+    'iterable-for-of',
+    'execution-context',
+    'spread-destructuring',
+    'new-operator',
+    'async-generator',
+  ],
   examples: [
     {
       id: 'lazy',
@@ -122,7 +128,7 @@ export const concept = {
     '시뮬레이터는 실행 컨텍스트를 이름으로만 그리고, 내장 next·return 메서드의 실행 컨텍스트는 그리지 않습니다.',
     '제너레이터 상태 칸은 명세의 [[GeneratorState]]를 그대로 이름으로 보이고, 제너레이터 객체가 기억하는 변수는 그 실행 컨텍스트의 환경을 요약해 보인 것입니다.',
     'try...catch...finally 문 자체와 예외는 try/catch/finally 개념에서 다룹니다. 이 페이지는 제너레이터를 빠져나갈 때 finally 블록이 실행된다는 결과만 다룹니다.',
-    'async 제너레이터와 for await...of, 제너레이터로 비동기 흐름 다루기는 별도 개념(작성 예정)이고, async/await는 async/await 개념에서 다룹니다.',
+    'async 제너레이터와 for await...of는 async 제너레이터 개념에서 다루고, 제너레이터로 비동기 흐름 다루기는 이 사이트에서 다루지 않습니다. async/await는 async/await 개념에서 다룹니다.',
     'GeneratorFunction 생성자와 Iterator helpers는 다루지 않습니다.',
     '시작 전에 부른 throw()와, 본문이 잡지 못한 예외가 throw()를 부른 쪽으로 나가며 제너레이터가 completed가 되는 경우, throw()로 재개된 예외가 finally 블록을 지나가는 경우, 실행 중인 제너레이터에 부른 return()·throw()의 TypeError는 명세 서술로만 설명하고 예제로 실행해 보이지 않습니다.',
     'finally 블록 안에서 다시 yield하거나 return하는 경우는 다루지 않습니다. 이때는 return()의 결과가 인수와 true가 아닐 수 있고 제너레이터가 completed가 되지 않을 수도 있습니다.',

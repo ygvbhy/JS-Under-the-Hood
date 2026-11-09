@@ -75,6 +75,8 @@ import {
   ASYNC_AWAIT_SIMULATOR_NAME,
   ERROR_HANDLING_PATH,
   ERROR_HANDLING_SIMULATOR_NAME,
+  ASYNC_GENERATOR_PATH,
+  ASYNC_GENERATOR_SIMULATOR_NAME,
   ES_MODULES_PATH,
   ES_MODULES_SIMULATOR_NAME,
   PROMISE_PATH,
@@ -1045,6 +1047,24 @@ for (const colorScheme of ['light', 'dark'] as const) {
       for (let i = 0; i < 5; i++) await next.click()
       await expect(region).toBeVisible()
       await expect(region.getByText(/^단계 6 \/ 8$/)).toBeVisible()
+      await expectNoSeriousViolations(page)
+    })
+
+    test('개념 페이지: async 제너레이터', async ({ page }) => {
+      await page.goto(ASYNC_GENERATOR_PATH)
+      await waitForHydration(page)
+      await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
+      await expectNoSeriousViolations(page)
+    })
+
+    test('개념 페이지: async 제너레이터 시뮬레이터를 진행한 뒤', async ({ page }) => {
+      await page.goto(ASYNC_GENERATOR_PATH)
+      await waitForHydration(page)
+      const region = page.getByRole('region', { name: ASYNC_GENERATOR_SIMULATOR_NAME })
+      const next = region.getByRole('button', { name: '다음' })
+      for (let i = 0; i < 10; i++) await next.click()
+      await expect(region).toBeVisible()
+      await expect(region.getByText(/^단계 11 \/ 20$/)).toBeVisible()
       await expectNoSeriousViolations(page)
     })
 

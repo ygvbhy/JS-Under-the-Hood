@@ -73,6 +73,8 @@ import {
   ASYNC_AWAIT_SIMULATOR_NAME,
   ERROR_HANDLING_PATH,
   ERROR_HANDLING_SIMULATOR_NAME,
+  ASYNC_GENERATOR_PATH,
+  ASYNC_GENERATOR_SIMULATOR_NAME,
   ES_MODULES_PATH,
   ES_MODULES_SIMULATOR_NAME,
   PROMISE_PATH,
@@ -1266,6 +1268,49 @@ test('try/catch/finally 개념 페이지: 첫 시나리오를 끝까지 진행�
   expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
 })
 
+test(`${ASYNC_GENERATOR_PATH}: 가로 스크롤이 없다`, async ({ page }) => {
+  await page.goto(ASYNC_GENERATOR_PATH)
+  await waitForHydration(page)
+  const { scrollWidth, innerWidth } = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    innerWidth: window.innerWidth,
+  }))
+  expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
+})
+
+test('async 제너레이터 개념 페이지: 첫 시나리오를 끝까지 진행해도 가로 스크롤이 없다', async ({
+  page,
+}) => {
+  await page.goto(ASYNC_GENERATOR_PATH)
+  await waitForHydration(page)
+  const region = page.getByRole('region', { name: ASYNC_GENERATOR_SIMULATOR_NAME })
+  const next = region.getByRole('button', { name: '다음' })
+  for (let i = 0; i < 19; i++) await next.click()
+  await expect(region.getByText(/^단계 20 \/ 20$/)).toBeVisible()
+  const { scrollWidth, innerWidth } = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    innerWidth: window.innerWidth,
+  }))
+  expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
+})
+
+test('async 제너레이터 개념 페이지: 두 번째 시나리오를 끝까지 진행해도 가로 스크롤이 없다', async ({
+  page,
+}) => {
+  await page.goto(ASYNC_GENERATOR_PATH)
+  await waitForHydration(page)
+  const region = page.getByRole('region', { name: ASYNC_GENERATOR_SIMULATOR_NAME })
+  await region.getByRole('radio', { name: 'for await의 break' }).click()
+  const next = region.getByRole('button', { name: '다음' })
+  for (let i = 0; i < 14; i++) await next.click()
+  await expect(region.getByText(/^단계 15 \/ 15$/)).toBeVisible()
+  const { scrollWidth, innerWidth } = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    innerWidth: window.innerWidth,
+  }))
+  expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
+})
+
 test(`${ES_MODULES_PATH}: 가로 스크롤이 없다`, async ({ page }) => {
   await page.goto(ES_MODULES_PATH)
   await waitForHydration(page)
@@ -1310,7 +1355,7 @@ test('ES 모듈 개념 페이지: 순환 import 시나리오를 끝까지 진행
 test('홈 학습 순서 보기: 가로 스크롤이 없다', async ({ page }) => {
   await page.goto('/?view=order')
   await waitForHydration(page)
-  await expect(page.getByRole('article')).toHaveCount(52)
+  await expect(page.getByRole('article')).toHaveCount(53)
   const { scrollWidth, innerWidth } = await page.evaluate(() => ({
     scrollWidth: document.documentElement.scrollWidth,
     innerWidth: window.innerWidth,

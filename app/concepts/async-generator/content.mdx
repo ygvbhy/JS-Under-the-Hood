@@ -1,0 +1,834 @@
+import { Simulator } from './Simulator'
+import { scenarios } from './scenarios'
+
+async 제너레이터에서 `next`를 연달아 세 번 불러도 결과는 왜 부른 순서대로 나올까요? 일반 제너레이터의 `next`는 값을 바로 돌려주지만, async 제너레이터의 `next`는 프로미스를 돌려주고, 앞의 요청이 끝나기 전에 다음 `next`가 불려도 결과가 섞이지 않습니다. 이 페이지는 이 질문에서 출발해 async 제너레이터를 부르면 무엇을 돌려받는지, `next`가 돌려준 프로미스는 언제 결과를 갖는지, `yield`가 값을 어떻게 다루는지, 연달아 부른 `next`가 요청 큐에서 어떻게 처리되는지, `return()`과 `throw()`와 본문 예외와 끝난 뒤의 `next`는 무엇이 다른지, `for await...of`가 결과를 어떻게 기다리는지, 반복문을 일찍 나가면 왜 정리를 기다리는지, 동기 이터러블을 `for await...of`에 쓰면 어떻게 되는지, `Symbol.asyncIterator`를 직접 구현하는 방법과 async 제너레이터 안에서 다른 이터러블에 위임하는 구문을 예제 열여섯 개로 차례로 확인합니다. async 제너레이터는 ECMAScript 언어의 동작이고, 예제의 출력은 Node.js의 `vm`에서 실행한 값이며 `console`은 호스트가 제공하는 API입니다. 이 페이지는 [제너레이터](/concepts/generator)에서 본 `yield`로 멈췄다 이어지는 본문, [async/await](/concepts/async-await)에서 본 `await`와 프로미스를 돌려주는 함수, [이터러블과 for...of](/concepts/iterable-for-of)에서 본 이터레이터 규칙, [try/catch/finally](/concepts/error-handling)에서 본 `finally`, [마이크로태스크 큐](/concepts/microtask-queue)에서 본 프로미스 Job의 순서를 전제합니다. 일반 제너레이터와 같은 점은 다시 설명하지 않고 달라지는 점을 중심으로 씁니다.
+
+## 동작 원리
+
+### 부르면 객체만 돌려주고, next는 프로미스를 돌려준다
+
+`async function*`으로 만든 함수를 부르면 [제너레이터](/concepts/generator)처럼 본문은 실행되지 않고 async 제너레이터 객체만 돌려줍니다. 이 객체는 `Symbol.asyncIterator` 메서드를 가지고 있고, 그 메서드는 객체 자신을 돌려줍니다. 반면 `Symbol.iterator`는 없어서 `for...of`에 쓰면 TypeError입니다. async 제너레이터 함수는 생성자가 아니라서 `new`를 쓰면 TypeError이고, 함수에는 `prototype` 프로퍼티가 있으며 그 값은 객체입니다. 예제 1이 이 네 가지를 보입니다.
+
+달라지는 점은 `next`입니다. `next`는 호출마다 새 프로미스를 만들어 돌려주고, 그 프로미스는 이후 `{ value, done }` 모양의 결과로 이행되거나, 본문이 예외로 끝나면 거부됩니다. `next`를 부른 시점의 상태가 `suspended-start`나 `suspended-yield`이면 본문은 `next` 호출 안에서 동기로 재개되어, 다음 `yield`나 `await`를 만나거나 끝날 때까지 실행됩니다. 예제 2에서 `호출 뒤`가 먼저 찍히고, `it.next()`를 부르는 순간 `본문 시작`이 찍힌 다음 `true`가 찍힙니다. 본문이 `yield 1`의 await에서 멈추면 `next`가 아직 pending인 프로미스를 돌려줍니다. 상태는 그동안 `executing`이고, `suspended-yield`가 되는 것은 그 뒤 Job에서입니다. 결과는 `동기 코드 끝` 뒤에야 `then` 콜백으로 나옵니다.
+
+`next`뿐 아니라 `return`과 `throw`도, 맞지 않는 `this`로 부르면 throw하지 않고 TypeError로 거부된 프로미스를 돌려줍니다. 예를 들어 `gen().next.call({})`이 그렇습니다. 이 경우는 예제로 보이지 않습니다.
+
+### yield는 값을 await한다
+
+일반 제너레이터의 `yield promise`는 프로미스 자체를 `value`로 내보냅니다. async 제너레이터의 `yield`는 피연산자를 먼저 await합니다. 그래서 예제 3에서 일반 제너레이터는 `value`가 프로미스이고(`true`), async 제너레이터는 프로미스가 풀린 값 `"값"`이 `value`로 나옵니다.
+
+await하므로 거부된 프로미스를 `yield`하면 그 거부가 `yield` 자리에서 예외로 던져집니다. 예제 4에서 `yield Promise.reject(...)` 다음 줄은 실행되지 않고, 본문의 `catch`가 `본문에서 잡음: 실패`를 찍은 다음 `yield '복구'`가 결과로 나옵니다.
+
+`return`에 식이 있으면 그 값도 await합니다(식 없는 `return;`은 await하지 않습니다). async 함수의 `return`은 값을 await하지 않고 호출이 돌려준 프로미스를 그 값으로 resolve하는 것([try/catch/finally](/concepts/error-handling)의 async 함수 설명)과 다릅니다. 예제 7의 `unwrapReturn`은 프로미스를 `return`해도 결과의 `value`가 풀린 값입니다. 예제 8은 이 차이가 `try` 안에서 드러나는 모습입니다. `try` 안의 `return Promise.reject(...)`를 async 함수는 잡지 못해 거부로 끝나지만, async 제너레이터는 값을 await하므로 `catch`가 잡습니다.
+
+### next를 연달아 부르면 요청 큐에 쌓인다
+
+async 제너레이터 객체는 다섯 가지 상태 중 하나입니다.
+
+- `suspended-start`: 시작 전입니다.
+- `suspended-yield`: 요청을 끝낸 뒤 큐가 비어 `yield`에서 멈춘 상태입니다.
+- `executing`: 요청을 처리하는 중인 상태입니다. 본문이 `await`에서 멈춰 있어도 이 상태입니다.
+- `draining-queue`: 큐에 남은 요청을 본문 없이 끝내는 상태입니다. 본문이 끝났을 때, 또는 시작 전이나 끝난 뒤에 `return()`을 불렀을 때 들어갑니다.
+- `completed`: 끝난 상태입니다.
+
+객체는 요청 큐도 가집니다. 명세는 큐와 상태의 관계를 이렇게 적습니다.
+
+> Except during state transitions, it is non-empty if and only if [[AsyncGeneratorState]] is either executing or draining-queue.
+
+상태가 바뀌는 중간 순간을 제외하면, 큐에 요청이 있는 것과 상태가 `executing` 또는 `draining-queue`인 것은 같다는 뜻입니다. 시뮬레이터는 상태가 바뀌는 중간 순간을 그리지 않고 상태가 정해진 뒤의 모습만 보이므로 모든 단계에서 이 관계가 성립합니다.
+
+상태가 `completed`가 아니면 `next`를 부를 때 새 프로미스와 함께 요청이 큐에 들어갑니다. 상태가 `suspended-start`나 `suspended-yield`일 때만 본문을 재개하고, `executing`이나 `draining-queue`이면 큐에 넣기만 합니다. 본문이 `await`에서 멈춰 있는 동안에도 상태는 `executing`이므로, 그 사이에 부른 `next`는 모두 큐에 쌓입니다. 예제 5에서 첫 `next`가 본문을 재개해 `await null`에서 멈추게 한 뒤, 두 번째와 세 번째 `next`는 재개하지 않고 큐에 넣기만 합니다. 그래서 큐에 요청이 3개 쌓입니다.
+
+본문이 `yield`를 만나면 값을 await하고, 값이 풀리면 큐의 첫 요청을 끝냅니다(값이 거부되면 요청을 끝내지 않고 `yield` 자리에서 예외를 던집니다). 그 요청의 프로미스가 `{ value, done: false }`로 이행되고, 이어서 큐가 비었는지 봅니다. 큐가 비어 있으면 본문이 `yield`에서 멈추고 상태가 `suspended-yield`가 됩니다. 요청이 남아 있으면 `suspended-yield`가 되지 않습니다. 명세의 NOTE가 이것을 적습니다.
+
+> Execution continues without suspending the generator.
+
+큐의 다음 요청으로 본문을 이어 갑니다. 다음 요청이 `next`면 `yield` 다음 줄로, `return`이나 `throw`면 그 `yield` 자리에서 return하거나 예외가 던져진 것처럼 이어 갑니다. 예제 5의 `yield 'a'`가 요청 1을 끝낼 때 큐에는 요청 2와 3이 남아 있으므로 `suspended-yield`가 되지 않고 `a 뒤`가 이어서 찍히고, 다음 `yield 'b'`가 요청 2를 끝낼 때도 요청 3이 남아 있어 `b 뒤`가 이어서 찍힙니다. `a 뒤`가 `1번` 결과보다 먼저인 이유는, 첫 요청의 프로미스가 이행될 때 `then` 콜백이 Job으로 큐에 들어갈 뿐 본문이 이어서 실행되는 동안에는 아직 실행되지 않기 때문입니다. 예제 5에서 각 프로미스의 `then`을 해당 `next` 바로 뒤에 건 것은 이 순서를 가르기 위해서입니다. 뒤에 몰아서 걸면 `yield`에서 항상 멈추고 앞 프로미스가 이행된 뒤에야 다음 요청이 이어진다는 틀린 모델도 같은 출력을 내지만, 먼저 걸어 두면 그 모델에서는 `1번`이 `a 뒤`보다 먼저 찍혀야 하므로 실제 출력과 구분됩니다. 요청은 큐의 앞에서부터 끝나므로 세 프로미스는 `next`를 부른 순서대로 끝납니다(이행 또는 거부). 결과가 섞이지 않는 이유가 이것입니다.
+
+### 본문이 끝나면 남은 요청을 비운다
+
+본문이 끝나면 상태가 `draining-queue`가 되고, 처리 중이던 요청을 `done: true`로 끝낸 뒤 AsyncGeneratorDrainQueue가 큐에 남은 요청을 본문 없이 차례로 끝냅니다. 남은 요청이 `next`면 `{ value: undefined, done: true }`로 이행시키고, `throw`면 그 값으로 거부하고, `return`이면 값을 기다린 뒤 `done: true`로 끝내고 비우기를 이어 갑니다. 큐가 비면 상태는 `completed`입니다. 예제 5의 세 번째 요청은 본문이 끝나면서 처리 중이던 요청으로 `{ value: undefined, done: true }`가 됩니다. `JSON.stringify`는 값이 `undefined`인 프로퍼티를 빼므로 출력은 `{"done":true}`입니다.
+
+본문이 예외로 끝나는 경우도 같은 경로입니다. 예제 9에서 두 번째 `next`의 프로미스는 본문이 던진 예외(`본문 오류`)로 거부되고, 큐에 남아 있던 세 번째 `next`의 프로미스는 이행되어 `{"done":true}`가 됩니다.
+
+### return, throw, 끝난 뒤의 next
+
+모든 호출이 큐를 거치는 것은 아닙니다. 상태에 따라 갈라집니다.
+
+- `completed` 상태에서 `next`를 부르면 큐를 거치지 않고 곧바로 `{ value: undefined, done: true }`로 이행된 프로미스를 돌려줍니다.
+- `suspended-start`에서 `throw()`를 부르면 상태를 `completed`로 바꾸고, 요청을 큐에 넣지 않고 곧바로 거부된 프로미스를 돌려줍니다. `completed`에서 `throw()`를 불러도 곧바로 거부됩니다. `suspended-yield`에서 부르면 요청을 큐에 넣고 본문을 재개해 `yield` 자리에서 예외가 던져진 것처럼 이어 갑니다.
+- `suspended-start`나 `completed`에서 `return(value)`를 부르면 요청을 큐에 넣고 상태를 `draining-queue`로 바꾼 다음, 본문은 재개하지 않고 `value`를 기다려 `{ value, done: true }`로 끝냅니다. `value`가 거부된 프로미스이면 `return()`이 돌려준 프로미스도 그 값으로 거부됩니다. 어느 쪽이든 그 뒤 남은 요청을 처리하고 큐가 비면 `completed`가 됩니다. `suspended-yield`에서 부르면 본문을 재개해 `yield` 자리에서 `return`한 것처럼 이어 가므로 `finally` 블록이 실행됩니다(예제 11).
+- `executing`이나 `draining-queue`에서는 `next`, `return`, `throw` 모두 요청을 큐에 넣기만 합니다.
+
+예제 6은 큐에 이미 쌓인 `return`입니다. 첫 `next`가 본문을 재개해 `yield 1`의 await에서 멈추게 하면 상태가 `executing`이므로, 뒤이은 `return('중단')`과 `next`는 큐에 쌓입니다. `yield 1`이 요청 1을 끝낼 때 큐에 요청이 남아 있으므로 본문은 `suspended-yield`가 되지 않고, 다음 요청이 `return`이라 `yield` 자리에서 `return`한 것처럼 이어 가 `finally`의 `정리`를 찍고(`실행되지 않음`은 찍히지 않습니다), 그 요청이 `{"value":"중단","done":true}`로 끝나고, 남은 `next`는 `{"done":true}`가 됩니다.
+
+예제 7이 이 가운데 세 가지를 보입니다. `a.return(Promise.resolve('취소'))`는 본문을 재개하지 않으므로 `실행되지 않음`이 찍히지 않고, 프로미스를 기다린 값 `취소`가 `value`로 나옵니다. `b.throw(...)`는 시작 전이라 큐에 넣지 않고 곧바로 거부되며(`거부`), 그다음 `b.next()`는 이미 `completed`여서 `{"done":true}`로 이행됩니다. 이 예제의 출력 줄 사이 순서는 프로미스 Job의 개수에 달린 것이라 이 페이지는 순서를 설명하지 않습니다.
+
+### for await는 next의 결과를 기다린다
+
+`for await (const v of x)`는 먼저 GetIterator로 이터레이터를 얻습니다. `x`에 `Symbol.asyncIterator`가 있으면 그것을 쓰고, 없을 때만 `Symbol.iterator`를 찾아 동기 이터레이터를 async 이터레이터로 감쌉니다. 둘 다 없으면 TypeError입니다. 반복마다 `next`를 부르고 그 결과를 await하며, await한 결과가 객체가 아니면 TypeError입니다. 결과의 `done`이 `true`이면 반복을 끝내고, 아니면 `value`를 `v`에 받아 본문을 실행합니다. 기다리는 것은 `next`의 결과이고 `value`는 기다리지 않습니다. 본문이 끝나야 다음 `next`를 부르므로 한 `for await`는 한 번에 하나의 `next`만 진행합니다.
+
+예제 10에서 첫 `next`는 `run()`을 부르는 동안 동기로 불려 `gen 1`이 `동기 코드 끝`보다 먼저 찍힙니다. 그 결과는 `동기 코드 끝` 뒤에 `본문 시작 1`로 들어오고, 반복문 본문의 `await null`이 끝나 `본문 끝 1`이 찍힌 뒤에야 두 번째 `next`가 불려 `gen 2`가 찍힙니다. 다음 `next`를 미리 부르지 않는다는 증거입니다.
+
+스크립트에서 `for await`는 async 함수나 async 제너레이터 안에서만 쓸 수 있습니다. 모듈의 최상위에서도 쓸 수 있지만 이 페이지의 예제는 스크립트라 다루지 않습니다([ES 모듈](/concepts/es-modules)의 최상위 await도 참고하세요). 그 밖의 곳(일반 함수, 일반 제너레이터, 스크립트 최상위)에서 쓰면 SyntaxError이고, 이 오류는 코드를 실행하기 전에 나므로 실행 예제로 보일 수 없습니다.
+
+### 반복문을 일찍 나가면 정리를 기다린다
+
+`for await`가 끝까지 가지 않고 `break`, `return`, 반복문 본문의 예외로 나가면 AsyncIteratorClose가 이터레이터의 `return` 메서드를 부르고 그 결과를 await합니다. 이터레이터에 `return`이 없으면 부르지 않습니다. 나가는 원인이 예외(throw)였다면 `return`을 부르기는 하지만 그 예외가 우선합니다. 원인이 예외가 아닌데 `return`을 기다린 값이 객체가 아니면 TypeError입니다. `next`가 거부되거나 `next`의 결과 검사에 실패하는 경우(객체가 아님 등)는 반복문을 나가는 것이 아니라 그 자체로 예외가 되므로 `return`을 부르지 않습니다. async 제너레이터 본문이 던진 예외도 `return`을 부르지 않습니다.
+
+예제 11은 `break`가 정리를 기다리는 모습을 보입니다. 첫 반복에서 `1`을 찍고 `break`하면 `return()`이 불려 요청이 큐에 들어갑니다. 이 시점의 상태가 `suspended-yield`이므로 본문이 재개되어 `yield 1` 자리에서 `return`한 것처럼 `finally`로 들어갑니다(이때 return의 값을 await하느라 본문이 한 번 멈춥니다). `finally` 안의 `await null`에서 한 번 더 멈추고 `정리`가 그 뒤에 찍힙니다. `return()`이 돌려준 프로미스는 본문이 끝나 요청이 끝난 뒤에야 이행되고, `for await`가 그것을 기다린 다음에 반복문 뒤가 실행되므로 출력은 `1`, `정리`, `반복문 뒤` 순서입니다. `finally`에 `await`를 둔 것은 `return()`의 프로미스가 그 await까지 끝나야 이행된다는 것을 보이려는 것입니다. `return()`을 부르고 기다리지 않는다면 `반복문 뒤`가 `정리`보다 앞서 나올 수 있습니다.
+
+예제 12는 두 경로를 비교합니다. 첫 `for await`는 반복문 본문이 예외를 던지고 나가므로 `return 호출`이 찍힌 뒤 `본문 실패`가 잡힙니다. 두 번째 `for await`는 `next`가 거부되어 `next 실패`가 잡히지만 `return 호출`은 찍히지 않습니다. 이터레이터가 닫히지 않는 경로입니다.
+
+### 동기 이터러블도 for await에 쓸 수 있다
+
+배열 같은 동기 이터러블을 `for await`에 쓰면 GetIterator가 `Symbol.iterator`로 동기 이터레이터를 얻어 async 이터레이터로 감쌉니다. 감싼 이터레이터는 동기 이터레이터의 `next`가 돌려준 `value`를 PromiseResolve로 프로미스로 바꿔 기다린 뒤 결과로 내보냅니다. 값이 풀리는 것은 이 감싼 이터레이터 덕분입니다. 예제 13에서 `for...of`는 요소가 프로미스인지 여부(`true`, `false`, `true`)를 그대로 보지만, `for await`는 요소를 기다린 값 `1`, `2`, `3`을 줍니다.
+
+앞의 요소의 결과를 기다린 뒤에 다음 요소를 읽습니다. 다만 배열에 이미 들어 있는 프로미스들은 `for await`가 읽기 전에 이미 만들어져 진행 중일 수 있으므로, 이 기다림이 프로미스 자체를 늦게 시작한다는 뜻은 아닙니다. 앞 값을 기다리는 동안 뒤 요소가 거부될 때의 거부 추적은 호스트가 하는 동작이라 이 페이지에서 다루지 않습니다.
+
+기다리던 값이 거부되면 감싼 이터레이터는 동기 이터레이터를 닫습니다. 예제 14에서 동기 제너레이터가 `Promise.reject(...)`를 `yield`하면, 값이 거부되고, 감싼 이터레이터가 동기 이터레이터를 닫아(`return` 호출) `finally` 블록의 `동기 제너레이터 정리`가 찍히고, 감싼 이터레이터가 돌려준 프로미스가 거부되어, `for await`가 그것을 예외로 받아 `catch`가 `잡음: 실패`를 찍습니다. `yield 3`은 실행되지 않습니다. 닫는 것은 결과의 `done`이 `false`일 때뿐이고, `done: true`와 함께 온 거부는 닫지 않습니다. 이것은 반복문 본문이 예외를 던져 나가는 경우와 다릅니다. 그쪽은 AsyncIteratorClose가 감싼 이터레이터의 `return`을 부르는 경로입니다.
+
+### Symbol.asyncIterator를 직접 구현한다
+
+async 제너레이터가 아니어도 `Symbol.asyncIterator` 메서드가 `next`를 가진 객체를 돌려주면 `for await`에 쓸 수 있습니다. 규약상 `next`는 `{ value, done }`로 이행되는 프로미스를 돌려주고, `for await`는 그 결과를 await해 읽습니다. 예제 15에서 객체에는 `Symbol.asyncIterator`와 `Symbol.iterator`가 모두 있지만 `for await`는 `Symbol.asyncIterator`만 부릅니다(`asyncIterator`만 찍히고 `iterator`는 찍히지 않습니다). `{}`처럼 둘 다 없는 값을 쓰면 TypeError이고, `next`가 await한 결과가 객체가 아니면(예제에서는 `1`) TypeError입니다. 이 TypeError는 `next`의 결과 검사 실패이므로 예제 12에서 본 대로 이터레이터를 닫는 경로를 거치지 않습니다.
+
+### async 제너레이터 안의 yield\*
+
+async 제너레이터 안에서 `yield*`는 다른 이터러블에 위임합니다. 예제 16에서 `yield* inner()`는 안쪽 async 제너레이터의 `yield` 값을 내보내고, 안쪽이 `return`한 값 `안쪽 반환값`이 `yield*` 식의 값이 되어 `r`에 담깁니다. `yield*` 자신은 값을 await하지 않습니다. 배열처럼 동기 이터러블이면 GetIterator가 만든 감싼 이터레이터가 값을 기다려 풀어 주므로 `s1`, `s2`가 풀린 값으로 나옵니다. 반면 async 이터레이터가 내놓은 `value`는 프로미스여도 그대로 나갑니다. 예제 16의 마지막 줄은 `next`가 `value`로 프로미스를 돌려주는 이터레이터에 위임한 경우이고, `for await`도 `value`를 await하지 않으므로 `v`가 프로미스인 채로 `프로미스`가 찍힙니다. `yield*`가 위임 대상에 `return`과 `throw`를 어떻게 전달하는지는 다루지 않습니다.
+
+### 이 페이지가 다루지 않는 것
+
+`AsyncGeneratorFunction` 생성자, `await using`, Iterator helpers, `Array.fromAsync`, 스트림과 `fetch` 응답 순회는 다루지 않습니다. 모듈 최상위의 `for await`도 이 페이지의 예제가 스크립트라 다루지 않습니다. 동시에 여러 번 소비하는 패턴과 백프레셔 설계도 다루지 않습니다. 동기 이터러블을 쓸 때 `next`에 인수로 넘긴 값이 전달되는 경로와, `break` 등으로 나갈 때 감싼 이터레이터의 `return` 경로도 다루지 않습니다. 시뮬레이터는 실행 컨텍스트 스택과 내장 함수의 프레임을 그리지 않습니다. 명세는 판마다 재개를 서술하는 방식과 매개변수 이름이 다릅니다. 이 페이지는 ES2026판과 현재 초안에 똑같이 있는 문장만 인용하고, 링크는 현재 초안을 가리킵니다.
+
+## 예제
+
+예제의 `console.log`는 ECMAScript 언어가 아니라 호스트가 제공하는 API입니다. 모든 예제의 출력은 Node.js의 `vm`에서 실제로 실행해 얻은 값입니다.
+
+### 예제 1: async 제너레이터 객체의 모습
+
+`gen()`이 돌려준 객체의 종류, `Symbol.asyncIterator`, `new`, `for...of`를 확인합니다.
+
+```js file=./examples/kind.js
+
+```
+
+<PredictQuiz
+  question="예제 1의 출력은 무엇일까요?"
+  choices={[
+    '[object AsyncGenerator], true, function function, object, new: TypeError',
+    '[object Generator], true, function undefined, object, new: TypeError, for...of: TypeError',
+    '[object AsyncGenerator], true, function undefined, object, new: TypeError, for...of: TypeError',
+    '[object AsyncGenerator], false, function undefined, undefined, new: TypeError',
+  ]}
+  answer={2}
+  explanation="async 제너레이터 객체의 Symbol.asyncIterator는 자기 자신을 돌려주므로 true이고, Symbol.iterator는 없어서 typeof가 undefined이며 for...of는 TypeError입니다. 함수의 prototype은 객체이고 new는 TypeError입니다."
+/>
+
+### 예제 2: next를 부르면 본문이 시작되고 프로미스가 나온다
+
+`gen()`을 부른 뒤와 `next()`를 부른 뒤에 무엇이 찍히는지 비교합니다.
+
+```js file=./examples/next-promise.js
+
+```
+
+<PredictQuiz
+  question="예제 2의 출력 순서는 무엇일까요?"
+  choices={[
+    '호출 뒤, 본문 시작, true, 동기 코드 끝, {"value":1,"done":false}',
+    '본문 시작, 호출 뒤, true, 동기 코드 끝, {"value":1,"done":false}',
+    '호출 뒤, true, 동기 코드 끝, 본문 시작, {"value":1,"done":false}',
+    '호출 뒤, 본문 시작, true, {"value":1,"done":false}, 동기 코드 끝',
+  ]}
+  answer={0}
+  explanation="gen()을 부르면 본문은 실행되지 않으므로 호출 뒤가 먼저입니다. next를 부르는 순간 본문이 동기로 재개되어 본문 시작이 찍히고, 그다음 next가 돌려준 프로미스에 대한 true가 찍힙니다. 결과는 then 콜백이 Job으로 실행되는 동기 코드 끝 뒤입니다."
+/>
+
+<PredictQuiz
+  question="예제 2에서 본문 시작이 true보다 먼저 찍히는 이유는 무엇일까요?"
+  choices={[
+    'next는 요청을 큐에 넣기만 하고, 본문은 첫 yield의 await가 끝난 뒤 Job에서 시작되기 때문이다',
+    'next가 돌려주는 프로미스는 본문이 끝나야 만들어지기 때문이다',
+    'gen()을 부를 때 본문이 시작되기 때문이다',
+    '상태가 suspended-start일 때 next는 요청을 큐에 넣고 본문을 next 호출 안에서 동기로 재개하기 때문이다',
+  ]}
+  answer={3}
+  explanation="gen()은 본문을 실행하지 않습니다. 첫 next가 요청을 큐에 넣고 상태가 suspended-start이므로 본문을 곧바로 재개하고, 본문은 yield의 await에서 멈추기 전까지 호출 안에서 실행됩니다. 프로미스는 그 뒤에 돌려받습니다."
+/>
+
+### 예제 3: yield는 값을 기다린다
+
+일반 제너레이터와 async 제너레이터가 같은 `yield Promise.resolve('값')`을 어떻게 다르게 내보내는지 비교합니다.
+
+```js file=./examples/yield-awaits.js
+
+```
+
+<PredictQuiz
+  question="예제 3의 출력은 무엇일까요?"
+  choices={[
+    'false, {"value":"값","done":false}',
+    'true, {"value":"값","done":false}',
+    'true, {"done":false}',
+    'true, {"value":{},"done":false}',
+  ]}
+  answer={1}
+  explanation="일반 제너레이터의 yield는 프로미스를 그대로 value로 내보내므로 true입니다. async 제너레이터의 yield는 값을 먼저 await하므로 결과의 value는 프로미스가 풀린 값입니다."
+/>
+
+### 예제 4: 거부된 프로미스를 yield하면 본문에서 잡힌다
+
+거부된 프로미스를 `yield`하면 어디서 예외가 되는지 확인합니다.
+
+```js file=./examples/yield-reject.js
+
+```
+
+<PredictQuiz
+  question="예제 4의 출력은 무엇일까요?"
+  choices={[
+    '여기는 실행되지 않음, 본문에서 잡음: 실패, {"value":"복구","done":false}',
+    '{"value":"복구","done":false}',
+    '본문에서 잡음: 실패',
+    '본문에서 잡음: 실패, {"value":"복구","done":false}',
+  ]}
+  answer={3}
+  explanation="yield는 값을 await하므로 거부가 yield 자리에서 예외가 되고 catch가 잡습니다. 그 뒤 yield 복구가 첫 next의 결과가 되고, yield 다음 줄은 실행되지 않습니다."
+/>
+
+### 예제 5: next를 연달아 세 번 부른다
+
+`next`를 세 번 연달아 부르고 각 프로미스에 `then`을 걸었습니다. `then`은 해당 `next` 바로 뒤에 걸어, 첫 요청이 끝나는 순간 `1번` 콜백이 Job이 되도록 했습니다. 본문 안의 출력이 `1번`, `2번` 결과와 어떻게 섞이는지 예측해 보세요.
+
+```js file=./examples/queue.js
+
+```
+
+<PredictQuiz
+  question="예제 5의 출력 순서는 무엇일까요?"
+  choices={[
+    '본문 시작, 동기 코드 끝, 1번: {"value":"a","done":false}, a 뒤, 2번: {"value":"b","done":false}, b 뒤, 3번: {"done":true}',
+    '본문 시작, 동기 코드 끝, a 뒤, 1번: {"value":"a","done":false}, b 뒤, 2번: {"value":"b","done":false}, 3번: {"done":true}',
+    '본문 시작, 동기 코드 끝, a 뒤, b 뒤, 1번: {"value":"a","done":false}, 2번: {"value":"b","done":false}, 3번: {"done":true}',
+    '동기 코드 끝, 본문 시작, a 뒤, 1번: {"value":"a","done":false}, b 뒤, 2번: {"value":"b","done":false}, 3번: {"done":true}',
+  ]}
+  answer={1}
+  explanation="yield a가 첫 요청을 끝낼 때 큐에 요청이 남아 있어 본문이 suspended-yield가 되지 않고 a 뒤를 찍으며, 1번 콜백은 그 뒤 Job으로 실행됩니다. 같은 방식으로 b 뒤가 2번보다 먼저입니다. 요청은 큐의 앞에서부터 끝나므로 결과는 a, b, 끝 순서입니다."
+/>
+
+<PredictQuiz
+  question="예제 5에서 첫 yield 뒤에 a 뒤가 바로 이어서 찍히는 이유는 무엇일까요?"
+  choices={[
+    'yield가 요청 1을 끝낸 뒤 큐에 요청 2와 3이 남아 있어, suspended-yield가 되지 않고 본문이 큐의 다음 요청으로 이어 가기 때문이다',
+    'yield에서는 항상 suspended-yield로 멈추고, 1번 콜백이 실행된 뒤 then으로 재개되기 때문이다',
+    'await null 이후의 yield는 요청을 끝내지 않고 본문을 그대로 실행하기 때문이다',
+    'a 뒤의 console.log는 Job을 거치지 않고 next를 부른 코드 안에서 동기로 실행되기 때문이다',
+  ]}
+  answer={0}
+  explanation="yield는 큐의 첫 요청을 끝낸 뒤 큐가 비었는지 봅니다. 비어 있으면 suspended-yield로 멈추고, 요청이 남아 있으면 멈추지 않고 이어 갑니다. 이 시점에는 요청 2와 3 두 개가 남아 있습니다."
+/>
+
+### 예제 6: 큐에 이미 쌓인 return
+
+`next`를 부른 뒤 곧바로 `return('중단')`과 `next`를 부릅니다. 본문의 `finally`가 실행되는지, 각 결과가 무엇인지 확인합니다.
+
+```js file=./examples/queued-return.js
+
+```
+
+<PredictQuiz
+  question="예제 6의 출력 순서는 무엇일까요?"
+  choices={[
+    '1번: {"value":1,"done":false}, 정리, 실행되지 않음, 2번: {"value":"중단","done":true}, 3번: {"done":true}',
+    '1번: {"value":1,"done":false}, 2번: {"value":"중단","done":true}, 3번: {"done":true}',
+    '1번: {"value":1,"done":false}, 정리, 2번: {"value":"중단","done":true}, 3번: {"done":true}',
+    '1번: {"value":1,"done":false}, 정리, 3번: {"done":true}, 2번: {"value":"중단","done":true}',
+  ]}
+  answer={2}
+  explanation="요청 1이 끝날 때 큐에 return과 next가 남아 있어 본문이 이어 가고, 다음 요청이 return이라 yield 자리에서 return한 것처럼 finally가 실행되어 정리가 찍힙니다. yield 다음 줄은 실행되지 않습니다. return 요청은 중단 값으로 끝나고 남은 next는 done이 true입니다."
+/>
+
+### 예제 7: 값의 return, 시작 전의 return과 throw
+
+`return`한 프로미스가 풀리는지, 시작하지 않은 객체에 `return()`과 `throw()`를 부르면 어떻게 되는지 확인합니다.
+
+```js file=./examples/settle.js
+
+```
+
+<PredictQuiz
+  question="예제 7의 출력에 없는 것은 무엇일까요?"
+  choices={['거부', '{"value":"끝","done":true}', '{"value":"취소","done":true}', '실행되지 않음']}
+  answer={3}
+  explanation="시작하지 않은 객체에 return을 부르면 본문을 재개하지 않으므로 실행되지 않음은 찍히지 않습니다. throw는 큐에 넣지 않고 곧바로 거부하고, 두 return 값은 프로미스가 풀려 value가 됩니다."
+/>
+
+### 예제 8: try 안에서 프로미스를 return한다
+
+`try` 안에서 거부된 프로미스를 `return`하는 async 함수와 async 제너레이터를 비교합니다. [try/catch/finally](/concepts/error-handling)에서 본 async 함수의 동작과 대비해 보세요.
+
+```js file=./examples/return-in-try.js
+
+```
+
+<PredictQuiz
+  question="예제 8의 출력은 무엇일까요?"
+  choices={[
+    'async 함수: 거부 실패, async 제너레이터: {"value":"잡음","done":true}',
+    'async 함수: 거부 실패, async 제너레이터: {"done":true}',
+    'async 함수: 잡음, async 제너레이터: {"value":"잡음","done":true}',
+    'async 제너레이터: {"value":"잡음","done":true}',
+  ]}
+  answer={0}
+  explanation="async 함수는 try 안의 return이 프로미스를 기다리지 않으므로 catch가 실행되지 않고 호출의 프로미스가 거부됩니다. async 제너레이터의 return은 값을 await하므로 거부가 try 안에서 예외가 되어 catch가 잡고, 잡음이 결과의 value가 됩니다."
+/>
+
+### 예제 9: 본문이 예외로 끝나면
+
+`next`를 세 번 연달아 불렀는데 두 번째 요청을 처리하는 중에 본문이 예외를 던집니다.
+
+```js file=./examples/body-throw.js
+
+```
+
+<PredictQuiz
+  question="예제 9에서 세 번째 next가 돌려준 프로미스는 어떻게 될까요?"
+  choices={[
+    '본문 오류로 거부된다',
+    '영원히 pending이다',
+    '{"done":true}로 이행된다',
+    'TypeError로 거부된다',
+  ]}
+  answer={2}
+  explanation="본문이 예외로 끝나면 처리 중이던 두 번째 요청이 그 예외로 거부됩니다. 큐에 남은 세 번째 next는 본문 없이 끝나며 done이 true인 결과로 이행됩니다."
+/>
+
+### 예제 10: for await는 본문이 끝나야 다음 next를 부른다
+
+제너레이터와 반복문 본문이 각각 출력을 남깁니다. 반복문 본문에는 `await`가 있습니다.
+
+```js file=./examples/for-await.js
+
+```
+
+<PredictQuiz
+  question="예제 10의 출력 순서는 무엇일까요?"
+  choices={[
+    'gen 1, 동기 코드 끝, 본문 시작 1, gen 2, 본문 끝 1, 본문 시작 2, gen 끝, 본문 끝 2, 반복문 뒤',
+    'gen 1, 동기 코드 끝, 본문 시작 1, 본문 끝 1, gen 2, 본문 시작 2, 본문 끝 2, gen 끝, 반복문 뒤',
+    '동기 코드 끝, gen 1, 본문 시작 1, 본문 끝 1, gen 2, 본문 시작 2, 본문 끝 2, gen 끝, 반복문 뒤',
+    'gen 1, 본문 시작 1, 본문 끝 1, gen 2, 본문 시작 2, 본문 끝 2, gen 끝, 반복문 뒤, 동기 코드 끝',
+  ]}
+  answer={1}
+  explanation="첫 next는 run을 부르는 동안 동기로 불려 gen 1이 먼저 찍히고, 그 결과는 동기 코드 끝 뒤에 들어옵니다. for await는 본문이 끝나야 다음 next를 부르므로 gen 2는 본문 끝 1 뒤입니다."
+/>
+
+### 예제 11: break가 정리를 기다린다
+
+`for await`에서 첫 값을 받고 `break`하면 `finally`가 실행됩니다. `finally` 안에는 `await`가 있습니다.
+
+```js file=./examples/for-await-break.js
+
+```
+
+<PredictQuiz
+  question="예제 11의 출력 순서는 무엇일까요?"
+  choices={['1, 반복문 뒤, 정리', '정리, 1, 반복문 뒤', '1, 반복문 뒤', '1, 정리, 반복문 뒤']}
+  answer={3}
+  explanation="break는 AsyncIteratorClose를 거쳐 return을 부르고, for await는 그 결과를 await합니다. return이 돌려준 프로미스는 finally가 끝난 뒤에야 이행되므로 정리가 반복문 뒤보다 먼저입니다."
+/>
+
+<PredictQuiz
+  question="예제 11에서 정리가 반복문 뒤보다 먼저 찍히는 이유는 무엇일까요?"
+  choices={[
+    'break는 return을 부르지만 결과를 기다리지 않고, finally가 반복문 뒤보다 먼저 끝나기 때문이다',
+    'finally 안의 await는 반복문 뒤의 코드보다 항상 먼저 실행되기 때문이다',
+    'for await가 return이 돌려준 프로미스를 await하는데, 그 프로미스는 본문이 finally까지 끝난 뒤에야 이행되기 때문이다',
+    'run이 async 제너레이터라서 모든 줄이 요청 큐를 거치기 때문이다',
+  ]}
+  answer={2}
+  explanation="AsyncIteratorClose는 return을 부르고 결과를 await합니다. 재개된 본문이 finally와 그 안의 await를 끝내야 return의 요청이 끝나므로, 반복문 다음 줄은 그 뒤에 실행됩니다."
+/>
+
+### 한 단계씩 따라가기
+
+시나리오 두 개가 각각 예제 5와 예제 11에 해당합니다. 첫 번째 시나리오 `next를 연달아 부르면`에서는 요청이 큐에 3개까지 쌓이는 것, 요청 1이 끝날 때 큐에 요청이 남아 있어 상태가 `executing`인 채 본문이 이어지는 것, 마지막 요청이 `draining-queue`를 거쳐 끝나 `completed`가 되는 것을 볼 수 있습니다. 두 번째 시나리오 `for await의 break`에서는 `break`가 `return()` 요청을 큐에 넣고 `suspended-yield`였던 본문을 재개하는 것, `finally`의 `await`까지 끝나야 `return()`의 프로미스가 이행되는 것, `return()`이 돌려준 프로미스가 이행된 뒤에야 `반복문 뒤`가 찍히는 것을 볼 수 있습니다. 시뮬레이터는 실행 컨텍스트 스택과 내장 함수의 프레임을 그리지 않고, 상태가 바뀌는 중간 순간도 단계로 그리지 않습니다.
+
+<Simulator scenarios={scenarios} />
+
+### 예제 12: 반복문을 나가는 경로에 따라 return이 불린다
+
+반복문 본문이 예외를 던지고 나가는 경우와 `next`가 거부되는 경우에 `return`이 불리는지 비교합니다.
+
+```js file=./examples/close-paths.js
+
+```
+
+<PredictQuiz
+  question="예제 12의 출력은 무엇일까요?"
+  choices={[
+    'return 호출, 본문 실패, next 실패',
+    'return 호출, 본문 실패, return 호출, next 실패',
+    '본문 실패, next 실패',
+    'return 호출, 본문 실패, next 실패, return 호출',
+  ]}
+  answer={0}
+  explanation="반복문 본문이 예외를 던지고 나가면 AsyncIteratorClose가 return을 부르므로 return 호출 뒤 본문 실패가 잡힙니다. next가 거부되는 경우는 반복문을 나가는 것이 아니라 그 자체가 예외이므로 return을 부르지 않습니다."
+/>
+
+### 예제 13: 동기 이터러블을 for await에 쓴다
+
+프로미스와 값이 섞인 배열을 `for...of`와 `for await`로 각각 순회합니다.
+
+```js file=./examples/sync-iterable.js
+
+```
+
+<PredictQuiz
+  question="예제 13의 출력은 무엇일까요?"
+  choices={[
+    'true, true, true, 1, 2, 3',
+    'true, false, true, 1, 2, 3',
+    'true, false, true, Promise, 2, Promise',
+    'false, false, false, 1, 2, 3',
+  ]}
+  answer={1}
+  explanation="for...of는 배열 요소를 그대로 주므로 프로미스 여부가 true, false, true입니다. for await는 감싼 이터레이터가 요소를 기다린 값을 주므로 1, 2, 3입니다."
+/>
+
+### 예제 14: 기다리던 값이 거부되면 동기 이터레이터가 닫힌다
+
+동기 제너레이터가 거부된 프로미스를 `yield`하고 `finally`를 가집니다.
+
+```js file=./examples/sync-close.js
+
+```
+
+<PredictQuiz
+  question="예제 14의 출력은 무엇일까요?"
+  choices={[
+    '1, 잡음: 실패',
+    '1, 잡음: 실패, 동기 제너레이터 정리',
+    '1, 동기 제너레이터 정리, 3, 잡음: 실패',
+    '1, 동기 제너레이터 정리, 잡음: 실패',
+  ]}
+  answer={3}
+  explanation="기다리던 값이 거부되면 감싼 이터레이터가 동기 이터레이터의 return을 불러 finally가 실행되고, 거부는 예외로 나가 catch가 잡습니다. yield 3은 실행되지 않습니다."
+/>
+
+### 예제 15: Symbol.asyncIterator를 직접 구현한다
+
+`Symbol.asyncIterator`와 `Symbol.iterator`를 모두 가진 객체, 둘 다 없는 객체, `next`가 객체가 아닌 값을 돌려주는 객체를 순회합니다.
+
+```js file=./examples/custom-iterator.js
+
+```
+
+<PredictQuiz
+  question="예제 15에서 for await는 어느 메서드를 부를까요?"
+  choices={[
+    'Symbol.iterator만 부른다',
+    'Symbol.asyncIterator가 있으면 그것을 부르고, 없을 때만 Symbol.iterator를 쓴다',
+    '둘 다 부른다',
+    '먼저 Symbol.iterator를 부르고 실패하면 Symbol.asyncIterator를 쓴다',
+  ]}
+  answer={1}
+  explanation="GetIterator는 async 종류이면 Symbol.asyncIterator를 먼저 찾습니다. 없을 때만 Symbol.iterator로 동기 이터레이터를 감싸고, 둘 다 없으면 TypeError입니다."
+/>
+
+<PredictQuiz
+  question="예제 15의 출력은 무엇일까요?"
+  choices={[
+    'iterator, asyncIterator, 1, 2, TypeError',
+    'asyncIterator, 1, 2, 3, TypeError',
+    'asyncIterator, 1, 2, TypeError, TypeError',
+    'asyncIterator, 1, 2, TypeError',
+  ]}
+  answer={2}
+  explanation="Symbol.asyncIterator만 불려 asyncIterator가 한 번 찍히고 1, 2가 나온 뒤 done이 true가 됩니다. 둘 다 없는 값은 TypeError이고, next가 await한 결과 1은 객체가 아니라 TypeError입니다."
+/>
+
+### 예제 16: async 제너레이터 안의 yield\*
+
+안쪽 async 제너레이터에 위임하고 반환값을 받은 뒤, 배열과 `value`가 프로미스인 async 이터레이터에도 위임합니다.
+
+```js file=./examples/yield-star.js
+
+```
+
+<PredictQuiz
+  question="예제 16의 출력 순서는 무엇일까요?"
+  choices={[
+    'i1, 안쪽 반환값, s1, s2, 프로미스',
+    'i1, 안쪽 반환값, s1, s2, p',
+    'i1, s1, s2, 프로미스',
+    'i1, 안쪽 반환값, s1, s2',
+  ]}
+  answer={0}
+  explanation="yield* inner()는 i1을 내보내고, 안쪽이 return한 값이 r이 되어 안쪽 반환값이 찍힙니다. 배열에 위임하면 감싼 이터레이터가 값을 기다리므로 s1, s2가 풀린 값으로 나옵니다. value가 프로미스인 async 이터레이터에 위임하면 그 프로미스가 그대로 나가 마지막 줄은 프로미스입니다."
+/>
+
+## 결과와 이유
+
+예제 1~16의 출력은 하나의 규칙으로 읽을 수 있습니다. async 제너레이터를 부르면 객체만 돌려받고, 상태가 `completed`가 아닐 때 `next`는 호출마다 요청을 만들어 프로미스를 돌려줍니다. 요청은 큐의 앞에서부터 하나씩 끝나므로 결과는 부른 순서와 같고, `yield`는 값이 풀리면 첫 요청을 끝내며 큐에 요청이 남아 있으면 `suspended-yield`가 되지 않고 큐의 다음 요청으로 이어 갑니다. `for await`는 `next`의 결과를 await한 뒤 본문을 실행하고 다음 `next`를 부르며, 일찍 나가면 `return()`을 부르고 그 결과를 기다립니다. 다음 표는 일반 제너레이터, async 함수, async 제너레이터를 비교한 것입니다.
+
+<Wide>
+  <div
+    className="focus-visible:outline-accent my-6 overflow-x-auto focus-visible:outline-2"
+    tabIndex={0}
+    role="region"
+    aria-label="일반 제너레이터, async 함수, async 제너레이터를 비교한 표(좁은 화면에서는 가로로 스크롤할 수 있습니다)"
+  >
+    <table className="w-full border-collapse text-left">
+      <thead>
+        <tr>
+          <th scope="col" className="border-border border px-3 py-2">
+            비교 항목
+          </th>
+          <th scope="col" className="border-border border px-3 py-2">
+            일반 제너레이터
+          </th>
+          <th scope="col" className="border-border border px-3 py-2">
+            async 함수
+          </th>
+          <th scope="col" className="border-border border px-3 py-2">
+            async 제너레이터
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            부르면
+          </th>
+          <td className="border-border border px-3 py-2">본문은 실행되지 않고 객체를 돌려줌</td>
+          <td className="border-border border px-3 py-2">
+            새 프로미스를 돌려주고 본문은 첫 await까지 동기로 실행됨
+          </td>
+          <td className="border-border border px-3 py-2">본문은 실행되지 않고 객체를 돌려줌</td>
+        </tr>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            next가 돌려주는 것
+          </th>
+          <td className="border-border border px-3 py-2">
+            <code>{'{ value, done }'}</code> 형태의 결과
+          </td>
+          <td className="border-border border px-3 py-2">해당 없음</td>
+          <td className="border-border border px-3 py-2">
+            프로미스(이행되면 <code>{'{ value, done }'}</code> 형태의 결과, 본문이 예외로 끝나면
+            거부)
+          </td>
+        </tr>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            yield의 값
+          </th>
+          <td className="border-border border px-3 py-2">값을 그대로 내보냄</td>
+          <td className="border-border border px-3 py-2">해당 없음</td>
+          <td className="border-border border px-3 py-2">값을 await하고, 풀리면 요청을 끝냄</td>
+        </tr>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            return 문의 값
+          </th>
+          <td className="border-border border px-3 py-2">값을 그대로 결과의 value로 씀</td>
+          <td className="border-border border px-3 py-2">
+            값을 await하지 않고 호출이 돌려준 프로미스를 그 값으로 resolve
+          </td>
+          <td className="border-border border px-3 py-2">
+            식이 있으면 값을 await한 뒤 결과의 value로 씀
+          </td>
+        </tr>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            순회
+          </th>
+          <td className="border-border border px-3 py-2">for...of</td>
+          <td className="border-border border px-3 py-2">해당 없음</td>
+          <td className="border-border border px-3 py-2">for await...of</td>
+        </tr>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            next가 연달아 불리면
+          </th>
+          <td className="border-border border px-3 py-2">실행 중에 다시 next를 부르면 TypeError</td>
+          <td className="border-border border px-3 py-2">해당 없음</td>
+          <td className="border-border border px-3 py-2">
+            상태가 completed가 아니면 요청 큐에 쌓여 앞에서부터 처리됨
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</Wide>
+
+다음 표는 예제마다 핵심 동작과 결과를 정리한 것입니다. 결과 열은 각 예제의 실행 출력을 쉼표로 이어 적은 것입니다. 근거 열은 이 페이지에서 설명한 명세의 연산과 Node의 `vm`에서 얻은 실행 결과를 뜻합니다.
+
+<Wide>
+  <div
+    className="focus-visible:outline-accent my-6 overflow-x-auto focus-visible:outline-2"
+    tabIndex={0}
+    role="region"
+    aria-label="예제마다 핵심 동작, 결과, 근거를 정리한 표(좁은 화면에서는 가로로 스크롤할 수 있습니다)"
+  >
+    <table className="w-full border-collapse text-left">
+      <thead>
+        <tr>
+          <th scope="col" className="border-border border px-3 py-2">
+            상황
+          </th>
+          <th scope="col" className="border-border border px-3 py-2">
+            핵심 동작
+          </th>
+          <th scope="col" className="border-border border px-3 py-2">
+            결과(예제 출력)
+          </th>
+          <th scope="col" className="border-border border px-3 py-2">
+            근거
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            예제 1: 객체의 모습
+          </th>
+          <td className="border-border border px-3 py-2">
+            asyncIterator는 자기 자신, Symbol.iterator 없음, new는 TypeError
+          </td>
+          <td className="border-border border px-3 py-2">
+            {
+              '[object AsyncGenerator], true, function undefined, object, new: TypeError, for...of: TypeError'
+            }
+          </td>
+          <td className="border-border border px-3 py-2">AsyncGenerator 객체의 정의, vm 실행값</td>
+        </tr>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            예제 2: next의 프로미스
+          </th>
+          <td className="border-border border px-3 py-2">
+            첫 next 안에서 본문이 동기로 시작하고 결과는 나중에 나옴
+          </td>
+          <td className="border-border border px-3 py-2">
+            {'호출 뒤, 본문 시작, true, 동기 코드 끝, {"value":1,"done":false}'}
+          </td>
+          <td className="border-border border px-3 py-2">
+            %AsyncGeneratorPrototype%.next, vm 실행값
+          </td>
+        </tr>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            예제 3: yield의 await
+          </th>
+          <td className="border-border border px-3 py-2">
+            일반 제너레이터는 프로미스를 그대로, async는 풀어서 내보냄
+          </td>
+          <td className="border-border border px-3 py-2">{'true, {"value":"값","done":false}'}</td>
+          <td className="border-border border px-3 py-2">yield 연산, vm 실행값</td>
+        </tr>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            예제 4: 거부된 yield
+          </th>
+          <td className="border-border border px-3 py-2">
+            거부가 yield 자리에서 예외가 되어 본문에서 잡힘
+          </td>
+          <td className="border-border border px-3 py-2">
+            {'본문에서 잡음: 실패, {"value":"복구","done":false}'}
+          </td>
+          <td className="border-border border px-3 py-2">yield 연산, vm 실행값</td>
+        </tr>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            예제 5: next 연속 호출
+          </th>
+          <td className="border-border border px-3 py-2">
+            요청이 큐에 쌓이고, 요청이 남아 있으면 suspended-yield가 되지 않고 이어 감
+          </td>
+          <td className="border-border border px-3 py-2">
+            {
+              '본문 시작, 동기 코드 끝, a 뒤, 1번: {"value":"a","done":false}, b 뒤, 2번: {"value":"b","done":false}, 3번: {"done":true}'
+            }
+          </td>
+          <td className="border-border border px-3 py-2">
+            AsyncGeneratorYield, AsyncGeneratorDrainQueue, vm 실행값
+          </td>
+        </tr>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            예제 6: 큐에 쌓인 return
+          </th>
+          <td className="border-border border px-3 py-2">
+            요청 1이 끝난 뒤 큐의 return으로 이어 가 finally가 실행되고 남은 next는 done이 true
+          </td>
+          <td className="border-border border px-3 py-2">
+            {
+              '1번: {"value":1,"done":false}, 정리, 2번: {"value":"중단","done":true}, 3번: {"done":true}'
+            }
+          </td>
+          <td className="border-border border px-3 py-2">
+            AsyncGeneratorYield, AsyncGeneratorDrainQueue, vm 실행값
+          </td>
+        </tr>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            예제 7: return과 throw
+          </th>
+          <td className="border-border border px-3 py-2">
+            return 값은 await됨, 시작 전 return은 본문을 재개하지 않음, 시작 전 throw는 큐에 넣지
+            않고 거부
+          </td>
+          <td className="border-border border px-3 py-2">
+            {'거부, {"done":true}, {"value":"끝","done":true}, {"value":"취소","done":true}'}
+          </td>
+          <td className="border-border border px-3 py-2">
+            %AsyncGeneratorPrototype%.return과 throw, vm 실행값
+          </td>
+        </tr>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            예제 8: try 안의 return
+          </th>
+          <td className="border-border border px-3 py-2">
+            async 함수는 프로미스를 기다리지 않아 거부, async 제너레이터는 await해서 catch가 잡음
+          </td>
+          <td className="border-border border px-3 py-2">
+            {'async 함수: 거부 실패, async 제너레이터: {"value":"잡음","done":true}'}
+          </td>
+          <td className="border-border border px-3 py-2">return 문의 평가, vm 실행값</td>
+        </tr>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            예제 9: 본문 예외
+          </th>
+          <td className="border-border border px-3 py-2">
+            처리 중인 요청은 거부되고 남은 next는 본문 없이 done이 true로 이행
+          </td>
+          <td className="border-border border px-3 py-2">
+            {'{"value":1,"done":false}, 거부: 본문 오류, {"done":true}'}
+          </td>
+          <td className="border-border border px-3 py-2">AsyncGeneratorDrainQueue, vm 실행값</td>
+        </tr>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            예제 10: for await와 본문
+          </th>
+          <td className="border-border border px-3 py-2">본문이 끝난 뒤에야 다음 next를 부름</td>
+          <td className="border-border border px-3 py-2">
+            {
+              'gen 1, 동기 코드 끝, 본문 시작 1, 본문 끝 1, gen 2, 본문 시작 2, 본문 끝 2, gen 끝, 반복문 뒤'
+            }
+          </td>
+          <td className="border-border border px-3 py-2">ForIn/OfBodyEvaluation, vm 실행값</td>
+        </tr>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            예제 11: break와 정리
+          </th>
+          <td className="border-border border px-3 py-2">
+            break가 return()을 부르고 정리가 끝난 뒤 반복문 뒤가 실행
+          </td>
+          <td className="border-border border px-3 py-2">{'1, 정리, 반복문 뒤'}</td>
+          <td className="border-border border px-3 py-2">AsyncIteratorClose, vm 실행값</td>
+        </tr>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            예제 12: 나가는 경로
+          </th>
+          <td className="border-border border px-3 py-2">
+            본문 예외로 나가면 return을 부르고 next의 거부는 부르지 않음
+          </td>
+          <td className="border-border border px-3 py-2">{'return 호출, 본문 실패, next 실패'}</td>
+          <td className="border-border border px-3 py-2">
+            AsyncIteratorClose, ForIn/OfBodyEvaluation, vm 실행값
+          </td>
+        </tr>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            예제 13: 동기 이터러블
+          </th>
+          <td className="border-border border px-3 py-2">
+            for await는 요소를 기다린 값을 주고, for...of는 요소를 그대로 줌
+          </td>
+          <td className="border-border border px-3 py-2">{'true, false, true, 1, 2, 3'}</td>
+          <td className="border-border border px-3 py-2">
+            GetIterator, AsyncFromSyncIteratorContinuation, vm 실행값
+          </td>
+        </tr>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            예제 14: 거부로 닫힘
+          </th>
+          <td className="border-border border px-3 py-2">
+            기다리던 값이 거부되면 동기 이터레이터를 닫고 거부를 던짐
+          </td>
+          <td className="border-border border px-3 py-2">
+            {'1, 동기 제너레이터 정리, 잡음: 실패'}
+          </td>
+          <td className="border-border border px-3 py-2">
+            AsyncFromSyncIteratorContinuation, vm 실행값
+          </td>
+        </tr>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            예제 15: 직접 구현
+          </th>
+          <td className="border-border border px-3 py-2">
+            asyncIterator 우선, 둘 다 없으면 TypeError, next의 결과가 객체가 아니면 TypeError
+          </td>
+          <td className="border-border border px-3 py-2">
+            {'asyncIterator, 1, 2, TypeError, TypeError'}
+          </td>
+          <td className="border-border border px-3 py-2">
+            GetIterator, ForIn/OfBodyEvaluation, vm 실행값
+          </td>
+        </tr>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            예제 16: yield*
+          </th>
+          <td className="border-border border px-3 py-2">
+            안쪽 값과 반환값, 배열 위임은 값을 풀어 내보내고 async 이터레이터의 프로미스 value는
+            그대로
+          </td>
+          <td className="border-border border px-3 py-2">{'i1, 안쪽 반환값, s1, s2, 프로미스'}</td>
+          <td className="border-border border px-3 py-2">GetIterator, vm 실행값</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</Wide>
+
+### 흔한 오해
+
+<Callout type="misconception" title="yield를 만나면 항상 다음 next를 기다린다">
+
+`yield`는 값이 풀리면 큐의 첫 요청을 끝내고, 큐가 비어 있을 때만 `suspended-yield`로 멈춰 다음 `next`를 기다립니다. 요청이 남아 있으면 `suspended-yield`가 되지 않고 큐의 다음 요청으로 본문을 이어 갑니다. `await`에서 멈춘 동안은 다른 상태입니다. 그때는 `suspended-yield`가 아니라 `executing`이고, 그 사이에 부른 `next`는 큐에 쌓입니다. 예제 5에서 `a 뒤`와 `b 뒤`는 `1번`, `2번` 결과가 나오기 전에 찍혔습니다.
+
+</Callout>
+
+<Callout type="misconception" title="next를 연달아 부르면 먼저 끝나는 쪽의 결과가 먼저 나온다">
+
+요청은 큐의 앞에서부터 하나씩 끝나므로 프로미스는 `next`를 부른 순서대로 끝납니다(이행 또는 거부). 예제 5에서 `1번`은 `a`, `2번`은 `b`, `3번`은 끝이었습니다. 본문 안의 `await`가 오래 걸려도 이 대응은 바뀌지 않습니다.
+
+</Callout>
+
+<Callout type="misconception" title="for await는 다음 값을 미리 병렬로 기다린다">
+
+한 `for await`는 `next`의 결과를 await한 뒤 반복문 본문을 실행하고, 본문이 끝나야 다음 `next`를 부릅니다. 예제 10에서 `gen 2`는 `본문 끝 1` 뒤에 찍혔습니다. 기다리는 것은 `next`의 결과이고 `value`는 기다리지 않습니다. 동기 이터러블에서 값이 풀리는 것은 감싼 이터레이터가 하는 일입니다. 배열에 들어 있는 프로미스는 `for await`가 읽기 전에 이미 진행 중일 수 있지만, 읽는 쪽은 앞의 결과를 기다린 뒤에 다음 값을 읽습니다.
+
+</Callout>
+
+<Callout type="misconception" title="break하면 곧바로 반복문이 끝난다">
+
+`break`는 이터레이터의 `return()`을 부르고 그 결과를 await합니다. async 제너레이터에서는 `finally` 블록이 실행되고 그 안의 `await`까지 끝나야 `return()`의 프로미스가 이행됩니다. 예제 11에서 `정리`가 `반복문 뒤`보다 먼저 찍혔습니다. 반대로 `next`가 거부되는 경우에는 `return()`을 부르지 않습니다(예제 12).
+
+</Callout>
+
+<Callout type="misconception" title="async 제너레이터의 return은 async 함수의 return과 같다">
+
+async 함수는 `return`한 값을 await하지 않고 호출이 돌려준 프로미스를 그 값으로 resolve합니다. async 제너레이터의 `return`은 식이 있으면 그 값을 await합니다. 예제 8에서 `try` 안의 `return Promise.reject(...)`를 async 함수는 잡지 못해 거부로 끝났고, async 제너레이터는 `catch`가 잡아 `{"value":"잡음","done":true}`가 되었습니다.
+
+</Callout>

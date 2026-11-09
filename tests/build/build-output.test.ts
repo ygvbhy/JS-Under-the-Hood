@@ -1304,6 +1304,26 @@ describe('시뮬레이터 프리렌더 (error-handling)', () => {
   })
 })
 
+// 추가 게시글(async-generator): async 제너레이터 시뮬레이터의 첫 단계와 퀴즈가 프리렌더 HTML에 정적으로 있어야 한다.
+describe('시뮬레이터 프리렌더 (async-generator)', () => {
+  const html = read('concepts/async-generator/index.html')
+  const text = htmlToText(html)
+
+  it('async 제너레이터 시뮬레이터 region과 첫 단계가 HTML에 있다', () => {
+    expect(html).toMatch(/role="region"[^>]*aria-label="async 제너레이터 시뮬레이터"/)
+    expect(text).toContain('단계 1: var it = gen()')
+  })
+
+  it('첫 단계의 상태와 요청 큐가 정적으로 보인다', () => {
+    expect(text).toContain('상태: suspended-start')
+    expect(text).toContain('요청 큐')
+  })
+
+  it('퀴즈 정답이 <details>로 20개 이상 프리렌더된다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(20)
+  })
+})
+
 // 43~48장 로드맵 7번(es-modules): ES 모듈 시뮬레이터의 첫 단계와 퀴즈가 프리렌더 HTML에 정적으로 있어야 한다.
 describe('시뮬레이터 프리렌더 (es-modules)', () => {
   const html = read('concepts/es-modules/index.html')
