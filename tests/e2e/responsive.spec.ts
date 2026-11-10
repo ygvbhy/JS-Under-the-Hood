@@ -67,6 +67,8 @@ import {
   JSON_PATH,
   FETCH_PATH,
   MICROTASK_QUEUE_PATH,
+  PROMISE_STATIC_METHODS_PATH,
+  PROMISE_STATIC_METHODS_SIMULATOR_NAME,
   MICROTASK_QUEUE_SIMULATOR_NAME,
   GENERATOR_PATH,
   GENERATOR_SIMULATOR_NAME,
@@ -1406,10 +1408,33 @@ test('ES 모듈 개념 페이지: 순환 import 시나리오를 끝까지 진행
   expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
 })
 
+test('Promise 정적 메서드 개념 페이지: 두 시나리오를 끝까지 진행해도 가로 스크롤이 없다', async ({
+  page,
+}) => {
+  await page.goto(PROMISE_STATIC_METHODS_PATH)
+  await waitForHydration(page)
+  const region = page.getByRole('region', { name: PROMISE_STATIC_METHODS_SIMULATOR_NAME })
+  const next = region.getByRole('button', { name: '다음' })
+  const noOverflow = async () => {
+    const { scrollWidth, innerWidth } = await page.evaluate(() => ({
+      scrollWidth: document.documentElement.scrollWidth,
+      innerWidth: window.innerWidth,
+    }))
+    expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
+  }
+  for (let i = 0; i < 17; i++) await next.click()
+  await expect(region.getByText(/^단계 18 \/ 18$/)).toBeVisible()
+  await noOverflow()
+  await region.getByRole('radio', { name: '하나가 거부될 때', exact: true }).check()
+  for (let i = 0; i < 14; i++) await next.click()
+  await expect(region.getByText(/^단계 15 \/ 15$/)).toBeVisible()
+  await noOverflow()
+})
+
 test('홈 학습 순서 보기: 가로 스크롤이 없다', async ({ page }) => {
   await page.goto('/?view=order')
   await waitForHydration(page)
-  await expect(page.getByRole('article')).toHaveCount(55)
+  await expect(page.getByRole('article')).toHaveCount(56)
   const { scrollWidth, innerWidth } = await page.evaluate(() => ({
     scrollWidth: document.documentElement.scrollWidth,
     innerWidth: window.innerWidth,

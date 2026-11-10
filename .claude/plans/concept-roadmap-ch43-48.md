@@ -41,7 +41,7 @@
 ## 보류·제외
 
 - 44장 REST API: HTTP 메서드·서버 규약이라 언어·브라우저 실행으로 보일 동작이 거의 없다. 제외.
-- 45장 `Promise.all`·`race`·`allSettled`·`any`: 2번에 짧게 넣거나 추가 게시글 후보.
+- 45장 `Promise.all`·`race`·`allSettled`·`any`: 2번에 짧게 넣거나 추가 게시글 후보. → 2026-11-10 추가 게시글 `promise-static-methods`(order 442, category `async`)로 구현했다.
 - 46장 제너레이터로 이터러블 만들기: `iterable-for-of`와 이어지는 내용이라 4번에서 한 절로.
 - 49장 Babel·Webpack: 도구 사용법이라 범위 밖.
 
@@ -65,3 +65,4 @@
 - 2026-11-06: 7번 `es-modules`(order 480, execution, 50번째·마지막, 바인딩 시뮬레이터 live 8·cycle 12단계 + 퀴즈 18개, 브라우저 예제 18개) 완료. 로드맵 초안의 표+퀴즈 대신 사용자 결정으로 시뮬레이터. Opus 명세 정확성 교차 검토와 사용자 콘텐츠 검토 두 차례(8건, 2건) 반영 — import 네임스페이스는 간접 바인딩이 아님, default 형태 열거, 재내보내기는 환경에 바인딩을 만들지 않음, 최상위 await의 거부·순환 예외, 같은 지정자는 ModuleRequests가 합쳐 모듈 맵까지 가지 않음(예제 17 교체), `eval`은 Script 목표. async-await·error-handling의 최상위 await '작성 예정' 4곳 연결. **43~48장 로드맵 7개 모두 완료.**
 - 2026-11-10: 추가 게시글 'async 제너레이터'(`async-generator`, order 475, category `async`) 완료. `generator`·`async-await`의 '작성 예정' 4곳을 링크로 바꿨다. 계획은 `async-generator.md`.
 - 2026-11-10: 추가 게시글 45장 `fetch`(`fetch`, order 445, category `async`, 제목 "fetch: 404 응답인데 왜 catch로 가지 않을까")를 구현했다. 브라우저 예제 실행기를 먼저 확장했다(`.json` 리소스, status, networkError). 계획은 `.claude/plans/fetch.md`.
+- 2026-11-10: 추가 게시글 45장 `promise-static-methods`(`promise-static-methods`, order 442, category `async`, 제목 "Promise 정적 메서드: Promise.all의 결과는 왜 끝난 순서가 아닐까")를 구현했다. Promise.all 장부 시뮬레이터(18·15단계)와 비교 표, 퀴즈 9개. 계획은 `.claude/plans/promise-static-methods.md`.

@@ -69,6 +69,8 @@ import {
   JSON_PATH,
   FETCH_PATH,
   MICROTASK_QUEUE_PATH,
+  PROMISE_STATIC_METHODS_PATH,
+  PROMISE_STATIC_METHODS_SIMULATOR_NAME,
   MICROTASK_QUEUE_SIMULATOR_NAME,
   GENERATOR_PATH,
   GENERATOR_SIMULATOR_NAME,
@@ -985,6 +987,30 @@ for (const colorScheme of ['light', 'dark'] as const) {
       for (let i = 0; i < 5; i++) await next.click()
       await expect(region).toBeVisible()
       await expect(region.getByText(/^단계 6 \/ 11$/)).toBeVisible()
+      await expectNoSeriousViolations(page)
+    })
+
+    test('개념 페이지: Promise 정적 메서드', async ({ page }) => {
+      await page.goto(PROMISE_STATIC_METHODS_PATH)
+      await waitForHydration(page)
+      await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
+      await expectNoSeriousViolations(page)
+    })
+
+    test('개념 페이지: Promise 정적 메서드 시뮬레이터를 진행한 뒤(두 시나리오)', async ({
+      page,
+    }) => {
+      await page.goto(PROMISE_STATIC_METHODS_PATH)
+      await waitForHydration(page)
+      const region = page.getByRole('region', { name: PROMISE_STATIC_METHODS_SIMULATOR_NAME })
+      const next = region.getByRole('button', { name: '다음' })
+      for (let i = 0; i < 7; i++) await next.click()
+      await expect(region.getByText(/^단계 8 \/ 18$/)).toBeVisible()
+      await expectNoSeriousViolations(page)
+
+      await region.getByRole('radio', { name: '하나가 거부될 때', exact: true }).check()
+      for (let i = 0; i < 7; i++) await next.click()
+      await expect(region.getByText(/^단계 8 \/ 15$/)).toBeVisible()
       await expectNoSeriousViolations(page)
     })
 

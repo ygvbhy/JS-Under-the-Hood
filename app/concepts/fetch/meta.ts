@@ -30,7 +30,15 @@ export const concept = {
     { label: 'JSON', slug: 'json' },
     { label: '마이크로태스크 큐', slug: 'microtask-queue' },
   ],
-  related: ['promise', 'json', 'microtask-queue', 'event-loop', 'async-await', 'error-handling'],
+  related: [
+    'promise',
+    'json',
+    'microtask-queue',
+    'event-loop',
+    'async-await',
+    'error-handling',
+    'promise-static-methods',
+  ],
   examples: [
     {
       id: 'ok-response',

@@ -1,0 +1,393 @@
+import { Simulator } from './Simulator'
+import { scenarios } from './scenarios'
+
+## 동작 원리
+
+`a`보다 `b`를 먼저 이행시켰는데도 `Promise.all([a, b, 'c'])`의 결과는 왜 `["A","B","c"]`일까요? 이 페이지는 이 질문에서 출발해 `Promise.all`이 요소마다 자리 번호(index)를 기억하는 함수를 붙이고 남은 개수를 세는 방식을 ECMAScript 명세의 단계와 실제 실행 결과로 확인하고, 같은 뼈대 위에서 `Promise.allSettled`, `Promise.any`, `Promise.race`가 어떻게 달라지는지 봅니다. 먼저 동작 원리를 일곱 갈래로 나누어 보고 네 메서드를 표로 비교한 뒤, 예제 일곱 개를 예측해 보고, 출력의 이유를 줄 번호와 함께 설명합니다. 네 메서드의 기본 결과(모두 이행되면 배열, 하나라도 거부되면 거부 등)는 [프로미스](/concepts/promise)의 정적 메서드 절에서 이미 봤으므로, 여기서는 그 결과가 왜 그렇게 나오는지를 봅니다. `then`이 반응을 등록하거나 Job을 넣는 절차는 [프로미스](/concepts/promise), 이터러블을 받는 방식은 [이터러블과 for...of](/concepts/iterable-for-of), Job이 실행되는 순서와 여러 체인이 끼어드는 순서는 [마이크로태스크 큐](/concepts/microtask-queue)에서 본 것을 전제합니다. `Promise.reject`, `Promise.withResolvers`, `Promise.try`, Promise 서브클래싱, 처리되지 않은 거부, 취소와 타이머, [async/await](/concepts/async-await)와 [try/catch/finally](/concepts/error-handling)로 다시 쓰는 방법은 다루지 않습니다.
+
+### 공통 뼈대: 결과 프로미스를 먼저 만들고, 요소마다 then을 부른다
+
+`Promise.all`, `Promise.allSettled`, `Promise.any`, `Promise.race`는 같은 순서로 시작합니다.
+
+1. 호출한 생성자(보통 `Promise`)로 결과 프로미스와 그 resolve·reject 함수를 만듭니다(NewPromiseCapability). 결과 프로미스는 이 시점에 pending입니다.
+2. 생성자의 `resolve` 메서드를 읽어 둡니다(GetPromiseResolve). 보통은 `Promise.resolve`입니다.
+3. 넘겨받은 값에서 이터레이터를 얻습니다(GetIterator).
+4. 요소를 하나씩 꺼내 `Promise.resolve(요소)`를 부르고, 그 결과 프로미스에 `then`을 불러 메서드마다 다른 반응을 붙입니다.
+
+`Promise.resolve(요소)`는 요소가 프로미스이고 그 `constructor`가 호출한 생성자와 같으면 그대로 돌려주고, 아니면 그 값으로 resolve한 새 프로미스를 돌려줍니다. 그래서 `'c'` 같은 일반 값도 이미 이행된 프로미스로 바뀌어 `then`이 붙습니다. 이미 정해진 프로미스에 `then`을 부르면 그 자리에서 반응 Job이 들어가고, pending이면 반응이 등록됩니다([프로미스](/concepts/promise)).
+
+2~4단계에서 오류가 나는 경우도 같은 방식으로 처리됩니다. 두 번째 단계에서 `resolve`를 읽다가 오류가 나거나 그 값이 함수가 아니거나, 세 번째 단계에서 이터레이터를 얻지 못하거나(이터러블이 아닌 값 등), 네 번째 단계에서 이터레이터에서 값을 꺼내는 과정(`next` 호출, 결과의 `done`·`value` 읽기)이나 `Promise.resolve`, `then` 호출이 오류를 던지면 명세의 IfAbruptRejectPromise가 결과 프로미스를 그 오류로 거부하고 그 프로미스를 정상적으로 돌려줍니다. 네 번째 단계의 오류가 `Promise.resolve`나 `then` 호출에서 났다면 그 전에 아직 끝나지 않은 이터레이터를 닫습니다(IteratorClose). 이터레이터에서 값을 꺼내는 과정에서 난 오류라면 그 이터레이터는 이미 끝난 것으로 표시되므로 닫지 않습니다. 예제 7의 `Promise.all(42)`가 예외를 던지지 않고 거부된 프로미스를 돌려주는 이유입니다. 다만 1단계는 이 경로 밖에 있습니다. `this`가 생성자가 아니면 결과 프로미스를 만드는 첫 단계에서 TypeError가 그대로 던져집니다. 그래서 "`Promise.all`은 절대 예외를 던지지 않는다"고 말할 수는 없습니다. 이 페이지는 `this`가 `Promise`인 호출만 다룹니다.
+
+### Promise.all: 자리 번호를 기억하는 요소 함수와 남은 개수
+
+`Promise.all`은 장부 두 개를 만듭니다. 값을 모을 `values` 목록(처음에는 비어 있고 요소를 만날 때마다 빈 칸을 하나 추가)과, 남은 개수(remainingElementsCount)를 담은 기록입니다. 남은 개수는 `1`에서 시작합니다. 요소를 하나 만날 때마다 다음을 합니다.
+
+- `values`에 빈 칸을 하나 더합니다. 그 요소의 자리 번호(index)는 0부터 센 순서입니다.
+- `Promise.resolve(요소)`를 불러 요소를 프로미스로 바꿉니다.
+- 자리 번호를 슬롯으로 기억하는 요소 함수를 새로 만듭니다. 이 함수는 자기가 이미 불렸는지를 나타내는 `[[AlreadyCalled]]` 표시도 하나 가집니다.
+- 남은 개수를 1 늘립니다.
+- 그 프로미스에 `then(요소 함수, 결과 프로미스의 reject 함수)`를 부릅니다.
+
+요소 함수가 불리면 이미 불린 적 있는지 확인하고(있으면 아무것도 안 합니다), 표시를 한 다음, 받은 값을 `values`의 자기 자리 번호 칸에 넣고 남은 개수를 1 줄입니다. 줄인 결과가 0이면 `values`로 만든 배열로 결과 프로미스를 resolve합니다. 이 함수가 `values`의 몇 번 칸에 쓰는지는 자기 자리 번호로 정해지므로, 요소가 어떤 순서로 이행되든 배열의 순서는 요소를 넣은 순서입니다. 순서를 정하는 것은 값이 정해진 시각이 아니라 요소를 만날 때 붙여 둔 자리 번호입니다.
+
+반복이 끝나면 남은 개수를 1 줄이고, 그 결과가 0이면 바로 배열로 resolve합니다. 표준 프로미스만 쓴다면 이때 0이 되는 것은 요소가 하나도 없는 경우뿐입니다. 요소 함수는 반응 Job에서 불리므로 반복이 끝나기 전에 불려 있을 수 없고, 그럴 수 있는 것은 아래 NOTE가 말하는 규칙을 어기는 `then`이 있을 때입니다. 처음에 1에서 시작한 이유를 명세는 이렇게 적습니다.
+
+> remainingElementsCount starts at 1 instead of 0 to ensure resultCapability.[[Resolve]] is only called once, even in the presence of a misbehaving "then" which calls the passed callback before the input iterator is exhausted.
+
+규칙을 어기는 `then`(요소 함수를 반복이 끝나기도 전에 곧바로 부르는 `then`)이 있어도, 반복 중에는 남은 개수가 0이 될 수 없게 하려는 장치입니다. 개수가 0에서 시작하면 첫 요소의 함수가 먼저 불렸을 때 그 시점에 0이 되어 결과 프로미스를 resolve해 버립니다. 1에서 시작하고 각 요소 함수는 `[[AlreadyCalled]]` 표시 때문에 개수를 한 번만 줄이므로, 반복이 끝날 때 한 번 더 줄이기 전까지 0이 될 수 없습니다. 표준 프로미스의 `then`은 이렇게 행동하지 않으므로 이 페이지의 예제로는 이 NOTE가 막는 경우를 볼 수 없고, 반복이 끝나기 전에는 개수가 1 아래로 내려갈 수 없다는 목적만 설명할 수 있습니다.
+
+예제 1 아래의 시뮬레이터는 `input-order.js`의 실행을 이 장부로 따라갑니다. 요소 `a`, `b`, `'c'`가 등록되면서 남은 개수가 1에서 시작해 `2 → 3 → 4`로 늘고, 반복이 끝나면 `3`이 됩니다. 이후 요소 함수 Job이 요소 `'c'`, `b`, `a`의 순서로 실행되면서 `values`의 2번, 1번, 0번 칸이 채워지고 개수가 `2 → 1 → 0`이 됩니다.
+
+### 거부는 결과 프로미스의 reject를 그대로 넘긴다
+
+`Promise.all`은 거부 쪽에는 요소 함수를 만들지 않고 결과 프로미스의 reject 함수를 그대로 `then`의 둘째 인수로 넘깁니다. 어느 요소든 거부되면 그 반응 Job이 결과 프로미스의 reject를 부르고, 처음 부른 쪽이 결과 프로미스를 거부합니다. 이후의 resolve·reject 호출은 이미 resolved인 프로미스에 효과가 없습니다([프로미스](/concepts/promise)의 resolve 함수 절). 장부(`values`, 남은 개수)는 건드리지 않습니다.
+
+여기서 무시되는 것은 결과 프로미스에 대한 이후 호출뿐입니다. 다른 요소 프로미스는 그대로 정해지고, 그 요소에 붙은 반응(요소 함수든 직접 붙인 `then`이든)도 평소처럼 Job으로 실행됩니다. 요소 함수는 결과 프로미스의 상태를 확인하지 않으므로 거부된 뒤에도 `values`를 채우고 개수를 줄입니다. 거부된 요소의 요소 함수는 불리지 않으니 개수는 0에 이르지 못하고, 결과 프로미스에는 아무 일도 일어나지 않습니다. 예제 2의 `keeps-going.js`에서 `a`가 거부 뒤에도 이행되고 `a`에 붙인 반응이 실행되는 것은 출력으로 보입니다. 요소 함수가 거부 뒤에도 `values`를 채우는 것은 출력에 드러나지 않는 명세의 단계이고, 시뮬레이터의 둘째 시나리오가 이를 단계별로 보여 줍니다.
+
+### Promise.allSettled: 두 함수가 같은 호출 기록을 본다
+
+`Promise.allSettled`도 같은 장부(`values`, 남은 개수, 자리 번호)를 씁니다. 다른 점은 요소마다 이행 쪽 함수와 거부 쪽 함수를 둘 다 만든다는 것입니다. 두 함수는 같은 `[[AlreadyCalled]]` 기록 하나를 함께 봅니다. 그래서 둘 중 하나가 불리면 다른 하나는 불려도 아무것도 하지 않습니다. 이행 쪽 함수는 `values`의 자기 칸에 `{ status: "fulfilled", value }` 모양의 결과 객체를, 거부 쪽 함수는 `{ status: "rejected", reason }` 모양의 결과 객체를 넣고, 이후는 `Promise.all`과 같이 남은 개수를 줄여 0이 되면 resolve합니다.
+
+결과 프로미스의 reject를 어느 요소에도 넘기지 않으므로, 요소가 거부되었다는 이유로는 결과 프로미스가 거부되지 않습니다. 예제 6의 `settled-order.js`에서 거부된 `b`는 `values[1]`의 `status`가 `"rejected"`인 결과 객체가 될 뿐이고, 결과 프로미스는 이행됩니다. 순서는 `Promise.all`과 같이 자리 번호로 정해집니다.
+
+### Promise.any: 같은 장부를 거부 쪽에 둔다
+
+`Promise.any`는 장부를 반대쪽에 둡니다. 요소의 이행 쪽에는 결과 프로미스의 resolve 함수를 그대로 넘기고, 거부 쪽에 자리 번호를 기억하는 요소 함수를 붙입니다. 이 요소 함수는 거부 사유를 `errors` 목록의 자기 칸에 넣고 남은 개수를 줄입니다. 개수가 0이 되면 새 AggregateError를 만들어 `errors` 프로퍼티에 그 목록으로 만든 배열을 정의하고 결과 프로미스를 그 오류로 거부합니다. 이 프로퍼티는 열거되지 않습니다(enumerable이 false). 결과 프로미스는 resolve를 처음 부른 반응 Job의 값으로 이행하고, 이후 호출은 무시됩니다. 어느 Job이 먼저인지는 아래 `Promise.race`에서 보는 Job 순서와 같은 규칙으로 정해집니다.
+
+`errors`도 `Promise.all`의 `values`와 같은 이유로 거부된 순서가 아니라 넣은 순서입니다. 예제 5의 `any-errors.js`에서 `two`가 먼저 거부되었는데도 `errors[0]`은 `one`의 사유입니다.
+
+### 빈 이터러블
+
+요소가 하나도 없으면 `then`을 부를 일이 없고 반복은 곧바로 끝납니다. 메서드마다 결과가 갈립니다.
+
+- `Promise.all([])`과 `Promise.allSettled([])`는 남은 개수가 1에서 시작해 반복 끝에서 0이 되므로, 호출이 끝나기 전에 빈 배열로 이행됩니다(배열에는 `then`이 없으므로 resolve가 곧바로 이행이 됩니다). [프로미스](/concepts/promise)에서 본 규칙대로 `then` 콜백은 그래도 지금 실행 중인 코드가 끝난 뒤 Job으로 불립니다(예제 3의 출력은 모두 동기 코드가 끝난 뒤에 나옵니다).
+- `Promise.any([])`는 `errors`가 빈 채로 개수가 0이 되므로 빈 `errors`를 가진 AggregateError로 거부됩니다.
+- `Promise.race([])`는 장부가 없고 어떤 요소에도 `then`을 부르지 않으므로 결과 프로미스의 resolve나 reject를 부르는 쪽이 없습니다. 명세의 Promise.race 첫 번째 NOTE는 이를 이렇게 적습니다.
+
+> If the iterable argument yields no values or if none of the promises yielded by iterable ever settle, then the pending promise returned by this method will never be settled.
+
+예제 3은 `race([])`의 콜백 출력이 실행 중에 없다는 것까지만 보여 줍니다. "영영" 정해지지 않는다는 것은 실행 한 번으로 보일 수 없고, 위 NOTE가 말하는 명세의 내용입니다.
+
+### Promise.race: 장부 없이, 처음 부른 Job이 결정한다
+
+`Promise.race`는 장부가 없습니다. 요소마다 `then(결과 프로미스의 resolve, 결과 프로미스의 reject)`를 부를 뿐입니다. 결과 프로미스를 정하는 것은 이 resolve나 reject를 가장 먼저 부른 반응 Job이고, 그 뒤에 다른 요소의 Job이 resolve든 reject든 불러도 효과가 없습니다.
+
+명세는 `Promise.race`를 "settled in the same way as the first passed promise to settle"인 새 프로미스를 돌려준다고 설명합니다. 이 문장은 알고리즘 앞에 붙은 개요이고, 결과를 정하는 실제 단계는 PerformPromiseRace에 있습니다. 그 단계를 따라가면 규칙은 반응 Job이 실행되는 순서입니다. 이미 정해진 프로미스에 `then`을 부르면 그 자리에서 반응 Job이 들어가고 Job은 넣은 순서대로 실행되므로, 요소들이 모두 일반 값이거나 `Promise.resolve`가 그대로 돌려주는 이미 정해진 프로미스라면, 먼저 정해졌는지가 아니라 반복에서 먼저 나온 요소가 이깁니다. 예제 4의 첫 `race`가 이 경우입니다. 반면 thenable이나 `constructor`가 다른 프로미스는 `Promise.resolve`가 새 프로미스로 감싸고 그 프로미스는 Job을 더 거친 뒤에 정해지므로, 앞에 있어도 질 수 있습니다(이 경우는 예제로 다루지 않습니다). 아직 pending인 요소는 나중에 정해질 때 Job이 들어가므로, `race`를 부를 때 이미 정해진 요소가 하나라도 있으면 `race` 호출 안에서 들어간 그 요소의 Job이 `race`를 부른 뒤에 정해지는 요소의 Job보다 먼저 실행됩니다. 예제 4의 둘째 `race`가 이 경우입니다.
+
+### 네 메서드 비교
+
+<Wide>
+  <div
+    className="focus-visible:outline-accent my-6 overflow-x-auto focus-visible:outline-2"
+    tabIndex={0}
+    role="region"
+    aria-label="Promise.all, allSettled, any, race의 장부, 결과 프로미스를 정하는 조건, 빈 이터러블일 때의 결과, 결과 배열을 비교한 표(좁은 화면에서는 가로로 스크롤할 수 있습니다)"
+  >
+    <table className="w-full border-collapse text-left [&_code]:whitespace-nowrap">
+      <thead>
+        <tr>
+          <th scope="col" className="border-border border px-3 py-2">
+            메서드
+          </th>
+          <th scope="col" className="border-border min-w-48 border px-3 py-2">
+            장부
+          </th>
+          <th scope="col" className="border-border min-w-64 border px-3 py-2">
+            결과 프로미스를 정하는 것
+          </th>
+          <th scope="col" className="border-border min-w-48 border px-3 py-2">
+            빈 이터러블
+          </th>
+          <th scope="col" className="border-border min-w-48 border px-3 py-2">
+            결과 배열
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            <code>Promise.all</code>
+          </th>
+          <td className="border-border border px-3 py-2">
+            이행 쪽에 요소 함수(자리 번호, 남은 개수). 거부 쪽은 결과의 reject
+          </td>
+          <td className="border-border border px-3 py-2">
+            남은 개수가 0이 되면 이행. 처음 불린 reject가 거부
+          </td>
+          <td className="border-border border px-3 py-2">호출 안에서 빈 배열로 이행</td>
+          <td className="border-border border px-3 py-2">
+            <code>values</code>, 넣은 순서
+          </td>
+        </tr>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            <code>Promise.allSettled</code>
+          </th>
+          <td className="border-border border px-3 py-2">
+            이행·거부 양쪽에 요소 함수. 두 함수가 같은 호출 기록을 봄
+          </td>
+          <td className="border-border border px-3 py-2">
+            남은 개수가 0이 되면 이행. 요소가 거부되어도 거부되지 않음
+          </td>
+          <td className="border-border border px-3 py-2">호출 안에서 빈 배열로 이행</td>
+          <td className="border-border border px-3 py-2">
+            <code>{'{ status, value }'}</code> 또는 <code>{'{ status, reason }'}</code> 객체, 넣은
+            순서
+          </td>
+        </tr>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            <code>Promise.any</code>
+          </th>
+          <td className="border-border border px-3 py-2">
+            거부 쪽에 요소 함수. 이행 쪽은 결과의 resolve
+          </td>
+          <td className="border-border border px-3 py-2">
+            처음 불린 resolve가 이행. 남은 개수가 0이 되면 AggregateError로 거부
+          </td>
+          <td className="border-border border px-3 py-2">
+            빈 <code>errors</code>의 AggregateError로 거부
+          </td>
+          <td className="border-border border px-3 py-2">
+            이행 값은 모으지 않음(한 요소의 값 그대로). 거부 사유 <code>errors</code>는 넣은 순서
+          </td>
+        </tr>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            <code>Promise.race</code>
+          </th>
+          <td className="border-border border px-3 py-2">
+            없음. 결과의 resolve·reject를 그대로 넘김
+          </td>
+          <td className="border-border border px-3 py-2">resolve나 reject를 처음 부른 반응 Job</td>
+          <td className="border-border border px-3 py-2">
+            부르는 쪽이 없어 정해지지 않음(pending)
+          </td>
+          <td className="border-border border px-3 py-2">없음</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</Wide>
+
+## 예제
+
+예제의 `console.log`는 값을 출력하는 호스트 API이며 ECMAScript 언어의 일부가 아닙니다. 예제 코드는 `'use strict'`가 없는 sloppy mode 스크립트입니다. 배열은 `JSON.stringify`로 출력합니다. 여러 줄 출력은 퀴즈에서 ' / '로 이어 적었습니다. pending 프로미스가 필요한 예제는 `resolve`·`reject` 함수를 변수에 저장해 두었다가 직접 불러, 프로미스가 정해지는 순서를 코드에 드러냅니다.
+
+### 예제 1: 이행 순서와 상관없이 넣은 순서로 모은다
+
+```js file=./examples/input-order.js
+
+```
+
+<PredictQuiz
+  question="예제 1의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'all ["A","B","c"] / B resolved / A resolved',
+    'B resolved / A resolved / all ["c","B","A"]',
+    'B resolved / A resolved / all ["A","B","c"]',
+    'B resolved / A resolved / all ["B","A","c"]',
+  ]}
+  answer={2}
+  explanation={
+    'resolveB와 resolveA는 동기 코드에서 불리고 all의 콜백은 Job으로 나중에 불리므로 B resolved와 A resolved가 먼저 나옵니다. 배열은 요소마다 기억한 자리 번호 순서라서 이행된 순서와 상관없이 A, B, c입니다.'
+  }
+/>
+
+<PredictQuiz
+  question="예제 1에서 Promise.all이 요소 a, b, 'c'에 붙인 요소 함수가 불린 순서는 무엇일까요?"
+  choices={["'c', b, a", "a, b, 'c'", "b, a, 'c'", "b, 'c', a"]}
+  answer={0}
+  explanation={
+    "'c'는 Promise.all이 호출되는 동안 이미 이행된 프로미스가 되어 4번 줄에서 곧바로 Job이 들어갑니다. b는 6번 줄, a는 8번 줄에서 이행되며 Job이 들어가고 Job은 넣은 순서대로 실행되므로 'c', b, a 순서입니다. 그런데도 배열이 A, B, c인 것은 순서를 정한 것이 불린 순서가 아니라 자리 번호이기 때문입니다."
+  }
+/>
+
+아래 시뮬레이터에서 이 예제와 다음 예제를 단계별로 따라가 보세요. 남은 개수와 `values`의 칸이 어떻게 바뀌는지에 주목하세요.
+
+<Simulator scenarios={scenarios} />
+
+### 예제 2: 한 요소가 거부되어도 다른 요소는 계속 진행된다
+
+```js file=./examples/keeps-going.js
+
+```
+
+<PredictQuiz
+  question="예제 2의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'sync end / all rejected b failed',
+    'sync end / all rejected b failed / a still fulfilled A',
+    'all rejected b failed / sync end / a still fulfilled A',
+    'sync end / a still fulfilled A / all rejected b failed',
+  ]}
+  answer={1}
+  explanation={
+    'b의 거부 반응 Job이 결과 프로미스를 거부하고 catch 콜백이 resolveA를 부릅니다. a는 결과 프로미스와 별개의 프로미스라서 그대로 이행되고, a에 붙인 반응도 Job으로 불립니다. a가 이행되는 시점이 catch 콜백 안이므로 a still fulfilled A는 all rejected b failed 뒤입니다.'
+  }
+/>
+
+### 예제 3: 빈 이터러블
+
+```js file=./examples/empty.js
+
+```
+
+<PredictQuiz
+  question="예제 3의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'all [] / allSettled [] / any AggregateError 0 / race settled',
+    'all [] / allSettled []',
+    '출력 없음',
+    'all [] / allSettled [] / any AggregateError 0',
+  ]}
+  answer={3}
+  explanation={
+    'all과 allSettled는 빈 배열로 이행되고, any는 빈 errors를 가진 AggregateError로 거부되어 각각의 콜백이 Job으로 불립니다. race는 결과 프로미스를 정하는 쪽이 없어 콜백이 불리지 않습니다.'
+  }
+/>
+
+<PredictQuiz
+  question="예제 3에서 콜백이 불리지 않아 출력이 없는 메서드는 무엇일까요?"
+  choices={['Promise.all', 'Promise.race', 'Promise.allSettled', 'Promise.any']}
+  answer={1}
+  explanation={
+    'Promise.race는 요소에 then을 부르지 않으므로 결과 프로미스의 resolve나 reject를 부르는 쪽이 없습니다. 이 실행은 출력이 없다는 것까지만 보여 주고, 영영 정해지지 않는다는 것은 명세의 NOTE가 말하는 내용입니다.'
+  }
+/>
+
+### 예제 4: 이미 정해진 요소가 있는 race
+
+```js file=./examples/race-settled.js
+
+```
+
+<PredictQuiz
+  question="예제 4의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'race 1 late / race 2 now',
+    'race 1 early / race 2 now',
+    'race 1 late / race 2 slow',
+    'race 1 early / race 2 slow',
+  ]}
+  answer={0}
+  explanation={
+    'late와 early는 둘 다 race 전에 이미 이행되어 있고, race는 반복 순서대로 then을 부르므로 late의 반응 Job이 먼저 들어가 결과를 정합니다. 둘째 race에서는 문자열 now를 바꾼 이행된 프로미스의 Job이 race 호출 안에서 들어가고, 아직 pending이던 slow의 Job은 7번 줄에서 이행될 때 그 뒤에 들어갑니다.'
+  }
+/>
+
+### 예제 5: any의 errors는 넣은 순서
+
+```js file=./examples/any-errors.js
+
+```
+
+<PredictQuiz
+  question="예제 5의 출력은 무엇일까요?"
+  choices={[
+    'AggregateError ["two","one"]',
+    'AggregateError ["two"]',
+    'AggregateError ["one","two"]',
+    'Error ["one","two"]',
+  ]}
+  answer={2}
+  explanation={
+    'two가 먼저 거부되었지만 errors의 칸은 요소를 만날 때 정해진 자리 번호로 채워져 one, two 순서입니다. 모든 요소가 거부되면 결과 프로미스는 AggregateError로 거부됩니다.'
+  }
+/>
+
+### 예제 6: allSettled의 결과 객체
+
+```js file=./examples/settled-order.js
+
+```
+
+<PredictQuiz
+  question="예제 6의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'rejected b failed / fulfilled A',
+    'rejected b failed',
+    'fulfilled A',
+    'fulfilled A / rejected b failed',
+  ]}
+  answer={3}
+  explanation={
+    'allSettled는 요소가 거부되어도 결과 프로미스를 거부하지 않고, 두 요소가 모두 정해지면 자리 번호 순서의 결과 객체 배열로 이행합니다. b가 먼저 거부되었어도 b는 1번 칸이라 a의 결과 객체가 앞입니다.'
+  }
+/>
+
+### 예제 7: 이터러블이 아닌 값은 거부로
+
+```js file=./examples/iterable-input.js
+
+```
+
+<PredictQuiz
+  question="예제 7의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'no throw true / rejected TypeError / rejected TypeError',
+    'no throw true / rejected TypeError / ["h","i"]',
+    'no throw true / rejected TypeError / ["hi"]',
+    '출력 없음',
+  ]}
+  answer={1}
+  explanation={
+    'Promise.all(42)는 숫자에서 이터레이터를 얻지 못해 예외를 던지는 대신 거부된 프로미스를 돌려줍니다. 문자열도 이터러블이라 Promise.all에 문자열 hi를 넘기면 문자 h, i를 요소로 삼아 이행됩니다.'
+  }
+/>
+
+## 결과와 이유
+
+### 예제 1
+
+2~3번 줄은 pending 프로미스 `a`, `b`를 만들고 각 `resolve`를 `resolveA`, `resolveB`에 저장합니다. 4번 줄의 `Promise.all`은 결과 프로미스를 만들고 남은 개수를 1로 시작합니다. `a`는 자리 0번 요소 함수를 받고 개수가 2가 되며, pending이라 반응이 등록됩니다. `b`는 자리 1번에 개수 3입니다. `'c'`는 `Promise.resolve`가 이미 이행된 프로미스로 만들고, 자리 2번 요소 함수와 개수 4가 되며 `then`이 그 자리에서 Job을 넣습니다. 반복이 끝나 개수가 3이 됩니다. 5번 줄의 `all.then`은 결과 프로미스가 pending이라 반응을 등록합니다. 6번 줄의 `resolveB('B')`가 `b`를 이행해 요소 함수 Job을 넣고, 7번 줄이 `B resolved`를 출력합니다. 8번 줄의 `resolveA('A')`도 같은 방식으로 `a`의 Job을 넣고 9번 줄이 `A resolved`를 출력합니다. 동기 코드가 끝나면 Job이 넣은 순서대로 실행됩니다. `'c'`의 Job이 `values[2]`에 `'c'`를 넣고 개수가 2, `b`의 Job이 `values[1]`에 `'B'`를 넣고 개수가 1, `a`의 Job이 `values[0]`에 `'A'`를 넣고 개수가 0이 되어 배열 `['A','B','c']`로 결과 프로미스를 resolve합니다. 배열에는 `then`이 없으므로 결과 프로미스는 바로 이행되고, 5번 줄의 콜백 Job이 `all ["A","B","c"]`를 출력합니다.
+
+### 예제 2
+
+4번 줄의 `Promise.all`은 `a`와 `b` 각각에 `then(요소 함수, 결과의 reject)`를 부릅니다. 둘 다 pending이라 반응이 등록되고 반복이 끝난 뒤 남은 개수는 2입니다. 5~8번 줄의 `all.catch`는 결과 프로미스에 거부 반응을 등록하고, 9번 줄의 `a.then`은 `a`에 반응을 하나 더 등록합니다. `a`의 반응은 요소 함수가 앞, 이 콜백이 뒤입니다. 10번 줄의 `rejectB`가 `b`를 거부하면 `b`의 거부 반응(결과 프로미스의 reject를 부르는 것)이 Job으로 들어가고, 11번 줄이 `sync end`를 출력합니다. 동기 코드가 끝나면 그 Job이 결과 프로미스를 `b failed` 오류로 거부하고, `all.catch`의 반응 Job이 들어갑니다. 그 콜백이 6번 줄에서 `all rejected b failed`를 출력한 뒤 7번 줄의 `resolveA('A')`로 `a`를 이행하면, `a`의 반응이 등록된 순서대로 Job이 됩니다. 요소 함수 Job은 결과 프로미스의 상태를 확인하지 않고 `values[0]`에 `'A'`를 넣어 개수를 1로 줄입니다. 개수는 0에 이르지 못하고, 결과 프로미스에는 아무 일도 일어나지 않습니다. 이어서 9번 줄에서 등록한 `a.then`의 콜백이 `a`의 값을 받아 `a still fulfilled A`를 출력합니다.
+
+### 예제 3
+
+1번 줄의 `Promise.all([])`은 요소가 없어 반복이 곧바로 끝나고 남은 개수 1에서 1을 빼 0이 되므로, 호출이 끝나기 전에 빈 배열로 이행됩니다. 이미 이행된 프로미스에 `then`을 붙였으므로 콜백은 반응 Job이 되어 동기 코드가 끝난 뒤 `all []`을 출력합니다. 2번 줄의 `Promise.allSettled([])`도 같은 경로로 빈 배열로 이행되어 `allSettled []`를 출력합니다. 3번 줄의 `Promise.any([])`는 `errors`가 빈 채로 개수가 0이 되어 AggregateError로 거부되고, `catch`의 반응이 Job이 되어 `any AggregateError 0`을 출력합니다(`e.errors.length`는 0). 세 줄은 `then`·`catch`를 부른 순서대로 출력됩니다. 4번 줄의 `Promise.race([])`는 어느 요소에도 `then`을 부르지 않으므로 결과 프로미스의 resolve·reject를 부르는 쪽이 없고, `race settled`는 출력되지 않습니다. 실행에서 보이는 것은 출력이 없다는 사실까지이고, 영영 정해지지 않는다는 보장은 명세의 NOTE에서 옵니다.
+
+### 예제 4
+
+1~2번 줄의 `early`, `late`는 `Promise.resolve`로 만든 이미 이행된 프로미스입니다. 3번 줄의 `Promise.race([late, early])`는 반복 순서대로 `late.then(resolve, reject)`를 부르고 이어서 `early.then(resolve, reject)`를 부릅니다. 둘 다 이미 이행되어 있으므로 `then`이 그 자리에서 Job을 넣고, Job은 넣은 순서대로 실행됩니다. 먼저 실행되는 `late`의 Job이 결과 프로미스를 `'late'`로 resolve하고, `early`의 Job이 부르는 resolve는 효과가 없습니다. 그래서 3번 줄의 첫 `race` 콜백이 받는 값은 `late`이고 `race 1 late`를 출력합니다. 5번 줄의 `slow`는 pending이고 6번 줄의 `Promise.race([slow, 'now'])`는 `slow`에는 반응을 등록하고 `'now'`는 이행된 프로미스로 바꿔 Job을 바로 넣습니다. 7번 줄의 `resolveSlow('slow')`는 그보다 뒤에 `slow`의 Job을 넣으므로 `'now'`의 Job이 먼저 실행되어 결과가 정해지고 `race 2 now`를 출력합니다. 두 출력의 순서는 각 `race`의 결정 Job이 들어간 순서에서 나옵니다.
+
+### 예제 5
+
+2~3번 줄은 pending 프로미스 `one`, `two`를 만들고 4번 줄의 `Promise.any`가 각각에 `then(결과의 resolve, 요소 함수)`를 붙입니다. 자리 번호는 `one`이 0, `two`가 1입니다. 7번 줄의 `rejectTwo`가 `two`를 먼저 거부하면 `two`의 요소 함수 Job이 들어가고, 8번 줄의 `rejectOne`이 `one`의 Job을 그 뒤에 넣습니다. 동기 코드가 끝나면 `two`의 요소 함수가 `errors[1]`에 `two` 오류를 넣고 개수를 줄이고, `one`의 요소 함수가 `errors[0]`에 `one` 오류를 넣어 개수가 0이 됩니다. 그러면 `errors`를 가진 AggregateError로 결과 프로미스가 거부됩니다. 5번 줄이 `e.name`인 `AggregateError`와, `e.errors`의 `message`를 모은 `["one","two"]`를 출력합니다. 거부된 순서는 `two`, `one`이었지만 `errors`는 자리 번호 순서입니다.
+
+### 예제 6
+
+2~3번 줄은 pending 프로미스 `a`, `b`를 만들고 4번 줄의 `Promise.allSettled`가 각 요소에 이행 쪽 함수와 거부 쪽 함수를 둘 다 붙입니다. 두 함수는 같은 호출 기록을 봅니다. 9번 줄의 `rejectB`가 `b`를 먼저 거부하고 10번 줄의 `resolveA`가 `a`를 이행하므로 Job은 `b`, `a` 순서로 실행됩니다. `b`의 거부 쪽 함수가 `values[1]`에 거부 결과 객체를, `a`의 이행 쪽 함수가 `values[0]`에 이행 결과 객체를 넣고 개수가 0이 되어 결과 프로미스가 이행됩니다. 5~7번 줄의 `forEach`는 배열을 0번부터 순회하므로 6번 줄이 `fulfilled A`, 이어서 `rejected b failed`를 출력합니다. `b`가 거부되었는데도 결과 프로미스가 거부되지 않은 것은 `allSettled`가 거부 쪽에 결과 프로미스의 reject 함수를 넘기지 않기 때문입니다.
+
+### 예제 7
+
+1번 줄의 `Promise.all(42)`는 숫자에서 이터레이터를 얻지 못해 GetIterator가 TypeError를 일으키고, IfAbruptRejectPromise가 그 오류로 결과 프로미스를 거부해 돌려줍니다. 예외가 던져지지 않으므로 2번 줄이 실행되어 `no throw true`(`p instanceof Promise`)를 출력합니다. 3번 줄의 `catch` 콜백이 4번 줄에서 `e.name`인 `rejected TypeError`를 출력하고, 5번 줄에서 `Promise.all('hi')`를 반환합니다. 문자열은 이터러블이므로 문자 `'h'`, `'i'`가 요소가 되어 `['h','i']`로 이행되고, 반환된 프로미스를 따라가는 다음 `then`이 6번 줄에서 `["h","i"]`를 출력합니다.
+
+### 흔한 오해
+
+<Callout type="misconception" title="결과 배열은 끝난 순서다">
+
+`Promise.all`의 `values`와 `Promise.allSettled`의 결과 객체 배열, `Promise.any`의 `errors`는 요소를 만날 때 정해진 자리 번호의 칸에 채워집니다. 예제 1에서 요소 함수는 요소 `'c'`, `b`, `a`의 순서로 불렸지만 배열은 `["A","B","c"]`이고, 예제 5에서 `two`가 먼저 거부되었지만 `errors`는 `one`, `two` 순서입니다. 이 순서 규칙은 이 세 배열에만 해당합니다. `Promise.race`에는 결과 배열이 없습니다.
+
+</Callout>
+
+<Callout type="misconception" title="Promise.all이 거부되면 나머지 작업이 취소된다">
+
+첫 거부는 결과 프로미스를 거부하고, 이후 결과 프로미스에 대한 resolve·reject 호출이 무시될 뿐입니다. 다른 요소 프로미스는 그대로 정해지고 그 프로미스에 붙은 반응도 실행됩니다. 예제 2에서 `all`이 거부된 뒤에도 `a`는 이행되고 `a still fulfilled A`가 출력됩니다. 요소가 하던 일을 멈추려면 그 일 자체를 멈출 별도의 방법이 필요합니다. 이 페이지는 취소를 다루지 않습니다.
+
+</Callout>
+
+<Callout type="misconception" title="race는 언제나 가장 먼저 정해진 프로미스를 따른다">
+
+"first passed promise to settle"은 알고리즘 앞의 개요 문장이고, 실제 단계는 PerformPromiseRace에 있습니다. 결과 프로미스를 정하는 것은 resolve나 reject를 가장 먼저 부른 반응 Job입니다. `race`를 부를 때 요소가 모두 pending인 표준 프로미스라면 각 요소가 정해지는 순간 Job이 들어가므로, 정해진 순서대로 Job이 실행되어 개요 문장과 결과가 같습니다. 차이가 나는 것은 이미 정해진 요소나 thenable이 섞일 때입니다. 요소가 모두 일반 값이거나 `Promise.resolve`가 그대로 돌려주는 이미 정해진 프로미스라면, 먼저 정해졌는지가 아니라 반복에서 먼저 나온 요소의 Job이 먼저 들어갑니다. 예제 4의 첫 `race`는 `early`가 먼저 만들어졌지만 `late`를 먼저 넣었으므로 `late`를 따릅니다.
+
+</Callout>
+
+<Callout type="misconception" title="Promise.all([])은 영영 끝나지 않는다">
+
+`Promise.all([])`과 `Promise.allSettled([])`는 남은 개수가 1에서 시작해 반복 끝에서 0이 되므로 호출 안에서 빈 배열로 이행되고(콜백은 나중에 Job으로 불립니다), `Promise.any([])`는 AggregateError로 거부됩니다. 영영 정해지지 않는 쪽은 `Promise.race([])`뿐입니다. 예제 3은 실행 중에 콜백이 불리지 않는다는 것까지 보여 주고, 영영 정해지지 않는다는 것은 명세의 Promise.race NOTE가 말하는 내용입니다.
+
+</Callout>

@@ -1263,6 +1263,25 @@ describe('시뮬레이터 프리렌더 (microtask-queue)', () => {
   })
 })
 
+// 추가 게시글(promise-static-methods): 장부 시뮬레이터의 첫 단계, 비교 표 region, 퀴즈가 프리렌더 HTML에 정적으로 있어야 한다.
+describe('시뮬레이터 프리렌더 (promise-static-methods)', () => {
+  const html = read('concepts/promise-static-methods/index.html')
+  const text = htmlToText(html)
+
+  it('Promise.all 장부 시뮬레이터 region과 첫 단계가 HTML에 있다', () => {
+    expect(html).toMatch(/role="region"[^>]*aria-label="Promise\.all 장부 시뮬레이터"/)
+    expect(text).toContain('단계 1: 실행 시작')
+  })
+
+  it('비교 표 region이 HTML에 있다', () => {
+    expect(html).toMatch(/role="region"[^>]*aria-label="Promise\.all, allSettled, any, race의 장부/)
+  })
+
+  it('퀴즈 정답이 <details>로 8개 이상 프리렌더된다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(8)
+  })
+})
+
 // 43~48장 로드맵 4번(generator): 제너레이터 시뮬레이터의 첫 단계와 퀴즈가 프리렌더 HTML에 정적으로 있어야 한다.
 describe('시뮬레이터 프리렌더 (generator)', () => {
   const html = read('concepts/generator/index.html')

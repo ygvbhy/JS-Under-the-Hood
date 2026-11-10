@@ -28,7 +28,15 @@ export const concept = {
     { label: '이벤트 루프와 태스크 큐', slug: 'event-loop' },
     { label: '실행 컨텍스트', slug: 'execution-context' },
   ],
-  related: ['event-loop', 'timers', 'execution-context', 'closure', 'iterable-for-of', 'json'],
+  related: [
+    'event-loop',
+    'timers',
+    'execution-context',
+    'closure',
+    'iterable-for-of',
+    'json',
+    'promise-static-methods',
+  ],
   examples: [
     {
       id: 'executor-sync',
