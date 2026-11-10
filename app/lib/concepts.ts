@@ -8,12 +8,18 @@ export type EcmascriptExample = {
   expectedOutput: string[] // console.log 줄 단위
 }
 
+// 응답 리소스: path의 확장자는 file과 같아야 한다. status는 200~299·400~599(204·205 제외).
+export type ResponseResource = { path: string; file: string; status?: number; delayMs?: number }
+// 네트워크 오류 리소스: 이 path 요청은 네트워크 오류로 끝난다. (networkError는 응답 모양에 선언하지 않는다)
+export type NetworkErrorResource = { path: string; networkError: true }
+export type BrowserResource = ResponseResource | NetworkErrorResource
+
 export type BrowserExample = {
   id: string
   file: string // examples/ 하위 파일명(.html 또는 .js)
   runtime: 'browser' // Chromium 페이지에서 실행(호스트 동작)
   expectedOutput: string[] // console.log 줄 단위
-  resources?: { path: string; file: string; delayMs?: number }[] // 가짜 서버가 path로 내주는 .js (delayMs 기본 0)
+  resources?: BrowserResource[] // 가짜 서버가 path로 내주는 응답(.js·.json, status 기본 200, delayMs 기본 0) 또는 네트워크 오류
   settleMs?: number // 로드 뒤 출력을 기다리는 시간(기본 300, 0~2000)
 }
 

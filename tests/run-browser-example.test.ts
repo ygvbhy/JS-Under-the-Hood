@@ -51,8 +51,20 @@ describe('runBrowserExample', () => {
       kind: 'html',
       source,
       resources: [
-        { path: '/a.js', body: "console.log('a')", delayMs: 200 },
-        { path: '/b.js', body: "console.log('b')", delayMs: 10 },
+        {
+          path: '/a.js',
+          body: "console.log('a')",
+          delayMs: 200,
+          status: 200,
+          contentType: 'text/javascript; charset=utf-8',
+        },
+        {
+          path: '/b.js',
+          body: "console.log('b')",
+          delayMs: 10,
+          status: 200,
+          contentType: 'text/javascript; charset=utf-8',
+        },
       ],
     })
     expect(out).toEqual(['a', 'b'])
@@ -67,8 +79,20 @@ describe('runBrowserExample', () => {
       kind: 'html',
       source,
       resources: [
-        { path: '/a.js', body: "console.log('a')", delayMs: 200 },
-        { path: '/b.js', body: "console.log('b')", delayMs: 10 },
+        {
+          path: '/a.js',
+          body: "console.log('a')",
+          delayMs: 200,
+          status: 200,
+          contentType: 'text/javascript; charset=utf-8',
+        },
+        {
+          path: '/b.js',
+          body: "console.log('b')",
+          delayMs: 10,
+          status: 200,
+          contentType: 'text/javascript; charset=utf-8',
+        },
       ],
     })
     expect(out).toEqual(['b', 'a'])
@@ -122,7 +146,15 @@ describe('runBrowserExample', () => {
       run({
         kind: 'html',
         source: '<!doctype html>\n<p>x</p>\n',
-        resources: [{ path: '/unused.js', body: '', delayMs: 0 }],
+        resources: [
+          {
+            path: '/unused.js',
+            body: '',
+            delayMs: 0,
+            status: 200,
+            contentType: 'text/javascript; charset=utf-8',
+          },
+        ],
       }),
     ).rejects.toThrow(/요청되지 않은 resource.*\/unused\.js/)
   })
@@ -157,5 +189,52 @@ describe('runBrowserExample', () => {
       'console.log(inKeys, inLoop, d.enumerable)',
     ].join('\n')
     expect(await run({ kind: 'js', source })).toEqual(['false false false'])
+  })
+
+  it('.json 404 응답은 상태·본문을 그대로 전달한다', { timeout: T }, async () => {
+    const source = [
+      "fetch('/missing.json')",
+      "  .then((res) => { console.log('then', res.status, res.ok); return res.json() })",
+      "  .then((data) => console.log('body', data.error))",
+    ].join('\n')
+    const out = await run({
+      kind: 'js',
+      source,
+      resources: [
+        {
+          path: '/missing.json',
+          body: '{"error":"not found"}',
+          delayMs: 0,
+          status: 404,
+          contentType: 'application/json',
+        },
+      ],
+    })
+    expect(out).toEqual(['then 404 false', 'body not found'])
+  })
+
+  it(
+    '네트워크 오류 resource는 fetch를 거부시키되 실행은 실패하지 않는다',
+    { timeout: T },
+    async () => {
+      const source =
+        "fetch('/down.json').then(() => console.log('then'), (e) => console.log('catch', e.name, e instanceof TypeError))"
+      const out = await run({
+        kind: 'js',
+        source,
+        resources: [{ path: '/down.json', networkError: true }],
+      })
+      expect(out).toEqual(['catch TypeError true'])
+    },
+  )
+
+  it('요청되지 않은 네트워크 오류 resource는 reject한다', { timeout: T }, async () => {
+    await expect(
+      run({
+        kind: 'html',
+        source: '<!doctype html>\n<p>x</p>\n',
+        resources: [{ path: '/down.json', networkError: true }],
+      }),
+    ).rejects.toThrow(/요청되지 않은 resource.*\/down\.json/)
   })
 })

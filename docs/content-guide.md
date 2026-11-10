@@ -13,7 +13,7 @@ app/concepts/<slug>/
   meta.ts
   content.mdx
   route.tsx
-  examples/*.js, *.html
+  examples/*.js, *.html, *.json(브라우저 예제의 응답 리소스)
   (선택) scenarios.ts, Simulator.tsx, 시각화 컴포넌트, concept.test.ts
 ```
 
@@ -21,21 +21,21 @@ app/concepts/<slug>/
 
 메타데이터는 순수 데이터입니다. `import type { ConceptMeta } from '~/lib/concepts'` 외에는 아무것도 import하지 않습니다(홈 화면 번들에 본문이나 시뮬레이터가 딸려오지 않게 하기 위해서입니다). `export const concept = { ... } satisfies ConceptMeta` 형태로 씁니다.
 
-| 필드              | 작성 방법                                                                                                                                                                                                                                                                               |
-| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `slug`            | 폴더명과 같게 씁니다(테스트가 검사).                                                                                                                                                                                                                                                    |
-| `title`           | 페이지 제목이자 홈 카드 제목입니다. 이 페이지가 설명하는 질문이나 구분을 담습니다.                                                                                                                                                                                                      |
-| `summary`         | 홈 카드와 `<meta name="description">`에 쓰입니다. 160자 이하(테스트가 검사).                                                                                                                                                                                                            |
-| `category`        | `fundamentals`(언어 기초), `execution`(실행 모델), `objects`(객체와 프로토타입), `browser`(브라우저), `async`(비동기), `memory`(메모리) 중 하나. 홈에서 이 그룹으로 묶입니다.                                                                                                           |
-| `order`           | 학습 순서입니다. 홈의 학습 순서 보기와 개념 페이지 이전/다음 링크에 쓰입니다. 10 간격으로 매기고, 선수 개념(`prerequisites`의 `slug`)보다 큰 번호를 줍니다. 사이에 끼울 때는 사이 번호(예: 205)를 씁니다. 화면에는 순위(1부터)로 보입니다. 테스트가 중복과 선수 개념 조건을 검사합니다. |
-| `tags`            | 검색에 쓰이는 키워드 배열입니다. 제목·요약에 없는 동의어도 넣습니다.                                                                                                                                                                                                                    |
-| `goals`           | "~할 수 있다"로 끝나는 학습 목표를 1개 이상 씁니다.                                                                                                                                                                                                                                     |
-| `prerequisites`   | `{ label, slug? }[]`. 이 사이트에 이미 있는 개념이면 `slug`를 줘서 링크로 만들고(없는 slug나 자기 자신이면 테스트 실패), 아직 없는 개념은 `label`만 씁니다.                                                                                                                             |
-| `related`         | 이 사이트에 존재하는 다른 개념의 slug 배열입니다. 없으면 `[]`. 자기 자신이나 없는 slug는 테스트가 실패합니다.                                                                                                                                                                           |
-| `examples`        | `{ id, file, runtime, expectedOutput }[]`. `runtime`은 `'ecmascript'`(Node `vm`) 또는 `'browser'`(Chromium)이고, `'browser'`에만 `resources`(`{ path, file, delayMs? }[]`)와 `settleMs`를 쓸 수 있습니다. 3단계 참고. `id`는 개념 안에서 유일해야 합니다.                               |
-| `simplifications` | 이 페이지의 설명과 시각화가 실제 명세·엔진과 다르게 단순화한 부분을 1개 이상 씁니다. 단순화가 없다고 판단되면 그 사유를 한 줄로 씁니다(빈 배열 금지).                                                                                                                                   |
-| `references`      | `{ label, url }[]`를 1개 이상. URL은 `https://`로 시작해야 하며, 가능하면 ECMAScript 명세의 해당 절(`https://tc39.es/ecma262/#sec-...`)과 MDN을 넣습니다. 링크는 실제로 열어 확인합니다.                                                                                                |
-| `reviewedAt`      | 처음에는 반드시 `null`(페이지에 "검토 중" 배지). 10단계에서 사용자 검토 후 `'YYYY-MM-DD'`로 바꿉니다. 이 날짜는 구조화 데이터의 `dateModified`와 sitemap의 `lastmod`로도 쓰입니다.                                                                                                      |
+| 필드              | 작성 방법                                                                                                                                                                                                                                                                                                                      |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `slug`            | 폴더명과 같게 씁니다(테스트가 검사).                                                                                                                                                                                                                                                                                           |
+| `title`           | 페이지 제목이자 홈 카드 제목입니다. 이 페이지가 설명하는 질문이나 구분을 담습니다.                                                                                                                                                                                                                                             |
+| `summary`         | 홈 카드와 `<meta name="description">`에 쓰입니다. 160자 이하(테스트가 검사).                                                                                                                                                                                                                                                   |
+| `category`        | `fundamentals`(언어 기초), `execution`(실행 모델), `objects`(객체와 프로토타입), `browser`(브라우저), `async`(비동기), `memory`(메모리) 중 하나. 홈에서 이 그룹으로 묶입니다.                                                                                                                                                  |
+| `order`           | 학습 순서입니다. 홈의 학습 순서 보기와 개념 페이지 이전/다음 링크에 쓰입니다. 10 간격으로 매기고, 선수 개념(`prerequisites`의 `slug`)보다 큰 번호를 줍니다. 사이에 끼울 때는 사이 번호(예: 205)를 씁니다. 화면에는 순위(1부터)로 보입니다. 테스트가 중복과 선수 개념 조건을 검사합니다.                                        |
+| `tags`            | 검색에 쓰이는 키워드 배열입니다. 제목·요약에 없는 동의어도 넣습니다.                                                                                                                                                                                                                                                           |
+| `goals`           | "~할 수 있다"로 끝나는 학습 목표를 1개 이상 씁니다.                                                                                                                                                                                                                                                                            |
+| `prerequisites`   | `{ label, slug? }[]`. 이 사이트에 이미 있는 개념이면 `slug`를 줘서 링크로 만들고(없는 slug나 자기 자신이면 테스트 실패), 아직 없는 개념은 `label`만 씁니다.                                                                                                                                                                    |
+| `related`         | 이 사이트에 존재하는 다른 개념의 slug 배열입니다. 없으면 `[]`. 자기 자신이나 없는 slug는 테스트가 실패합니다.                                                                                                                                                                                                                  |
+| `examples`        | `{ id, file, runtime, expectedOutput }[]`. `runtime`은 `'ecmascript'`(Node `vm`) 또는 `'browser'`(Chromium)이고, `'browser'`에만 `resources`(응답 `{ path, file, status?, delayMs? }` 또는 네트워크 오류 `{ path, networkError: true }`의 배열)와 `settleMs`를 쓸 수 있습니다. 3단계 참고. `id`는 개념 안에서 유일해야 합니다. |
+| `simplifications` | 이 페이지의 설명과 시각화가 실제 명세·엔진과 다르게 단순화한 부분을 1개 이상 씁니다. 단순화가 없다고 판단되면 그 사유를 한 줄로 씁니다(빈 배열 금지).                                                                                                                                                                          |
+| `references`      | `{ label, url }[]`를 1개 이상. URL은 `https://`로 시작해야 하며, 가능하면 ECMAScript 명세의 해당 절(`https://tc39.es/ecma262/#sec-...`)과 MDN을 넣습니다. 링크는 실제로 열어 확인합니다.                                                                                                                                       |
+| `reviewedAt`      | 처음에는 반드시 `null`(페이지에 "검토 중" 배지). 10단계에서 사용자 검토 후 `'YYYY-MM-DD'`로 바꿉니다. 이 날짜는 구조화 데이터의 `dateModified`와 sitemap의 `lastmod`로도 쓰입니다.                                                                                                                                             |
 
 ### 3. 예제와 `expectedOutput`
 
@@ -90,18 +90,21 @@ examples: [
 - **주소.** 문서는 `http://example.test/`에서 열립니다. 이 주소는 secure context가 아니므로(`isSecureContext`가 `false`) secure context 전용 API를 쓰는 예제는 쓰지 않습니다.
 - **사용자 입력.** 실제 클릭이나 키 입력은 만들지 않습니다. 예제 코드 안에서 `el.click()`이나 `dispatchEvent`로 일으킵니다. 이렇게 만든 이벤트는 `isTrusted`가 `false`입니다. 결과 설명이 이 차이와 관련되면 `simplifications`에 적습니다.
 - **`resources`와 `delayMs`.** 외부 스크립트(`<script src>`)는 `resources`에 `path`(`/`로 시작하는 `.js` 경로. `/`와 `/example.js`는 예약)와 `file`(`examples/` 안의 `.js`)로 등록하고, `delayMs`(0~1000의 정수, 기본 0)만큼 늦게 응답하게 만들 수 있습니다. `delayMs`는 페이지에 보이지 않는 숨은 조건입니다. 결과가 지연에 의존하면 본문이나 `simplifications`에 그 사실을 밝힙니다. 지연 차이로 강제되지 않는 순서는 주장하지 않습니다(예: 지연 0인 `async` 스크립트와 `DOMContentLoaded`의 선후).
+- **응답 리소스: `.json`과 `status`.** `fetch`처럼 스크립트가 아닌 응답이 필요하면 `file`과 `path`를 `.json`으로 씁니다. `path`의 확장자는 `file`과 같아야 합니다. Content-Type은 확장자로 정해집니다(`.js`는 `text/javascript; charset=utf-8`, `.json`은 `application/json`). `status`(기본 200)는 200~299 또는 400~599의 정수이고, 본문이 없는 상태인 204·205와 리다이렉트(3xx)·1xx는 쓸 수 없습니다. 응답 헤더는 지정할 수 없습니다.
+- **네트워크 오류 리소스.** `{ path, networkError: true }`로 등록한 경로의 요청은 가짜 서버가 응답하지 않고 네트워크 오류로 실패시킵니다(`fetch`는 `TypeError`로 거부). `file`·`status`·`delayMs`는 쓸 수 없습니다. 등록되지 않은 요청과 달리 테스트 실패로 치지 않지만, 요청되지 않으면 실패합니다. 실제 네트워크 오류의 원인(오프라인, DNS 실패, CORS 실패 등)은 다양하므로 이렇게 만든 오류라는 사실을 `simplifications`에 밝힙니다.
+- **가짜 서버 조건은 숨은 조건입니다.** 경로마다 상태·응답 본문·네트워크 오류 여부는 예제 코드만 봐서는 알 수 없습니다. 본문에 경로별 조건을 표로 보이고, 출력에 응답 본문 내용이 나오면 그 `.json` 파일도 코드 블록으로 보입니다. 여러 `fetch`가 끝나는 순서는 네트워크 타이밍에 달려 있으므로 주장하지 않습니다(`Promise.all`처럼 순서가 정해지는 형태로 모아 출력합니다).
 - **`settleMs`와 출력 안정 검사.** 로드(`load`) 뒤 `settleMs`(0~2000의 정수, 기본 300)만큼 기다려 출력을 거둔 다음, 200ms(`QUIET_MS`) 더 기다려 다시 거둡니다. 두 출력이 같아야 통과합니다. 따라서 모든 출력이 `settleMs` 안에 끝나야 하고, 끝나지 않는 `setInterval`은 실패합니다(지워서 끝냅니다). 정확한 ms는 주장하지 않고 순서만 주장합니다.
 - **출력 규칙.** `console.log`만 씁니다. 인수는 원시 값, 불리언, `JSON.stringify(...)` 결과만 넘기고 객체·함수를 직접 넘기지 않습니다(`[unsupported: object]`로 기록되어 비교가 실패). 첫 인수 문자열에 `%s`·`%d` 같은 서식 지정자(`%`)를 쓰지 않습니다(`[unsupported: format]`). `console.info`·`warn`·`error`·`debug`는 `[unsupported: console.<이름>]`으로 기록되어 비교가 실패합니다.
 - **실패하는 경우.** 아래 중 하나라도 있으면 테스트가 원인을 적어 실패합니다.
   - 잡히지 않은 예외나 처리되지 않은 Promise rejection(`pageerror`). 전역 `error`·`unhandledrejection` 리스너에서 `event.preventDefault()`로 취소하면 `pageerror`가 나지 않으므로 이런 이벤트는 취소하는 예제로만 씁니다.
   - 첫 문서를 연 뒤 페이지 이동(링크 클릭, `location` 변경 등)
-  - 등록되지 않은 요청(`/missing.js`, 다른 호스트의 이미지·스크립트 등 `resources`에 없는 모든 요청)
+  - 등록되지 않은 요청(`/missing.js`, 다른 호스트의 이미지·스크립트 등 `resources`에 없는 모든 요청). 네트워크 오류를 보이려면 네트워크 오류 리소스로 등록합니다.
   - 등록했지만 요청되지 않은 `resources`
   - 출력이 안정되지 않음(`settleMs` 뒤와 200ms 뒤의 출력이 다름)
   - 페이지 로드(`goto`) 5000ms 초과, 출력 수집(`evaluate`) 2000ms 초과(로드 뒤 무한 루프 등)
 - **브라우저마다 다를 수 있는 부분.** 결과는 Chromium에서 실행한 값입니다. 표준이 정하지 않아 브라우저마다 다를 수 있는 동작은 쓰지 않거나 `simplifications`에 밝힙니다.
-- **근거.** WHATWG HTML 표준, WHATWG DOM 표준, MDN을 `references`에 넣습니다(해당 절 링크를 실제로 열어 확인).
-- **코드 블록.** 본문의 코드 펜스 언어는 파일 형식에 맞춰 `html` 또는 `js`로 씁니다(예: ` ```html file=./examples/order.html `).
+- **근거.** WHATWG HTML 표준, WHATWG DOM 표준, WHATWG Fetch 표준(`fetch`·`Response`), MDN을 `references`에 넣습니다(해당 절 링크를 실제로 열어 확인).
+- **코드 블록.** 본문의 코드 펜스 언어는 파일 형식에 맞춰 `html`, `js`, `json`(응답 리소스)으로 씁니다(예: ` ```html file=./examples/order.html `).
 
 ### 4. `content.mdx` 작성
 

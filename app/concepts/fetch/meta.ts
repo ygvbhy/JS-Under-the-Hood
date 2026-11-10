@@ -1,0 +1,145 @@
+import type { ConceptMeta } from '~/lib/concepts'
+
+export const concept = {
+  slug: 'fetch',
+  title: 'fetch: 404 응답인데 왜 catch로 가지 않을까',
+  summary:
+    'fetch가 돌려주는 프로미스는 404·500 응답에도 이행하고, 결과가 네트워크 오류일 때 TypeError로 거부합니다. response.ok로 상태를 확인해야 하는 이유와 json()이 또 프로미스를 돌려주는 이유를 Fetch 표준과 실행 결과로 확인합니다.',
+  category: 'async',
+  order: 445,
+  tags: [
+    'fetch',
+    'Response',
+    'response.ok',
+    'json()',
+    'HTTP 상태 코드',
+    '404',
+    '네트워크 오류',
+    'TypeError',
+    'Fetch 표준',
+    'Ajax',
+  ],
+  goals: [
+    'fetch가 반환한 프로미스가 이행되는 조건과 거부되는 조건을 Fetch 표준의 단계로 설명할 수 있다.',
+    'response.ok가 true인 상태 코드 범위(ok status)를 설명하고, 404·500 응답이 catch로 가지 않는 이유를 설명할 수 있다.',
+    '응답 본문을 읽는 json()이 별도의 프로미스를 돌려주는 이유와, 본문이 있는 Response를 한 번만 읽을 수 있는 이유를 설명할 수 있다.',
+    'ok를 확인해 실패를 직접 거부로 바꾸어 then 체인의 catch 한 곳에서 처리하는 코드를 예측할 수 있다.',
+  ],
+  prerequisites: [
+    { label: '프로미스', slug: 'promise' },
+    { label: 'JSON', slug: 'json' },
+    { label: '마이크로태스크 큐', slug: 'microtask-queue' },
+  ],
+  related: ['promise', 'json', 'microtask-queue', 'event-loop', 'async-await', 'error-handling'],
+  examples: [
+    {
+      id: 'ok-response',
+      file: 'ok-response.js',
+      runtime: 'browser',
+      resources: [{ path: '/user.json', file: 'user.json' }],
+      expectedOutput: ['sync end', '200 true', 'true', 'Kim'],
+    },
+    {
+      id: 'not-found',
+      file: 'not-found.js',
+      runtime: 'browser',
+      resources: [{ path: '/missing.json', file: 'not-found.json', status: 404 }],
+      expectedOutput: ['then 404 false', 'not found'],
+    },
+    {
+      id: 'status-ok',
+      file: 'status-ok.js',
+      runtime: 'browser',
+      resources: [
+        { path: '/user.json', file: 'user.json' },
+        { path: '/created.json', file: 'created.json', status: 201 },
+        { path: '/missing.json', file: 'not-found.json', status: 404 },
+        { path: '/server-error.json', file: 'server-error.json', status: 500 },
+      ],
+      expectedOutput: ['[[200,true],[201,true],[404,false],[500,false]]'],
+    },
+    {
+      id: 'network-error',
+      file: 'network-error.js',
+      runtime: 'browser',
+      resources: [{ path: '/offline.json', networkError: true }],
+      expectedOutput: ['microtask', 'rejected TypeError true'],
+    },
+    {
+      id: 'check-ok',
+      file: 'check-ok.js',
+      runtime: 'browser',
+      resources: [
+        { path: '/user.json', file: 'user.json' },
+        { path: '/missing.json', file: 'not-found.json', status: 404 },
+      ],
+      expectedOutput: ['data Kim', 'catch HTTP 404'],
+    },
+    {
+      id: 'body-used',
+      file: 'body-used.js',
+      runtime: 'browser',
+      resources: [{ path: '/user.json', file: 'user.json' }],
+      expectedOutput: ['false', 'true', 'string', 'catch TypeError'],
+    },
+    {
+      id: 'invalid-json',
+      file: 'invalid-json.js',
+      runtime: 'browser',
+      resources: [{ path: '/broken.json', file: 'broken.json' }],
+      expectedOutput: ['then 200 true', 'catch SyntaxError true'],
+    },
+    {
+      id: 'bad-url',
+      file: 'bad-url.js',
+      runtime: 'browser',
+      expectedOutput: ['after fetch', 'catch TypeError', 'microtask'],
+    },
+  ],
+  simplifications: [
+    '예제의 응답은 테스트용 가짜 서버가 경로별로 정해 둔 상태 코드와 본문을 주는 것이며, 실제 서버와 통신하지 않습니다.',
+    '예제의 네트워크 오류는 가짜 서버가 요청을 실패시켜 만든 것입니다. 실제 원인은 오프라인, DNS 실패, CORS 검사 실패 등 다양합니다.',
+    '가짜 서버는 응답 본문을 한 번에 보내므로, 본문이 나중에 이어서 도착하는 스트리밍은 실행으로 보이지 않습니다.',
+    'response.ok가 200~299일 때만 true라는 위쪽 경계(3xx)는 실행이 아니라 Fetch 표준에서 가져온 것이며, 가짜 서버는 3xx 응답을 내지 않습니다.',
+    '요청 옵션(method·headers·body·redirect 등), CORS, 요청 중단(AbortController)은 다루지 않으며, 예제는 모두 기본 옵션으로 요청합니다.',
+    '모든 실행 결과는 Chromium에서 얻은 것이며, 브라우저마다 다른 오류 메시지는 출력하지 않고 오류의 종류(TypeError·SyntaxError)만 보입니다.',
+    'HTTP 상태 코드는 각 코드의 의미를 다루지 않고 "서버가 응답에 담는 세 자리 숫자" 정도로만 짧게 다룹니다. XMLHttpRequest는 다루지 않습니다.',
+    'async/await와 try...catch·Error·throw는 각각 별도 개념 페이지(async/await, try/catch/finally)에서 다루므로 이 페이지는 then 체인과 catch 메서드로만 설명합니다.',
+    '예제의 console은 ECMAScript 언어가 아니라 호스트가 제공하는 API입니다.',
+  ],
+  references: [
+    {
+      label: 'Fetch 표준 — fetch() 메서드',
+      url: 'https://fetch.spec.whatwg.org/#dom-global-fetch',
+    },
+    {
+      label: 'Fetch 표준 — network error',
+      url: 'https://fetch.spec.whatwg.org/#concept-network-error',
+    },
+    { label: 'Fetch 표준 — HTTP fetch', url: 'https://fetch.spec.whatwg.org/#http-fetch' },
+    {
+      label: 'Fetch 표준 — HTTP-network fetch',
+      url: 'https://fetch.spec.whatwg.org/#http-network-fetch',
+    },
+    { label: 'Fetch 표준 — ok status', url: 'https://fetch.spec.whatwg.org/#ok-status' },
+    { label: 'Fetch 표준 — Response.ok', url: 'https://fetch.spec.whatwg.org/#dom-response-ok' },
+    {
+      label: 'Fetch 표준 — consume body',
+      url: 'https://fetch.spec.whatwg.org/#concept-body-consume-body',
+    },
+    { label: 'Fetch 표준 — json()', url: 'https://fetch.spec.whatwg.org/#dom-body-json' },
+    {
+      label: 'MDN — fetch()',
+      url: 'https://developer.mozilla.org/ko/docs/Web/API/Window/fetch',
+    },
+    {
+      label: 'MDN — Response.ok',
+      url: 'https://developer.mozilla.org/ko/docs/Web/API/Response/ok',
+    },
+    {
+      label: 'MDN — Response.json()',
+      url: 'https://developer.mozilla.org/ko/docs/Web/API/Response/json',
+    },
+  ],
+  reviewedAt: '2026-11-10',
+} satisfies ConceptMeta

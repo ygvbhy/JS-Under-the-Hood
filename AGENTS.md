@@ -9,7 +9,7 @@
 ## 정확성 원칙 (최우선)
 
 - 설명의 근거는 ECMAScript 명세와 실제 실행 결과다. 페이지의 모든 "실행 결과" 주장은 실제 실행으로 검증한다(`npm test`가 예제를 실제로 실행해 대조한다). 출력은 추측해서 쓰지 않는다.
-- ECMAScript 언어 동작과 호스트(브라우저/Node) 동작을 구분해서 쓴다. 예: `console`은 호스트 API다. 브라우저(호스트) 동작의 근거는 WHATWG HTML·DOM 표준과 실제 Chromium 실행 결과다.
+- ECMAScript 언어 동작과 호스트(브라우저/Node) 동작을 구분해서 쓴다. 예: `console`은 호스트 API다. 브라우저(호스트) 동작의 근거는 WHATWG HTML·DOM·Fetch 표준과 실제 Chromium 실행 결과다.
 - 교육용 추상화(스택/힙 그림, "복사" 같은 비유)를 엔진 내부 구현처럼 서술하지 않는다. 결과의 원인을 "복사해서/공유해서"로 설명하지 않고 명세가 정의한 동작(재할당, 변경 등)으로 설명한다.
 - 단순화한 부분은 반드시 페이지에 명시한다(`meta.simplifications`).
 - 확실하지 않은 동작은 사실처럼 쓰지 않는다. 불확실하면 그렇다고 밝히거나 쓰지 않는다.
@@ -38,7 +38,7 @@ app/
     meta.ts                      # 메타데이터(순수 데이터)
     content.mdx                  # 설명 본문
     route.tsx                    # 얇은 라우트 모듈
-    examples/*.js, *.html        # 실행 검증되는 예제
+    examples/*.js, *.html        # 실행 검증되는 예제 (*.json: 브라우저 예제의 응답 리소스)
     scenarios.ts 등              # (선택) 시뮬레이터: 시나리오, 시각화, Simulator.tsx(공통 셸 래퍼)
     concept.test.ts              # (시뮬레이터가 있으면) 시나리오 불변식 테스트
 tests/

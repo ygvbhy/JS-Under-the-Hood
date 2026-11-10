@@ -1209,6 +1209,22 @@ describe('프리렌더 (json)', () => {
   })
 })
 
+// 추가 게시글(fetch): 상황별 결과표, 가짜 서버 경로 표, 퀴즈가 프리렌더 HTML에 정적으로 있어야 한다.
+describe('프리렌더 (fetch)', () => {
+  const html = read('concepts/fetch/index.html')
+  const text = htmlToText(html)
+
+  it('상황별 결과표와 가짜 서버 경로 표 region이 HTML에 있다', () => {
+    expect(html).toContain('aria-label="fetch 상황별 프로미스 상태, response.ok, 본문 읽기 결과와')
+    expect(html).toContain('aria-label="가짜 서버 경로마다 응답 상태와 본문을 정리한 표')
+    expect(text).toContain('consume body는 unusable이면 TypeError로 거부')
+  })
+
+  it('퀴즈 정답이 <details>로 8개 이상 프리렌더된다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(8)
+  })
+})
+
 // 43~48장 로드맵 2번(promise): 프로미스 시뮬레이터의 첫 단계와 퀴즈가 프리렌더 HTML에 정적으로 있어야 한다.
 describe('시뮬레이터 프리렌더 (promise)', () => {
   const html = read('concepts/promise/index.html')

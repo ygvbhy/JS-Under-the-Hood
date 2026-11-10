@@ -11,7 +11,9 @@ export const GOTO_TIMEOUT_MS = 5000
 export const EVALUATE_TIMEOUT_MS = 2000
 export const DEFAULT_SETTLE_MS = 300
 
-export type RunnerResource = { path: string; body: string; delayMs: number }
+export type RunnerResource =
+  | { path: string; networkError: true }
+  | { path: string; delayMs: number; status: number; contentType: string; body: string }
 export type RunnerInput = {
   kind: 'html' | 'js'
   source: string
@@ -66,22 +68,40 @@ function sleep(ms: number): Promise<void> {
 }
 
 export async function runBrowserExample(browser: Browser, input: RunnerInput): Promise<string[]> {
-  const bodies = new Map<string, { body: string; type: string; delayMs: number }>()
+  type Entry =
+    { networkError: true } | { body: string; type: string; delayMs: number; status: number }
+  const bodies = new Map<string, Entry>()
   if (input.kind === 'html') {
-    bodies.set('/', { body: input.source, type: 'text/html; charset=utf-8', delayMs: 0 })
+    bodies.set('/', {
+      body: input.source,
+      type: 'text/html; charset=utf-8',
+      delayMs: 0,
+      status: 200,
+    })
   } else {
-    bodies.set('/', { body: JS_DOCUMENT, type: 'text/html; charset=utf-8', delayMs: 0 })
+    bodies.set('/', {
+      body: JS_DOCUMENT,
+      type: 'text/html; charset=utf-8',
+      delayMs: 0,
+      status: 200,
+    })
     bodies.set('/example.js', {
       body: input.source,
       type: 'text/javascript; charset=utf-8',
       delayMs: 0,
+      status: 200,
     })
   }
   for (const r of input.resources) {
+    if ('networkError' in r) {
+      bodies.set(r.path, { networkError: true })
+      continue
+    }
     bodies.set(r.path, {
       body: r.body,
-      type: 'text/javascript; charset=utf-8',
+      type: r.contentType,
       delayMs: r.delayMs,
+      status: r.status,
     })
   }
 
@@ -104,9 +124,13 @@ export async function runBrowserExample(browser: Browser, input: RunnerInput): P
         return
       }
       requestedPaths.add(path)
+      if ('networkError' in entry) {
+        await route.abort('failed').catch(() => {})
+        return
+      }
       await sleep(entry.delayMs)
       await route
-        .fulfill({ status: 200, contentType: entry.type, body: entry.body })
+        .fulfill({ status: entry.status, contentType: entry.type, body: entry.body })
         .catch(() => {})
     })
 

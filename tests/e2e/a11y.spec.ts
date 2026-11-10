@@ -67,6 +67,7 @@ import {
   EVENT_LOOP_PATH,
   EVENT_LOOP_SIMULATOR_NAME,
   JSON_PATH,
+  FETCH_PATH,
   MICROTASK_QUEUE_PATH,
   MICROTASK_QUEUE_SIMULATOR_NAME,
   GENERATOR_PATH,
@@ -957,6 +958,13 @@ for (const colorScheme of ['light', 'dark'] as const) {
 
     test('개념 페이지: JSON', async ({ page }) => {
       await page.goto(JSON_PATH)
+      await waitForHydration(page)
+      await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
+      await expectNoSeriousViolations(page)
+    })
+
+    test('개념 페이지: fetch', async ({ page }) => {
+      await page.goto(FETCH_PATH)
       await waitForHydration(page)
       await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
       await expectNoSeriousViolations(page)

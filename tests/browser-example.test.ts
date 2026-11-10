@@ -22,6 +22,7 @@ const fs = makeFs({
   'dep.js': 'console.log("dep")',
   'dep2.js': 'console.log("dep2")',
   'x.txt': 'x',
+  'data.json': '{"a":1}',
 })
 
 const es = (extra: Partial<EcmascriptExample> = {}): ConceptExample => ({
@@ -103,17 +104,23 @@ describe('checkExampleSpec 위반', () => {
 
   it('resource 파일이 .js가 아님', () => {
     const example = br({ resources: [{ path: '/x.js', file: 'x.txt' }] })
-    expect(checkExampleSpec(example, fs).join('\n')).toContain('x.txt은 .js여야 합니다')
+    expect(checkExampleSpec(example, fs).join('\n')).toContain(
+      'x.txt은 .js 또는 .json이어야 합니다',
+    )
   })
 
   it('resource path가 /로 시작하지 않음', () => {
     const example = br({ resources: [{ path: 'dep.js', file: 'dep.js' }] })
-    expect(checkExampleSpec(example, fs).join('\n')).toContain('/로 시작하는 .js 경로')
+    expect(checkExampleSpec(example, fs).join('\n')).toContain(
+      '/로 시작하고 파일 dep.js과 같은 확장자로 끝나야 합니다',
+    )
   })
 
   it('resource path가 .js로 끝나지 않음', () => {
     const example = br({ resources: [{ path: '/dep.css', file: 'dep.js' }] })
-    expect(checkExampleSpec(example, fs).join('\n')).toContain('/로 시작하는 .js 경로')
+    expect(checkExampleSpec(example, fs).join('\n')).toContain(
+      '/로 시작하고 파일 dep.js과 같은 확장자로 끝나야 합니다',
+    )
   })
 
   it('resource path가 /example.js 예약 경로', () => {
@@ -161,6 +168,78 @@ describe('checkExampleSpec 위반', () => {
   })
 })
 
+describe('checkExampleSpec: json·status·네트워크 오류 resource', () => {
+  const check = (resources: unknown[]) =>
+    checkExampleSpec(br({ resources: resources as BrowserExample['resources'] }), fs)
+
+  it('정상: .json + status 404, 네트워크 오류 resource', () => {
+    expect(
+      check([
+        { path: '/data.json', file: 'data.json', status: 404 },
+        { path: '/fail.json', networkError: true },
+        { path: '/fail.js', networkError: true },
+      ]),
+    ).toEqual([])
+  })
+
+  it('.json 파일에 .js 경로', () => {
+    expect(check([{ path: '/data.js', file: 'data.json' }]).join('\n')).toContain(
+      '같은 확장자로 끝나야 합니다',
+    )
+  })
+
+  it('.js 파일에 .json 경로', () => {
+    expect(check([{ path: '/dep.json', file: 'dep.js' }]).join('\n')).toContain(
+      '같은 확장자로 끝나야 합니다',
+    )
+  })
+
+  it('.txt 파일', () => {
+    expect(check([{ path: '/x.txt', file: 'x.txt' }]).join('\n')).toContain(
+      '.js 또는 .json이어야 합니다',
+    )
+  })
+
+  it.each([302, 199, 600, 204, 205, 200.5])('status %s은 위반', (status) => {
+    expect(check([{ path: '/data.json', file: 'data.json', status }]).join('\n')).toContain(
+      'status는',
+    )
+  })
+
+  it.each(['file', 'status', 'delayMs'])('네트워크 오류 resource에 %s', (key) => {
+    const value = key === 'file' ? 'dep.js' : 100
+    expect(check([{ path: '/f.js', networkError: true, [key]: value }]).join('\n')).toContain(
+      `에는 ${key}를 쓸 수 없습니다`,
+    )
+  })
+
+  it('networkError: false', () => {
+    expect(check([{ path: '/f.js', networkError: false }]).join('\n')).toContain(
+      'networkError는 true여야 합니다',
+    )
+  })
+
+  it('네트워크 오류 resource path가 .txt', () => {
+    expect(check([{ path: '/f.txt', networkError: true }]).join('\n')).toContain(
+      '.js 또는 .json 경로여야 합니다',
+    )
+  })
+
+  it('네트워크 오류 resource path가 예약 경로이거나 중복', () => {
+    expect(check([{ path: '/example.js', networkError: true }]).join('\n')).toContain('예약된')
+    expect(
+      check([
+        { path: '/f.js', networkError: true },
+        { path: '/f.js', file: 'dep.js' },
+      ]).join('\n'),
+    ).toContain('중복')
+  })
+
+  it('file도 networkError도 없음(크래시하지 않는다)', () => {
+    expect(check([{ path: '/f.js' }]).join('\n')).toContain('file 또는 networkError: true가 필요')
+  })
+})
+
 describe('toRunnerInput', () => {
   it('기본값: settleMs 300, delayMs 0, resources 본문 읽기', () => {
     const input = toRunnerInput(
@@ -170,7 +249,15 @@ describe('toRunnerInput', () => {
     expect(input).toEqual({
       kind: 'js',
       source: 'console.log(1)',
-      resources: [{ path: '/dep.js', body: 'console.log("dep")', delayMs: 0 }],
+      resources: [
+        {
+          path: '/dep.js',
+          body: 'console.log("dep")',
+          delayMs: 0,
+          status: 200,
+          contentType: 'text/javascript; charset=utf-8',
+        },
+      ],
       settleMs: 300,
     })
   })
@@ -185,10 +272,47 @@ describe('toRunnerInput', () => {
     )
     expect(input.kind).toBe('html')
     expect(input.settleMs).toBe(0)
-    expect(input.resources[0].delayMs).toBe(200)
+    expect(input.resources[0]).toMatchObject({ delayMs: 200 })
   })
 
   it('resources가 없으면 빈 배열', () => {
     expect(toRunnerInput(br() as BrowserExample, fs.read).resources).toEqual([])
+  })
+
+  it('.json은 application/json, status 기본 200과 지정값', () => {
+    const input = toRunnerInput(
+      br({
+        file: 'a.js',
+        resources: [
+          { path: '/data.json', file: 'data.json' },
+          { path: '/missing.json', file: 'data.json', status: 404 },
+        ],
+      }) as BrowserExample,
+      fs.read,
+    )
+    expect(input.resources).toEqual([
+      {
+        path: '/data.json',
+        body: '{"a":1}',
+        delayMs: 0,
+        status: 200,
+        contentType: 'application/json',
+      },
+      {
+        path: '/missing.json',
+        body: '{"a":1}',
+        delayMs: 0,
+        status: 404,
+        contentType: 'application/json',
+      },
+    ])
+  })
+
+  it('네트워크 오류 resource는 { path, networkError: true }로 바뀐다', () => {
+    const input = toRunnerInput(
+      br({ file: 'a.js', resources: [{ path: '/f.json', networkError: true }] }) as BrowserExample,
+      fs.read,
+    )
+    expect(input.resources).toEqual([{ path: '/f.json', networkError: true }])
   })
 })
