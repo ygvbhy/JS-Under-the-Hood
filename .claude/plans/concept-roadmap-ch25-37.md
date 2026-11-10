@@ -43,7 +43,7 @@
 
 - 28장 Number (2026-11-06 추가 게시글 `number-pitfalls`, order 275로 작성): `number-type`이 부동소수점을 다뤘다. `(1.005).toFixed(2)`가 `'1.00'`인 것, `Number.MAX_SAFE_INTEGER + 2`가 `9007199254740992`인 것(안전한 정수)은 추가 게시글 후보로 둔다.
 - 29장 Math: 메서드 목록 성격이라 개념 페이지로 만들지 않는다.
-- 30장 Date: 결과가 호스트의 시간대에 따라 달라 "실제 실행으로 검증"하기 어렵다. 제외하거나, 시간대 고정 방법을 정한 뒤 다시 검토한다.
+- 30장 Date: 결과가 호스트의 시간대에 따라 달라 "실제 실행으로 검증"하기 어렵다. 제외하거나, 시간대 고정 방법을 정한 뒤 다시 검토한다. → 2026-11-10 추가 게시글 `date`(order 277, category `objects`)로 구현. 예제는 시간대와 무관한 값만 출력하고 `concept.test.ts`가 16개 시간대에서 재실행해 확인한다.
 - 26장 매개변수 기본값 (2026-11-06 추가 게시글 `default-parameters`, order 255로 작성): 3번 `arrow-functions`에서 다루지 않았다(사용자 결정 2026-11-02, 범위는 화살표 함수·메서드 축약·rest). `undefined`일 때만 적용, 호출할 때마다 평가, `length`에서 빠짐, 매개변수 스코프를 추가 게시글 후보로 둔다.
 
 ## 개념 간 메모 (각 계획에서 확인)
@@ -83,3 +83,4 @@
 - 2026-11-03: 11번 `set-map` 구현·리뷰·외부 콘텐츠 검토 2회(8건·3건, 판별 원문으로 확인 — `getOrInsert`는 ES2026판, ES2025판부터 `get`·`has`·`delete`도 정규화 후 SameValue, WeakMap 엔트리 제거는 ES2020판 "must"·ES2021판부터 "may", Set 정의 문장은 ES2026판에서 바뀜) 반영 완료, 사용자 검토 승인(`reviewedAt` 2026-11-03), 커밋·배포. 25~37장 로드맵 11개 모두 완료.
 - 2026-11-06: 보류 목록의 26장 매개변수 기본값을 추가 게시글 `default-parameters`(order 255, category `execution`)로 구현.
 - 2026-11-06: 보류 목록의 28장 Number 후보를 추가 게시글 `number-pitfalls`(order 275, category `fundamentals`)로 구현.
+- 2026-11-10: 보류 목록의 30장 Date를 추가 게시글 `date`(order 277, category `objects`)로 구현. 예제는 시간대와 무관한 값만 출력하고 `concept.test.ts`가 16개 시간대에서 재실행해 확인한다.

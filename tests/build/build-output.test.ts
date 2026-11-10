@@ -1324,6 +1324,28 @@ describe('시뮬레이터 프리렌더 (async-generator)', () => {
   })
 })
 
+// 추가 게시글(date): Date 필드 계산 시뮬레이터의 첫 단계와 퀴즈가 프리렌더 HTML에 정적으로 있어야 한다.
+describe('시뮬레이터 프리렌더 (date)', () => {
+  const html = read('concepts/date/index.html')
+  const text = htmlToText(html)
+
+  it('Date 필드 계산 시뮬레이터 region과 첫 단계가 HTML에 있다', () => {
+    expect(html).toMatch(/role="region"[^>]*aria-label="Date 필드 계산 시뮬레이터"/)
+    expect(text).toContain('단계 1: 실행 전')
+  })
+
+  it('시나리오 선택 라디오 2개 이상과 라벨이 있다', () => {
+    expect(html.match(/type="radio"/g)?.length).toBeGreaterThanOrEqual(2)
+    for (const label of ['1월 31일에 setMonth(1)', '생성자 인수 넘침']) {
+      expect(text).toContain(label)
+    }
+  })
+
+  it('퀴즈 정답이 <details>로 프리렌더된다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(12)
+  })
+})
+
 // 43~48장 로드맵 7번(es-modules): ES 모듈 시뮬레이터의 첫 단계와 퀴즈가 프리렌더 HTML에 정적으로 있어야 한다.
 describe('시뮬레이터 프리렌더 (es-modules)', () => {
   const html = read('concepts/es-modules/index.html')

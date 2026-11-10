@@ -87,6 +87,8 @@ export const ERROR_HANDLING_PATH = '/concepts/error-handling'
 export const ERROR_HANDLING_SIMULATOR_NAME = 'try/catch/finally 시뮬레이터'
 export const ASYNC_GENERATOR_PATH = '/concepts/async-generator'
 export const ASYNC_GENERATOR_SIMULATOR_NAME = 'async 제너레이터 시뮬레이터'
+export const DATE_PATH = '/concepts/date'
+export const DATE_SIMULATOR_NAME = 'Date 필드 계산 시뮬레이터'
 export const ES_MODULES_PATH = '/concepts/es-modules'
 export const ES_MODULES_SIMULATOR_NAME = 'ES 모듈 시뮬레이터'
 
