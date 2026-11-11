@@ -228,7 +228,7 @@ npm run lint && npm run format:check && npm run typecheck && npm test && npm run
 - 설명의 근거는 ECMAScript 명세와 실제 실행 결과입니다(브라우저 동작은 WHATWG HTML·DOM 표준과 Chromium 실행 결과). 명세의 해당 절을 읽고 쓰며, 모든 결과 주장은 `examples/`로 실행 검증합니다.
 - 교육용 비유(스택·힙 그림, "복사한다", "참조를 공유한다")를 엔진 내부 구현처럼 쓰지 않습니다. 결과의 원인은 명세가 정의한 동작으로 설명하고, 비유를 썼다면 `simplifications`에 적습니다.
 - 확실하지 않은 엔진 세부(최적화, 메모리 배치, GC 시점 등)는 쓰지 않거나 "명세가 정하지 않는다"고 밝힙니다.
-- 페이지가 다루는 장 이후의 개념(예: 13장 페이지에서 실행 컨텍스트, TDZ)을 앞서 설명하지 않습니다. 필요하면 `prerequisites`에 `label`만 적고, 단순화한 부분은 `simplifications`에 "별도 개념에서 다룬다"고 밝힙니다.
+- 페이지가 다루는 장 이후의 개념(예: 13장 페이지에서 실행 컨텍스트, TDZ)을 앞서 설명하지 않습니다. 필요하면 `prerequisites`에 `label`만 적고, 단순화한 부분은 `simplifications`에 "별도 개념에서 다룬다"고 밝힙니다. 그 개념의 페이지가 이미 있으면 "별도 개념" 대신 본문에서는 링크(`[TDZ](/concepts/tdz)에서 다룹니다`), `simplifications`에서는 개념 이름("TDZ 개념에서 다룹니다")으로 가리키고 그 slug를 `related`에 더합니다(`simplifications`는 일반 텍스트로 그려져 링크가 되지 않습니다). 대상 페이지가 그 하위 주제를 실제로 다룰 때만 그렇게 쓰고, 아니면 "별도 개념"으로 둡니다.
 
 ### 저작권
 

@@ -173,7 +173,7 @@
 
 ### 후속 작업
 
-- [ ] AGENTS.md:21·`docs/content-guide.md:231`에 '해당 페이지가 있으면 그 개념 이름이나 링크로 가리킨다'를 더할지 결정(리뷰 Medium)
+- [x] AGENTS.md:21·`docs/content-guide.md:231`에 '해당 페이지가 있으면 그 개념 이름이나 링크로 가리킨다'를 더할지 결정(리뷰 Medium) — 2026-11-11 사용자 결정으로 두 문서에 추가
 - [ ] 남은 비대칭 `related`(이번 범위 밖) 정리 여부
 - [ ] `promise`·`json` → `fetch` 연결과 `json`의 Ajax 언급은 43장 Ajax 개념이 생길 때
 - [ ] `SimplificationNote`에서 링크 렌더링(공통 컴포넌트 — 별도 결정)
