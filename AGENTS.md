@@ -42,9 +42,10 @@ app/
     scenarios.ts 등              # (선택) 시뮬레이터: 시나리오, 시각화, Simulator.tsx(공통 셸 래퍼)
     concept.test.ts              # (시뮬레이터가 있으면) 시나리오 불변식 테스트
 tests/
-  helpers/                       # run-example.ts, run-browser-example.ts, browser-example.ts, scenario-invariants.ts
+  helpers/                       # run-example.ts, run-browser-example.ts, browser-example.ts, scenario-invariants.ts, result-tables.ts
   content-integrity.test.ts      # 메타데이터·필수 h2 무결성 (L3)
   examples.test.ts               # 예제 실제 실행 (L1)
+  result-tables.test.ts          # 본문 표의 예제 출력 칸을 expectedOutput과 대조
   build/                         # 빌드 결과 검사 — `npm run test:build` 전용
   e2e/                           # Playwright — `npm run e2e` 전용
 scripts/                         # postbuild.mjs(404.html, sitemap, robots), generate-og.mjs
