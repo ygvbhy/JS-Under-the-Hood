@@ -120,6 +120,18 @@
 - 주의사항: 공통 코드는 바꾸지 않지만 페이지가 여러 개라 전체 e2e를 실행한다.
 - 완료 조건: 모든 명령 통과.
 
+### 6. 후속: 결정 대기 문구 2곳 (2026-11-11 추가, 기준 `312f597`)
+- 대상: `app/concepts/set-map/content.mdx:257`, `app/concepts/error-handling/content.mdx:440`
+- 현재:
+  - set-map: "`new Set([-0])`과 `new Map([[-0, 1]])`의 키가 `+0`인 것은 이 저장소의 테스트가 직접 확인합니다." — 독자가 볼 수 없는 저장소 테스트를 근거로 든다. 근거 테스트는 `set-map/concept.test.ts:96-103`.
+  - error-handling: "결과 열은 meta의 출력과 같고, 그 출력은 테스트가 실제 실행과 대조합니다." — `meta`는 독자가 모르는 내부 파일 이름이다.
+- 변경:
+  - set-map: 해당 문장을 "실제로 `new Set([-0])`과 `new Map([[-0, 1]])`을 실행해도 저장된 키는 `+0`입니다."로 바꾼다(앞 문장 "명세가 `-0`을 `+0`으로 바꿔 저장하도록 정하는 것은 위 설명대로이고,"와 이어지도록 문장 이음은 구현 때 맞춘다).
+  - error-handling: "결과 열은 각 예제의 실행 출력입니다."로 바꾼다. 다른 페이지의 표 설명(`microtask-queue/content.mdx:370`, `generator/content.mdx:380`의 "결과 열은 각 예제의 실행 출력을 …")과 같은 표현이다. 어느 예제가 Node `vm`이고 어느 예제가 Chromium인지는 `error-handling/content.mdx:89`가 이미 밝힌다.
+- 이유: 2026-11-06 결정 기준("검증 범위를 밝히는 사실 문장은 남기고, 독자가 확인할 수 없는 저자 메모만 뺀다")을 적용한다. 두 문장의 사실 주장(-0이 +0으로 저장됨, 결과 열이 실행 출력임)은 유지하고 내부 근거 표현만 바꾼다.
+- 주의사항: 사실 주장은 그대로이므로 `set-map/concept.test.ts:96-103`과 `error-handling`의 예제 대조 테스트가 계속 근거가 된다. 지시어·문장 이음이 깨지지 않게 앞뒤 문장과 함께 읽는다.
+- 완료 조건: `/usr/bin/grep -rn "저장소의 테스트\|meta의 출력" app/concepts` 결과 없음, lint·format:check·typecheck·npm test·test:build 통과, `npx playwright test -g "Set과 Map|try/catch/finally"` 통과.
+
 ## 9. 추가 개선 후보
 - `microtask-queue`·`async-await`·`generator` 표의 결과 열을 `expectedOutput`과 자동 대조하는 테스트. 지금은 이번 조사의 일회성 스크립트로만 확인했으므로 예제가 바뀌면 표가 어긋날 수 있다.
 
@@ -128,6 +140,8 @@
 - 2026-11-06 (구현 중 발견): `number-type/concept.test.ts:32` 주석에 같은 "마지막 자리" 표현이 있어 함께 고쳤다(계획 조사는 content·meta만 봤다) — 영향 단계 1.
 - 2026-11-06 (구현 중 발견): 계획의 14곳은 `찾히`가 그대로 보이는 활용형만 센 것이었다. 음절이 합쳐진 `찾힙니다` 10곳, `찾혀` 6곳, `찾혔습니다` 1곳을 추가로 교체해 모두 31곳이고, `closure/content.mdx`와 `prototype-chain/content.mdx`가 대상에 더해졌다. 완료 조건은 `grep -rnE "찾(히|힙|혀|혔|힌|힐)" app docs` 0건으로 강화한다 — 영향 단계 4.
 - 2026-11-06 (리뷰 지적, High): `arrow-functions/content.mdx:9,45,245`에 같은 종류의 문구("테스트로 확인합니다", "이 페이지의 테스트가 두 경우를 실행해 확인합니다")가 남아 있어 같은 방식으로 고쳤다. 완료 조건에 `테스트로 확인`·`테스트가 두 경우`도 더한다 — 영향 단계 3.
+
+- 2026-11-11 (사용자 요청, 후속): 결정 대기 문구 2곳을 처리하는 단계 6을 추가하고 상태를 `승인 대기`로 되돌림 — 영향 단계 6
 
 ## 구현 진행
 
@@ -141,18 +155,21 @@
 - [x] 5. 전체 검증 — 마지막 수정 뒤 lint·format:check·typecheck·test(143파일 4365건)·test:build(420건)·`arrow-functions` e2e 6건 통과, 그 직전 전체 e2e 645건 통과
 - 리뷰 1차: High 1 (수정, 단계 3 — `arrow-functions`에 같은 문구 3곳 잔존) · Low 2 (보고) → 재검증 통과
 
+- [x] 6. 후속: 결정 대기 문구 2곳 — 잔존 grep 결과 없음, lint·format:check·typecheck 통과, npm test 4637 통과, test:build 451 통과, e2e `-g "Set과 Map|try/catch/finally"` 14 통과·실패 0. 직접 리뷰: set-map은 앞 문장("이 예제만으로 보이지 않습니다")과 이어 읽어도 자연스럽고, error-handling은 다른 페이지 표 설명과 같은 표현이라 새 지적 없음
+
 ## 구현 결과
 
 ### 계획 대비 실제 구현
 - 5건 모두 구현했다. `reviewedAt`은 사용자 승인대로 유지했다.
 - 달라진 점(`변경 이력`): '찾히다'는 14곳이 아니라 31곳이고 `closure`·`prototype-chain`이 더해졌다. `arrow-functions`의 정리 대상은 5곳이 아니라 8곳이다. `number-type/concept.test.ts:32` 주석도 고쳤다. 작업 순서 3의 완료 조건은 두 대상 페이지로 좁혔다.
+- 후속 단계 6(2026-11-11 사용자 요청): 결정 대기 문구 2곳(`set-map/content.mdx:257`, `error-handling/content.mdx:440`)을 독자용 문장으로 바꿨다. 사실 주장은 유지했다.
 
 ### 코드 리뷰
 - High 1건(`arrow-functions` 같은 문구 3곳 잔존)을 수정했다. Low 2건은 범위 밖이라 남겼다.
 
 ### 후속 작업
-- [ ] `set-map/content.mdx:257`의 "이 저장소의 테스트가 직접 확인합니다"를 독자용 문장으로 고칠지 결정
-- [ ] `error-handling/content.mdx:440`의 "결과 열은 meta의 출력과 같고"에서 `meta`를 독자가 아는 말로 바꿀지 결정
+- [x] `set-map/content.mdx:257`의 "이 저장소의 테스트가 직접 확인합니다"를 독자용 문장으로 고칠지 결정
+- [x] `error-handling/content.mdx:440`의 "결과 열은 meta의 출력과 같고"에서 `meta`를 독자가 아는 말로 바꿀지 결정
 - [ ] `microtask-queue`·`async-await`·`generator` 표 결과 열을 `expectedOutput`과 자동 대조하는 테스트 추가 검토(9절)
 
 ### 이해 확인
