@@ -2,7 +2,7 @@ import { columns, operations, setup } from './key-visibility'
 
 ## 동작 원리
 
-`Symbol('id') === Symbol('id')`는 `false`입니다. 설명(description)이 똑같은 `'id'`인데도 서로 다른 값입니다. 심벌(Symbol)은 문자열이 아니면서 객체의 프로퍼티 키로 쓸 수 있는 원시 값이고, `Symbol()`을 부를 때마다 새 심벌이 만들어집니다. 그렇다면 이 값은 언제 같고, 프로퍼티 키로 쓰면 무엇이 달라질까요? 이 페이지는 이 질문을 명세가 정의한 동작으로 따라갑니다. 심벌이 만들어지고 비교되는 방식, `Symbol.for`와 전역 심벌 레지스트리(global symbol registry), 심벌을 키로 쓰는 방법, 연산마다 심벌 키가 결과에 나오는지 아닌지, 키의 나열 순서, 그리고 `Symbol.toStringTag`와 `Symbol.toPrimitive` 같은 well-known 심벌까지 예제 여덟 개로 확인하고 마지막에 연산 표로 정리합니다. `typeof`가 `'symbol'`을 돌려주는 것은 [typeof 연산자](/concepts/typeof-operator), 프로퍼티 키가 문자열 또는 심벌이라는 것은 [프로퍼티 키](/concepts/property-keys), 열거 가능 여부는 [프로퍼티 어트리뷰트와 접근자](/concepts/property-attributes), 원시 값에서 메서드를 읽을 때 거치는 래퍼는 [원시 값의 메서드](/concepts/primitive-methods), 암묵적 변환은 [암묵적 타입 변환](/concepts/type-coercion), 프로토타입 체인은 [프로토타입 체인](/concepts/prototype-chain), private 필드는 [클래스는 함수다](/concepts/class-basics)에서 본 것을 전제합니다. 이터러블과 `Symbol.iterator`의 동작, 스프레드 문법은 별도 개념입니다.
+`Symbol('id') === Symbol('id')`는 `false`입니다. 설명(description)이 똑같은 `'id'`인데도 서로 다른 값입니다. 심벌(Symbol)은 문자열이 아니면서 객체의 프로퍼티 키로 쓸 수 있는 원시 값이고, `Symbol()`을 부를 때마다 새 심벌이 만들어집니다. 그렇다면 이 값은 언제 같고, 프로퍼티 키로 쓰면 무엇이 달라질까요? 이 페이지는 이 질문을 명세가 정의한 동작으로 따라갑니다. 심벌이 만들어지고 비교되는 방식, `Symbol.for`와 전역 심벌 레지스트리(global symbol registry), 심벌을 키로 쓰는 방법, 연산마다 심벌 키가 결과에 나오는지 아닌지, 키의 나열 순서, 그리고 `Symbol.toStringTag`와 `Symbol.toPrimitive` 같은 well-known 심벌까지 예제 여덟 개로 확인하고 마지막에 연산 표로 정리합니다. `typeof`가 `'symbol'`을 돌려주는 것은 [typeof 연산자](/concepts/typeof-operator), 프로퍼티 키가 문자열 또는 심벌이라는 것은 [프로퍼티 키](/concepts/property-keys), 열거 가능 여부는 [프로퍼티 어트리뷰트와 접근자](/concepts/property-attributes), 원시 값에서 메서드를 읽을 때 거치는 래퍼는 [원시 값의 메서드](/concepts/primitive-methods), 암묵적 변환은 [암묵적 타입 변환](/concepts/type-coercion), 프로토타입 체인은 [프로토타입 체인](/concepts/prototype-chain), private 필드는 [클래스는 함수다](/concepts/class-basics)에서 본 것을 전제합니다. 이터러블과 `Symbol.iterator`의 동작은 [이터러블과 for...of](/concepts/iterable-for-of), 스프레드 문법은 [스프레드와 디스트럭처링](/concepts/spread-destructuring)에서 다룹니다.
 
 ### 심벌은 부를 때마다 새 값이다
 
@@ -50,9 +50,9 @@ import { columns, operations, setup } from './key-visibility'
 
 ### Object.assign과 JSON.stringify의 심벌 처리
 
-`Object.assign(target, source)`는 `source`의 `[[OwnPropertyKeys]]`가 돌려주는 모든 키를 하나씩 보면서, 그 프로퍼티의 `[[Enumerable]]`이 `true`이면 값을 읽어 `target`에 대입합니다. `[[OwnPropertyKeys]]`에는 심벌 키가 들어 있으므로 열거 가능한 심벌 키는 복사되고, 열거 불가인 키는 문자열 키든 심벌 키든 복사되지 않습니다. 예제 6의 2~3번 줄에서 `src`에는 열거 가능한 심벌 키 `tag`와 열거 불가인 심벌 키(설명 `'hidden'`)가 있습니다. 4번 줄의 `Object.assign` 뒤 5번 줄에서 `copy[tag]`는 `'T'`이고, 심벌 키 개수는 `src`가 `2`, `copy`가 `1`입니다. 객체 스프레드 `{ ...obj }`도 열거 가능한 심벌 키를 복사하지만 스프레드는 별도 개념입니다.
+`Object.assign(target, source)`는 `source`의 `[[OwnPropertyKeys]]`가 돌려주는 모든 키를 하나씩 보면서, 그 프로퍼티의 `[[Enumerable]]`이 `true`이면 값을 읽어 `target`에 대입합니다. `[[OwnPropertyKeys]]`에는 심벌 키가 들어 있으므로 열거 가능한 심벌 키는 복사되고, 열거 불가인 키는 문자열 키든 심벌 키든 복사되지 않습니다. 예제 6의 2~3번 줄에서 `src`에는 열거 가능한 심벌 키 `tag`와 열거 불가인 심벌 키(설명 `'hidden'`)가 있습니다. 4번 줄의 `Object.assign` 뒤 5번 줄에서 `copy[tag]`는 `'T'`이고, 심벌 키 개수는 `src`가 `2`, `copy`가 `1`입니다. 객체 스프레드 `{ ...obj }`도 열거 가능한 심벌 키를 복사하지만 스프레드는 [스프레드와 디스트럭처링](/concepts/spread-destructuring)에서 다룹니다.
 
-`JSON.stringify`는 객체의 키를 EnumerableOwnProperties로 모으므로 심벌 키를 아예 보지 않습니다. 6번 줄의 `JSON.stringify(copy)`가 `{"a":1}`인 이유입니다. 값이 심벌인 경우는 다릅니다. SerializeJSONProperty는 값이 심벌이면 `undefined`를 돌려주는데, 객체를 직렬화하는 쪽은 `undefined`가 나온 프로퍼티를 결과에 넣지 않고, 배열을 직렬화하는 쪽은 그 자리에 `null`을 씁니다. 그래서 7번 줄의 `{ v: Symbol('x'), n: 1 }`은 `v`가 빠진 `{"n":1}`, `[Symbol('x'), 1]`은 `[null,1]`입니다. JSON 자체는 별도 개념이고, 여기서는 심벌을 처리하는 방식만 봅니다.
+`JSON.stringify`는 객체의 키를 EnumerableOwnProperties로 모으므로 심벌 키를 아예 보지 않습니다. 6번 줄의 `JSON.stringify(copy)`가 `{"a":1}`인 이유입니다. 값이 심벌인 경우는 다릅니다. SerializeJSONProperty는 값이 심벌이면 `undefined`를 돌려주는데, 객체를 직렬화하는 쪽은 `undefined`가 나온 프로퍼티를 결과에 넣지 않고, 배열을 직렬화하는 쪽은 그 자리에 `null`을 씁니다. 그래서 7번 줄의 `{ v: Symbol('x'), n: 1 }`은 `v`가 빠진 `{"n":1}`, `[Symbol('x'), 1]`은 `[null,1]`입니다. JSON 자체는 [JSON](/concepts/json)에서 다루고, 여기서는 심벌을 처리하는 방식만 봅니다.
 
 ### 키는 어떤 순서로 나열될까
 
@@ -66,7 +66,7 @@ well-known 심벌은 명세의 알고리즘이 직접 참조하는 내장 심벌
 
 `Object.prototype.toString`은 객체에서 `Symbol.toStringTag` 프로퍼티를 읽어 그 값이 문자열이면 `[object 그 값]` 모양의 문자열을 만듭니다. 예제 8의 1번 줄에서 `point`에 `[Symbol.toStringTag]: 'Point'`를 넣었으므로 `Object.prototype.toString.call(point)`는 `[object Point]`입니다. `String(point)`는 객체를 원시 값으로 바꾸는 ToPrimitive를 문자열 쪽 힌트로 부릅니다. `point`에는 아래에서 볼 `Symbol.toPrimitive` 메서드가 없으므로 `toString` 메서드를 먼저 부르고, `point`가 상속받은 `Object.prototype.toString`이 같은 규칙으로 `[object Point]`를 만들어 줍니다.
 
-ToPrimitive는 객체에 `Symbol.toPrimitive` 메서드가 있으면 그것을 먼저 부르고, 어떤 결과를 바라는지 알리는 힌트(hint) 문자열 `'default'`, `'string'`, `'number'` 중 하나를 인수로 넘깁니다. 메서드가 돌려준 값이 객체가 아니면 그 값이 결과이고, 객체이면 TypeError입니다. 힌트는 연산이 정합니다. 단항 `+`는 ToNumber를 거쳐 `'number'`, 템플릿 리터럴은 ToString을 거쳐 `'string'`, 이항 `+`는 힌트 없이 ToPrimitive를 불러 `'default'`입니다. 이 내용은 [암묵적 타입 변환](/concepts/type-coercion)이 미뤄 둔 부분입니다. 예제 8의 3~7번 줄에서 `price`는 `[Symbol.toPrimitive](hint)` 메서드를 가집니다. 8번 줄의 `+price`는 힌트 `'number'`라 `100`, `` `${price}` ``는 `'string'`이라 `price:string`, `price + ''`는 `'default'`라 `price:default`입니다. 9번 줄은 `Symbol.iterator`가 `typeof`로 `'symbol'`이고 설명이 `'Symbol.iterator'`라는 것만 보입니다. 이터러블이 무엇인지는 별도 개념입니다.
+ToPrimitive는 객체에 `Symbol.toPrimitive` 메서드가 있으면 그것을 먼저 부르고, 어떤 결과를 바라는지 알리는 힌트(hint) 문자열 `'default'`, `'string'`, `'number'` 중 하나를 인수로 넘깁니다. 메서드가 돌려준 값이 객체가 아니면 그 값이 결과이고, 객체이면 TypeError입니다. 힌트는 연산이 정합니다. 단항 `+`는 ToNumber를 거쳐 `'number'`, 템플릿 리터럴은 ToString을 거쳐 `'string'`, 이항 `+`는 힌트 없이 ToPrimitive를 불러 `'default'`입니다. 이 내용은 [암묵적 타입 변환](/concepts/type-coercion)이 미뤄 둔 부분입니다. 예제 8의 3~7번 줄에서 `price`는 `[Symbol.toPrimitive](hint)` 메서드를 가집니다. 8번 줄의 `+price`는 힌트 `'number'`라 `100`, `` `${price}` ``는 `'string'`이라 `price:string`, `price + ''`는 `'default'`라 `price:default`입니다. 9번 줄은 `Symbol.iterator`가 `typeof`로 `'symbol'`이고 설명이 `'Symbol.iterator'`라는 것만 보입니다. 이터러블이 무엇인지는 [이터러블과 for...of](/concepts/iterable-for-of)에서 다룹니다.
 
 ### 연산 표로 정리
 

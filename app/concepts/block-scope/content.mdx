@@ -7,7 +7,7 @@ import { scenarios } from './scenarios'
 
 ### 블록에 들어갈 때 let·const
 
-블록 안의 `let`·`const` 이름은 블록에 들어갈 때 그 블록 스코프에 만들어집니다(명세의 BlockDeclarationInstantiation). 이때는 아직 값이 없는 초기화 전 상태이고, 선언문을 실행할 때 값이 들어갑니다. 선언문보다 앞에서 그 이름을 읽으면 어떻게 되는지는 다음 개념에서 다루며, 이 페이지의 예제는 선언문 뒤에서만 읽습니다.
+블록 안의 `let`·`const` 이름은 블록에 들어갈 때 그 블록 스코프에 만들어집니다(명세의 BlockDeclarationInstantiation). 이때는 아직 값이 없는 초기화 전 상태이고, 선언문을 실행할 때 값이 들어갑니다. 선언문보다 앞에서 그 이름을 읽으면 어떻게 되는지는 [TDZ](/concepts/tdz)에서 다루며, 이 페이지의 예제는 선언문 뒤에서만 읽습니다.
 
 ### var는 블록을 따르지 않는다
 
@@ -23,7 +23,7 @@ import { scenarios } from './scenarios'
 
 ### const
 
-`const`는 선언할 때 값을 함께 줘야 합니다. `const c;`는 SyntaxError입니다. `for…in`·`for…of` 문의 머리에 쓰는 `const`는 반복마다 값이 들어가므로 예외입니다(이 반복문들은 별도 개념에서 다룹니다). 선언한 뒤 같은 이름에 다시 대입하면(재할당) TypeError입니다. 이 TypeError는 strict mode가 아니어도 납니다. 명세가 `const` 바인딩을 항상 strict로 다루기 때문입니다(SetMutableBinding). 다만 재할당과, 바인딩의 값인 객체를 변경하는 것은 다른 동작입니다. 재할당은 막히지만 `const`에 담은 객체의 프로퍼티를 바꾸는 것은 막히지 않습니다. 재할당과 변경의 차이는 [원시 값과 객체](/concepts/primitives-and-objects)에서 다뤘습니다.
+`const`는 선언할 때 값을 함께 줘야 합니다. `const c;`는 SyntaxError입니다. `for…in`·`for…of` 문의 머리에 쓰는 `const`는 반복마다 값이 들어가므로 예외입니다(`for…in`은 [for 문의 let](/concepts/for-let)에서 다루고 `for…of`는 별도 개념에서 다룹니다). 선언한 뒤 같은 이름에 다시 대입하면(재할당) TypeError입니다. 이 TypeError는 strict mode가 아니어도 납니다. 명세가 `const` 바인딩을 항상 strict로 다루기 때문입니다(SetMutableBinding). 다만 재할당과, 바인딩의 값인 객체를 변경하는 것은 다른 동작입니다. 재할당은 막히지만 `const`에 담은 객체의 프로퍼티를 바꾸는 것은 막히지 않습니다. 재할당과 변경의 차이는 [원시 값과 객체](/concepts/primitives-and-objects)에서 다뤘습니다.
 
 ### 암묵적 전역
 
@@ -31,7 +31,7 @@ import { scenarios } from './scenarios'
 
 ### 전역 객체의 프로퍼티인가
 
-`globalThis`는 전역 객체의 프로퍼티를 읽고 쓸 때 쓸 수 있는 이름입니다(브라우저에서는 `window`와 같은 값). 명세는 `globalThis`의 값을 호스트가 정할 수 있게 해 두었으며, 전역 객체와의 정확한 관계는 별도 개념에서 다룹니다. 클래식 스크립트에서 맨 바깥의 `var`와 함수 선언, 그리고 암묵적 전역은 전역 객체의 프로퍼티가 됩니다. 맨 바깥의 `let`·`const`는 전역 스코프에 있지만 전역 객체의 프로퍼티가 아닙니다.
+`globalThis`는 전역 객체의 프로퍼티를 읽고 쓸 때 쓸 수 있는 이름입니다(브라우저에서는 `window`와 같은 값). 명세는 `globalThis`의 값을 호스트가 정할 수 있게 해 두었으며, 전역 객체와의 정확한 관계는 [전역 객체](/concepts/global-object)에서 다룹니다. 클래식 스크립트에서 맨 바깥의 `var`와 함수 선언, 그리고 암묵적 전역은 전역 객체의 프로퍼티가 됩니다. 맨 바깥의 `let`·`const`는 전역 스코프에 있지만 전역 객체의 프로퍼티가 아닙니다.
 
 ### 실행 방식에 따라 달라지는 것
 
@@ -231,7 +231,7 @@ import { scenarios } from './scenarios'
   블록 안의 `let`·`const` 이름은 선언문을 실행할 때가 아니라 블록에 들어갈 때 그 블록 스코프에
   만들어집니다. 선언문을 실행하면 거기서 값이 들어갑니다. 그 전의 상태가 초기화 전이며, 시뮬레이터의
   예제 1에서 `if 블록 스코프`가 만들어지는 단계에 <code>{'drink'}</code>가 이미 초기화 전으로 보이는
-  것이 이 때문입니다. 선언문보다 앞에서 읽으면 어떻게 되는지는 다음 개념에서 다룹니다.
+  것이 이 때문입니다. 선언문보다 앞에서 읽으면 어떻게 되는지는 [TDZ](/concepts/tdz)에서 다룹니다.
 </Callout>
 
 <Callout type="misconception" title="선언 없이 대입하면 전역 변수가 선언된다">

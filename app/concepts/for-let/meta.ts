@@ -30,7 +30,7 @@ export const concept = {
     { label: '블록 스코프', slug: 'block-scope' },
     { label: '실행 컨텍스트', slug: 'execution-context' },
   ],
-  related: ['closure', 'block-scope', 'execution-context'],
+  related: ['closure', 'block-scope', 'execution-context', 'iterable-for-of', 'error-handling'],
   examples: [
     { id: 'var-loop', file: 'var-loop.js', runtime: 'ecmascript', expectedOutput: ['3 3 3'] },
     { id: 'let-loop', file: 'let-loop.js', runtime: 'ecmascript', expectedOutput: ['0 1 2'] },
@@ -55,11 +55,11 @@ export const concept = {
     '함수를 호출할 때 만들어지는 실행 컨텍스트와 그 함수 환경 레코드(바인딩이 없음)는 시뮬레이터에서 그리지 않고, 이름 탐색을 함수의 [[Environment]]부터 보여 줍니다.',
     '실행 컨텍스트는 전역 실행 컨텍스트 하나의 LexicalEnvironment만 표시합니다. VariableEnvironment 등 나머지 구성 요소는 실행 컨텍스트 페이지의 단순화를 따라 생략합니다.',
     '어떤 곳에서도 닿지 않는 환경 레코드는 그림에서 뺍니다. 명세는 메모리가 언제 회수되는지 정하지 않고, 엔진이 반복마다 실제로 무엇을 만드는지는 결과가 명세와 같다면 구현에 맡겨져 있습니다.',
-    'for...of와 for await...of, 구조 분해를 쓴 머리, using 선언, continue·break·레이블은 다루지 않습니다. for...of는 별도 개념입니다.',
+    'for...of와 for await...of, 구조 분해를 쓴 머리, using 선언, continue·break·레이블은 다루지 않습니다. for...of 문 자체는 이터러블과 for...of 개념에서 다루지만, 그 머리에서 만들어지는 바인딩은 별도 개념입니다.',
     'for...in은 머리의 식을 평가할 때 쓰는 별도 환경 레코드를 그림에서 생략합니다.',
     '즉시 실행 함수로 var 반복문의 문제를 푸는 방법은 별도 개념입니다.',
     'console.log를 부를 때 만들어지는 실행 컨텍스트는 생략합니다.',
-    '예제는 오류를 보이려고 try…catch와 e.name을 씁니다. 오류 처리는 별도 개념에서 다룹니다.',
+    '예제는 오류를 보이려고 try…catch와 e.name을 씁니다. 오류 처리는 try/catch/finally 개념에서 다룹니다.',
   ],
   references: [
     {

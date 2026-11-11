@@ -18,7 +18,7 @@ import { comparison } from './comparison'
 
 화살표 함수가 아닌 함수(일반 함수와 메서드 축약)는 호출될 때 `arguments` 객체를 만듭니다(명세의 FunctionDeclarationInstantiation. 매개변수나 함수 안 선언의 이름이 `arguments`인 경우 같은 예외는 여기서 다루지 않습니다). 선언한 매개변수 개수와 관계없이 호출 때 넘긴 인수를 모두 담습니다. 예제 3의 1~3번 줄 `count`는 매개변수가 없는데도 10번 줄에서 `count(1, 2, 3)`의 `arguments.length`가 `3`이고, 인수 없이 부른 `count()`는 `0`입니다. 4~6번 줄 `second`는 매개변수가 `a` 하나뿐이지만 11번 줄의 `arguments[1]`로 두 번째 인수 `'y'`를 읽습니다.
 
-`arguments`는 배열이 아닙니다. 명세는 `arguments`를 `length`와 인덱스 프로퍼티를 가진, 배열 객체가 아닌 객체로 만들고 `[[Prototype]]`을 `Object.prototype`으로 둡니다. 그래서 7~9번 줄의 `kind`가 12번 줄에서 보이듯 `Array.isArray(arguments)`는 `false`이고, 프로토타입 체인에 `Array.prototype`이 없어 `typeof arguments.join`도 `'undefined'`입니다. 배열 메서드가 없을 뿐, `length`와 인덱스 프로퍼티가 있으므로 진짜 배열로 바꾸는 방법은 있습니다. 배열 메서드를 빌려 쓰는 방법과 이터러블·스프레드를 쓰는 방법인데, 둘 다 이 사이트에서 아직 다루지 않은 별도 개념입니다. 이 페이지는 sloppy mode에서 `arguments[0]`과 매개변수가 연동되는 동작(mapped arguments)은 다루지 않습니다. 예제 3의 `arguments`는 sloppy mode의 단순한 매개변수 목록이라 명세상 mapped 객체이지만, 배열이 아니고 `[[Prototype]]`이 `Object.prototype`인 점은 같습니다.
+`arguments`는 배열이 아닙니다. 명세는 `arguments`를 `length`와 인덱스 프로퍼티를 가진, 배열 객체가 아닌 객체로 만들고 `[[Prototype]]`을 `Object.prototype`으로 둡니다. 그래서 7~9번 줄의 `kind`가 12번 줄에서 보이듯 `Array.isArray(arguments)`는 `false`이고, 프로토타입 체인에 `Array.prototype`이 없어 `typeof arguments.join`도 `'undefined'`입니다. 배열 메서드가 없을 뿐, `length`와 인덱스 프로퍼티가 있으므로 진짜 배열로 바꾸는 방법은 있습니다. 배열 메서드를 빌려 쓰는 방법과 이터러블·스프레드를 쓰는 방법인데, 앞의 것은 배열로 바꾸는 용도로는 이 사이트에서 아직 다루지 않은 별도 개념이고 이터러블과 스프레드는 [이터러블과 for...of](/concepts/iterable-for-of)와 [스프레드와 디스트럭처링](/concepts/spread-destructuring)에서 다룹니다. 이 페이지는 sloppy mode에서 `arguments[0]`과 매개변수가 연동되는 동작(mapped arguments)은 다루지 않습니다. 예제 3의 `arguments`는 sloppy mode의 단순한 매개변수 목록이라 명세상 mapped 객체이지만, 배열이 아니고 `[[Prototype]]`이 `Object.prototype`인 점은 같습니다.
 
 ### 화살표 함수가 바깥에서 찾는 것
 
@@ -248,6 +248,6 @@ rest 파라미터(`...이름`)는 선언한 매개변수에 대응하지 않는 
 
 <Callout type="misconception" title="arguments는 배열이다 / rest 파라미터와 같다">
 
-`arguments`는 `length`와 인덱스 프로퍼티가 있지만 배열 객체가 아니라서 `Array.isArray`가 `false`이고, `[[Prototype]]`이 `Object.prototype`이라 `join` 같은 배열 메서드도 없습니다(예제 3). 진짜 배열로 바꾸는 방법은 있지만 아직 다루지 않은 별도 개념입니다. rest 파라미터는 진짜 배열이고 선언한 매개변수 뒤의 나머지 인수만 담습니다(예제 6). 또 화살표 함수에는 자기 `arguments`가 없지만(예제 4) rest 파라미터는 쓸 수 있습니다.
+`arguments`는 `length`와 인덱스 프로퍼티가 있지만 배열 객체가 아니라서 `Array.isArray`가 `false`이고, `[[Prototype]]`이 `Object.prototype`이라 `join` 같은 배열 메서드도 없습니다(예제 3). 진짜 배열로 바꾸는 방법은 있지만, 배열 메서드를 빌려 쓰는 방법은 배열로 바꾸는 용도로는 아직 다루지 않은 별도 개념이고 이터러블과 스프레드는 [이터러블과 for...of](/concepts/iterable-for-of)와 [스프레드와 디스트럭처링](/concepts/spread-destructuring)에서 다룹니다. rest 파라미터는 진짜 배열이고 선언한 매개변수 뒤의 나머지 인수만 담습니다(예제 6). 또 화살표 함수에는 자기 `arguments`가 없지만(예제 4) rest 파라미터는 쓸 수 있습니다.
 
 </Callout>

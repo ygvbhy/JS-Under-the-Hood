@@ -38,6 +38,7 @@ export const concept = {
     'primitive-methods',
     'number-type',
     'primitives-and-objects',
+    'error-handling',
   ],
   examples: [
     {

@@ -3,7 +3,7 @@ import { scenarios } from './scenarios'
 
 ## 동작 원리
 
-버튼 안에 별(★) 아이콘을 `span`으로 넣고 버튼에 클릭 리스너를 달았다고 해 봅시다. 아이콘을 누르면 리스너가 실행되는데, 그 안에서 `event.target`을 읽으면 버튼이 아니라 아이콘 `span`입니다. 리스너를 단 요소는 버튼인데 왜 `target`은 버튼이 아닐까요? 이 페이지는 이벤트가 문서 트리를 어떤 순서로 지나가는지, `target`과 `currentTarget`이 각각 무엇을 가리키는지, 이 규칙을 이용해 상위 요소 하나로 여러 요소의 이벤트를 처리하는 이벤트 위임이 어떻게 동작하는지 확인합니다. 이벤트 전파는 ECMAScript가 아니라 호스트(브라우저)의 동작이며, 규칙은 WHATWG DOM 표준과 WHATWG HTML 표준이 정하고 `focus`와 `focusin`의 버블링 여부는 W3C UI Events 명세가 정합니다. 예제의 출력은 모두 테스트가 Chromium에서 실제로 열어 `console.log` 출력을 모은 값이며, 다른 브라우저는 이 페이지에서 확인하지 않았습니다. 예제의 이벤트는 사용자가 실제로 누르는 대신 `click()`이나 `dispatchEvent`로 만들기 때문에 `isTrusted`가 `false`이지만, 이 페이지에서 다루는 경로와 두 번의 순회 규칙은 `isTrusted` 값에 따라 달라지지 않습니다. 노드와 트리는 [DOM 트리와 노드 종류](/concepts/dom-tree-nodes)에서, 호출 방식에 따라 `this`가 정해지는 규칙은 [this 바인딩](/concepts/this-binding)에서 본 것을 전제합니다. `preventDefault`와 `stopPropagation`처럼 전파나 기본 동작을 막는 방법과 같은 함수를 중복 등록하는 문제는 다음 개념 '기본 동작과 전파 막기'에서 다룹니다.
+버튼 안에 별(★) 아이콘을 `span`으로 넣고 버튼에 클릭 리스너를 달았다고 해 봅시다. 아이콘을 누르면 리스너가 실행되는데, 그 안에서 `event.target`을 읽으면 버튼이 아니라 아이콘 `span`입니다. 리스너를 단 요소는 버튼인데 왜 `target`은 버튼이 아닐까요? 이 페이지는 이벤트가 문서 트리를 어떤 순서로 지나가는지, `target`과 `currentTarget`이 각각 무엇을 가리키는지, 이 규칙을 이용해 상위 요소 하나로 여러 요소의 이벤트를 처리하는 이벤트 위임이 어떻게 동작하는지 확인합니다. 이벤트 전파는 ECMAScript가 아니라 호스트(브라우저)의 동작이며, 규칙은 WHATWG DOM 표준과 WHATWG HTML 표준이 정하고 `focus`와 `focusin`의 버블링 여부는 W3C UI Events 명세가 정합니다. 예제의 출력은 모두 테스트가 Chromium에서 실제로 열어 `console.log` 출력을 모은 값이며, 다른 브라우저는 이 페이지에서 확인하지 않았습니다. 예제의 이벤트는 사용자가 실제로 누르는 대신 `click()`이나 `dispatchEvent`로 만들기 때문에 `isTrusted`가 `false`이지만, 이 페이지에서 다루는 경로와 두 번의 순회 규칙은 `isTrusted` 값에 따라 달라지지 않습니다. 노드와 트리는 [DOM 트리와 노드 종류](/concepts/dom-tree-nodes)에서, 호출 방식에 따라 `this`가 정해지는 규칙은 [this 바인딩](/concepts/this-binding)에서 본 것을 전제합니다. `preventDefault`와 `stopPropagation`처럼 전파나 기본 동작을 막는 방법과 같은 함수를 중복 등록하는 문제는 [기본 동작과 전파 막기](/concepts/prevent-default-stop-propagation)에서 다룹니다.
 
 ### 이벤트는 경로를 두 번 지나간다
 
@@ -372,7 +372,7 @@ import { scenarios } from './scenarios'
 
 <Callout type="misconception" title="onclick을 여러 번 대입하면 핸들러가 여러 개 등록된다">
 
-`onclick`은 이름마다 값 하나를 갖는 이벤트 핸들러입니다. 다시 대입하면 새 핸들러가 추가되는 것이 아니라 값이 바뀌고, 리스너 목록의 자리는 활성화될 때 정해진 그대로입니다. 다만 `null`로 비활성화한 뒤 다시 대입하면 새로 활성화되어 그때의 목록 끝에 들어갑니다(예제 7). 여러 개를 등록하려면 `addEventListener`를 씁니다. 같은 함수를 중복 등록했을 때의 동작은 다음 개념 '기본 동작과 전파 막기'에서 다룹니다.
+`onclick`은 이름마다 값 하나를 갖는 이벤트 핸들러입니다. 다시 대입하면 새 핸들러가 추가되는 것이 아니라 값이 바뀌고, 리스너 목록의 자리는 활성화될 때 정해진 그대로입니다. 다만 `null`로 비활성화한 뒤 다시 대입하면 새로 활성화되어 그때의 목록 끝에 들어갑니다(예제 7). 여러 개를 등록하려면 `addEventListener`를 씁니다. 같은 함수를 중복 등록했을 때의 동작은 [기본 동작과 전파 막기](/concepts/prevent-default-stop-propagation)에서 다룹니다.
 
 </Callout>
 

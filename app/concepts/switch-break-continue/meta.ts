@@ -40,7 +40,7 @@ export const concept = {
     { label: '동등 비교', slug: 'equality-operators' },
     { label: '증감 연산자', slug: 'increment-decrement' },
   ],
-  related: ['equality-operators', 'increment-decrement'],
+  related: ['equality-operators', 'increment-decrement', 'block-scope'],
   examples: [
     {
       id: 'fall-through',
@@ -88,7 +88,7 @@ export const concept = {
   simplifications: [
     '시뮬레이터는 실행 위치를 줄 단위로 보여 줍니다. for 문의 조건식과 증감식은 모두 1번 줄로 표시하고, 증감식 실행과 다음 조건 검사는 한 단계로 묶습니다.',
     '명세는 break·continue 문을 평가하면 break·continue 종류의 완료 기록(Completion Record)을 만들고, 그것을 받은 바깥 문이 처리하도록 정합니다. 시각화는 이것을 "가장 가까운 반복문·switch를 끝냄", "다음 반복으로"라는 이동으로만 보여 줍니다.',
-    '명세의 for 문은 let으로 선언한 변수를 반복마다 새로 만들어 이전 반복의 값으로 초기화합니다(CreatePerIterationEnvironment). 시각화는 변수 하나의 값이 바뀌는 것처럼 보여 주고, for 문이 끝나면 그 변수를 표시에서 뺍니다(for 문 밖에서는 쓸 수 없습니다. 스코프는 별도 개념에서 다룹니다).',
+    '명세의 for 문은 let으로 선언한 변수를 반복마다 새로 만들어 이전 반복의 값으로 초기화합니다(CreatePerIterationEnvironment). 시각화는 변수 하나의 값이 바뀌는 것처럼 보여 주고, for 문이 끝나면 그 변수를 표시에서 뺍니다(for 문 밖에서는 쓸 수 없습니다. 스코프는 블록 스코프 개념에서 다룹니다).',
     'switch 문이 실행될 때 명세가 만드는 블록 환경(BlockDeclarationInstantiation)과, case마다 선언한 let·const가 하나의 블록을 공유하는 문제는 다루지 않습니다.',
     '반복문은 for만 다룹니다. while·do...while·for...in·for...of에서도 break·continue는 같은 규칙으로 동작합니다. 레이블은 반복문에 붙이는 경우만 다룹니다.',
     '"실행 중인 구조", "fall-through", "회차"는 교육용 이름입니다(fall-through는 흔히 쓰는 용어이고 명세 용어가 아닙니다).',

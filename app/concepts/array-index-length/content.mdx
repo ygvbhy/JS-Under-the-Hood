@@ -3,7 +3,7 @@ import { scenarios } from './scenarios'
 
 ## 동작 원리
 
-`typeof []`의 결과는 `'object'`입니다. 배열이 객체라면 일반 객체와 무엇이 다를까요? 배열에는 `length`라는 프로퍼티가 있고, `fruits[4] = 'kiwi'`처럼 대입하면 `length`가 함께 바뀌며, `length`에 대입하면 요소가 지워지기도 합니다. 이 페이지는 이 동작이 어디서 오는지를 명세가 정의한 프로퍼티 동작으로 설명합니다. 배열은 배열 인덱스(array index)라는 특별한 키에 대입할 때와 `length`에 대입할 때 일반 객체와 다르게 동작하는 객체이고, 요소 사이가 비어 있는 희소 배열(sparse array)도 같은 규칙에서 나옵니다. 인덱스가 문자열 키인 이유는 [프로퍼티 키](/concepts/property-keys), `length`의 `writable`·`enumerable`·`configurable`은 [프로퍼티 어트리뷰트와 접근자](/concepts/property-attributes), 없는 프로퍼티를 읽을 때 위로 올라가는 과정은 [프로토타입 체인](/concepts/prototype-chain), 배열과 닮았지만 배열이 아닌 `arguments`는 [화살표 함수와 메서드 축약](/concepts/arrow-functions)에서 본 것을 전제합니다. `push`·`map` 같은 배열 메서드와 스프레드, `Array.from`, 이터러블은 별도 개념이라 여기서 다루지 않습니다.
+`typeof []`의 결과는 `'object'`입니다. 배열이 객체라면 일반 객체와 무엇이 다를까요? 배열에는 `length`라는 프로퍼티가 있고, `fruits[4] = 'kiwi'`처럼 대입하면 `length`가 함께 바뀌며, `length`에 대입하면 요소가 지워지기도 합니다. 이 페이지는 이 동작이 어디서 오는지를 명세가 정의한 프로퍼티 동작으로 설명합니다. 배열은 배열 인덱스(array index)라는 특별한 키에 대입할 때와 `length`에 대입할 때 일반 객체와 다르게 동작하는 객체이고, 요소 사이가 비어 있는 희소 배열(sparse array)도 같은 규칙에서 나옵니다. 인덱스가 문자열 키인 이유는 [프로퍼티 키](/concepts/property-keys), `length`의 `writable`·`enumerable`·`configurable`은 [프로퍼티 어트리뷰트와 접근자](/concepts/property-attributes), 없는 프로퍼티를 읽을 때 위로 올라가는 과정은 [프로토타입 체인](/concepts/prototype-chain), 배열과 닮았지만 배열이 아닌 `arguments`는 [화살표 함수와 메서드 축약](/concepts/arrow-functions)에서 본 것을 전제합니다. `push`·`map` 같은 배열 메서드는 [배열 메서드의 함정](/concepts/array-method-pitfalls), 스프레드는 [스프레드와 디스트럭처링](/concepts/spread-destructuring), `Array.from`과 이터러블은 [이터러블과 for...of](/concepts/iterable-for-of)에서 다루므로 여기서 다루지 않습니다.
 
 ### 배열은 객체
 
@@ -51,9 +51,9 @@ import { scenarios } from './scenarios'
 
 ### 구멍을 만나는 동작
 
-프로퍼티가 있는지를 보고 동작하는 쪽은 구멍을 건너뛰고, 각 인덱스를 Get으로 읽기만 하는 쪽은 구멍을 `undefined`처럼 다룹니다. `forEach` 같은 배열 메서드가 어느 쪽인지는 메서드마다 다르며 별도 개념에서 다룹니다. `for...in`과 `Object.keys`는 실제로 있는 열거 가능한 키만 나열하므로 구멍은 나오지 않습니다. `JSON.stringify`는 배열을 직렬화할 때 `0`부터 `length - 1`까지 각 인덱스를 읽어(Get) 값을 직렬화합니다. 구멍과 `undefined`를 담은 요소는 읽으면 둘 다 `undefined`이고, JSON은 배열 안의 `undefined`를 `null`로 쓰므로 둘 다 `null`이 됩니다.
+프로퍼티가 있는지를 보고 동작하는 쪽은 구멍을 건너뛰고, 각 인덱스를 Get으로 읽기만 하는 쪽은 구멍을 `undefined`처럼 다룹니다. `forEach` 같은 배열 메서드가 어느 쪽인지는 메서드마다 다르며 [배열 메서드의 함정](/concepts/array-method-pitfalls)에서 다룹니다. `for...in`과 `Object.keys`는 실제로 있는 열거 가능한 키만 나열하므로 구멍은 나오지 않습니다. `JSON.stringify`는 배열을 직렬화할 때 `0`부터 `length - 1`까지 각 인덱스를 읽어(Get) 값을 직렬화합니다. 구멍과 `undefined`를 담은 요소는 읽으면 둘 다 `undefined`이고, JSON은 배열 안의 `undefined`를 `null`로 쓰므로 둘 다 `null`이 됩니다.
 
-예제 7의 1번 줄 `sparse`는 `'1'` 프로퍼티가 없는 배열입니다. 3번 줄의 `for...in`이 만난 키를 `keys`에 모으는데, `push`는 배열 끝에 요소를 추가하는 메서드로 별도 개념에서 다루고 여기서는 키를 모으는 데만 씁니다. 4번 줄에서 `for...in`으로 모은 키와 `Object.keys`는 모두 `["0","2"]`입니다. 5번 줄의 `JSON.stringify(sparse)`와 `JSON.stringify([1, undefined, 3])`는 둘 다 `[1,null,3]`입니다.
+예제 7의 1번 줄 `sparse`는 `'1'` 프로퍼티가 없는 배열입니다. 3번 줄의 `for...in`이 만난 키를 `keys`에 모으는데, `push`는 배열 끝에 요소를 추가하는 메서드로 [배열 메서드의 함정](/concepts/array-method-pitfalls)에서 다루고 여기서는 키를 모으는 데만 씁니다. 4번 줄에서 `for...in`으로 모은 키와 `Object.keys`는 모두 `["0","2"]`입니다. 5번 줄의 `JSON.stringify(sparse)`와 `JSON.stringify([1, undefined, 3])`는 둘 다 `[1,null,3]`입니다.
 
 ## 예제
 

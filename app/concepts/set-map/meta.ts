@@ -37,6 +37,8 @@ export const concept = {
     'symbol',
     'spread-destructuring',
     'primitives-and-objects',
+    'error-handling',
+    'json',
   ],
   examples: [
     {
@@ -103,7 +105,7 @@ export const concept = {
     'WeakMap·WeakSet의 키 조건과 엔트리 제거 서술은 판마다 다릅니다. 심벌 키는 ES2023판부터 허용되었고(ES2022판까지 객체만), 닿을 수 없게 된(inaccessible) 키의 엔트리를 ES2020판은 "반드시 찾아 제거한다"고, ES2021판부터는 살아 있지 않은(live가 아닌) 키의 엔트리를 구현이 "제거할 수 있다"고 적습니다. 본문은 현재 초안 기준입니다.',
     'WeakMap·WeakSet에서 닿을 수 없게 된 키의 엔트리가 언제 제거되는지는 명세가 정하지 않고 관찰할 수도 없어 예제로 보이지 않습니다. WeakRef와 FinalizationRegistry는 다루지 않습니다.',
     'Map·Set 서브클래싱, Symbol.species, forEach의 thisArg는 다루지 않습니다.',
-    'JSON.stringify는 43장에서 다루는 주제이며 이 페이지에서는 결과를 출력하는 도구로만 씁니다.',
+    'JSON.stringify는 JSON 개념에서 다루는 주제이며 이 페이지에서는 결과를 출력하는 도구로만 씁니다.',
     'TypeError는 try...catch(47장)를 쓰지 않고 본문 문장과 테스트로 확인합니다.',
     '예제의 console은 ECMAScript 언어가 아니라 호스트가 제공하는 API입니다.',
   ],

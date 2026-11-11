@@ -517,7 +517,7 @@ consume body는 body가 null이 아니면서 그 stream이 disturbed(읽기가 �
 
 ### 예제 3의 출력
 
-1번째 줄은 네 경로, 2번째 줄은 `fetch` 네 개를 `Promise.all`에 모읍니다. 모든 프로미스가 이행되어야 `Promise.all`의 프로미스도 이행되고, 그 결과 배열은 완료 순서가 아니라 입력 순서를 따릅니다. 3번째 줄이 각 응답을 `[status, ok]` 쌍으로 만들고 4번째 줄이 `JSON.stringify`로 출력해 `[[200,true],[201,true],[404,false],[500,false]]`가 나옵니다. 404와 500 요청의 프로미스도 이행됐다는 뜻이고, 하나라도 거부됐다면 `Promise.all`이 거부되어 이 줄은 출력되지 않았을 것입니다. `ok`의 `true`/`false`는 200~299 범위로 갈립니다.
+1번째 줄은 네 경로, 2번째 줄은 `fetch` 네 개를 `Promise.all`에 모읍니다. 모든 프로미스가 이행되어야 `Promise.all`의 프로미스도 이행되고, 그 결과 배열은 완료 순서가 아니라 입력 순서를 따릅니다([Promise 정적 메서드](/concepts/promise-static-methods)에서 이유를 다룹니다). 3번째 줄이 각 응답을 `[status, ok]` 쌍으로 만들고 4번째 줄이 `JSON.stringify`로 출력해 `[[200,true],[201,true],[404,false],[500,false]]`가 나옵니다. 404와 500 요청의 프로미스도 이행됐다는 뜻이고, 하나라도 거부됐다면 `Promise.all`이 거부되어 이 줄은 출력되지 않았을 것입니다. `ok`의 `true`/`false`는 200~299 범위로 갈립니다.
 
 ### 예제 4의 출력
 

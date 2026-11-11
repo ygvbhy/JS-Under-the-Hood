@@ -27,7 +27,14 @@ export const concept = {
     { label: '이터러블과 for...of', slug: 'iterable-for-of' },
     { label: '마이크로태스크 큐', slug: 'microtask-queue' },
   ],
-  related: ['promise', 'microtask-queue', 'fetch', 'iterable-for-of'],
+  related: [
+    'promise',
+    'microtask-queue',
+    'fetch',
+    'iterable-for-of',
+    'async-await',
+    'error-handling',
+  ],
   examples: [
     {
       id: 'input-order',
@@ -79,7 +86,7 @@ export const concept = {
     '생성자의 resolve를 바꾼 경우와 Promise 서브클래싱은 다루지 않고, this가 생성자가 아닐 때 TypeError가 던져진다는 것은 한 문장으로만 언급합니다.',
     'Promise.reject, Promise.withResolvers, Promise.try는 다루지 않습니다.',
     '처리되지 않은 거부 추적은 호스트 동작이라 다루지 않으며, 예제는 모든 거부를 처리합니다.',
-    'async/await와 try...catch는 별도 개념으로 다룹니다.',
+    'async/await와 try...catch는 각각 async/await 개념과 try/catch/finally 개념에서 다룹니다.',
     '예제의 console은 ECMAScript 언어가 아니라 호스트가 제공하는 API입니다.',
   ],
   references: [

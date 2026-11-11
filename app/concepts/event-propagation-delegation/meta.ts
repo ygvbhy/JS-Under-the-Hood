@@ -29,7 +29,13 @@ export const concept = {
     { label: 'DOM 트리와 노드 종류', slug: 'dom-tree-nodes' },
     { label: 'this 바인딩', slug: 'this-binding' },
   ],
-  related: ['dom-tree-nodes', 'this-binding', 'arrow-functions', 'html-attribute-dom-property'],
+  related: [
+    'dom-tree-nodes',
+    'this-binding',
+    'arrow-functions',
+    'html-attribute-dom-property',
+    'prevent-default-stop-propagation',
+  ],
   examples: [
     {
       id: 'path-icon',
@@ -103,7 +109,7 @@ export const concept = {
   simplifications: [
     '예제의 실행 결과는 Chromium에서 실행한 값입니다. 이벤트 전파 규칙은 WHATWG DOM 표준, 이벤트 핸들러는 WHATWG HTML 표준, focus와 focusin의 버블링 여부는 UI Events(W3C) 명세를 근거로 합니다.',
     '사용자의 실제 클릭 대신 click()과 dispatchEvent로 이벤트를 만듭니다. 이렇게 만든 이벤트는 isTrusted가 false이지만, 이 페이지에서 다루는 경로와 두 번의 순회 규칙은 isTrusted 값에 따라 달라지지 않습니다.',
-    'preventDefault와 stopPropagation, stopImmediatePropagation, 같은 함수의 중복 등록은 이 페이지에서 다루지 않고 별도 개념으로 미룹니다.',
+    'preventDefault와 stopPropagation, stopImmediatePropagation, 같은 함수의 중복 등록은 이 페이지에서 다루지 않고 기본 동작과 전파 막기 개념으로 미룹니다.',
     'Shadow DOM, 리타기팅, composed는 다루지 않습니다. 이벤트 경로는 그림자 트리가 없는 문서를 기준으로 설명합니다.',
     'focus와 focusin은 UI Events(W3C) 명세를 근거로 하며 focusout과 blur는 다루지 않습니다.',
     '예제 5의 focus() 결과는 테스트가 문서에 포커스가 있는 상태로 실행한 값입니다. 창이나 문서가 포커스를 갖지 않은 상태(예: DevTools 콘솔에 입력 포커스가 있을 때)에서는 focus 관련 이벤트가 바로 발생하지 않아 결과가 다를 수 있으며, 이 페이지는 그 경우를 확인하지 않았습니다.',

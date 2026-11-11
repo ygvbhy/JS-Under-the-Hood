@@ -34,7 +34,7 @@ export const concept = {
     { label: '프로퍼티 어트리뷰트와 접근자', slug: 'property-attributes' },
     { label: 'new 연산자', slug: 'new-operator' },
   ],
-  related: ['scope-chain'],
+  related: ['scope-chain', 'this-binding', 'class-inheritance', 'primitive-methods'],
   examples: [
     {
       id: 'literal',
@@ -106,12 +106,12 @@ export const concept = {
   simplifications: [
     '[[Prototype]]·[[Get]]·[[Set]]은 명세의 내부 슬롯·내부 메서드 이름이며 코드에서 직접 접근할 수 없습니다. 이 페이지는 Object.getPrototypeOf로 읽습니다. 이 페이지의 설명은 명세의 일반 객체(ordinary object) 기준이며, Proxy처럼 이 동작을 바꿀 수 있는 특수 객체는 별도 개념입니다. 시뮬레이터의 카드와 화살표는 교육용 그림이며 엔진이 객체를 저장하는 방식이 아닙니다.',
     '__proto__는 Object.prototype의 접근자 프로퍼티이며 명세에서 "Normative Optional, Legacy"로 분류됩니다. [[Prototype]] 슬롯 자체가 아니고, null 프로토타입 객체에는 없습니다. 객체 리터럴의 __proto__: 문법과 Object.setPrototypeOf는 다루지 않습니다.',
-    '상속된 메서드를 호출할 때의 this는 별도 개념입니다. 예제는 this를 쓰지 않습니다. 상속된 getter·setter는 명세상 읽거나 대입한 객체(receiver)를 this로 호출되지만 예제는 바깥 변수만 씁니다.',
+    '상속된 메서드를 호출할 때의 this는 this 개념에서 다룹니다. 예제는 this를 쓰지 않습니다. 상속된 getter·setter는 명세상 읽거나 대입한 객체(receiver)를 this로 호출되지만 예제는 바깥 변수만 씁니다.',
     'instanceof는 명세상 오른쪽 값의 Symbol.hasInstance 메서드를 먼저 확인하고, 일반 함수는 Function.prototype의 그 메서드가 이 페이지의 체인 비교(OrdinaryHasInstance)를 합니다. Symbol.hasInstance를 직접 정의한 경우와 bind로 만든 함수는 다루지 않습니다.',
     'for...in의 순서는 명세가 일부만 정합니다. 이 페이지의 예제처럼 일반 객체이고 열거하는 동안 체인과 프로퍼티가 바뀌지 않으면 자기 프로퍼티 다음 프로토타입 순서입니다. Symbol 키는 열거하지 않습니다. 배열을 돌려주는 Object.keys 등은 별도 개념입니다.',
     '시뮬레이터의 Object.prototype·Function.prototype 카드는 이 페이지에 필요한 프로퍼티만 보이고 나머지는 생략합니다. instanceof 시나리오는 Book의 [[Prototype]](Function.prototype)을 카드 없이 이름으로만 표시합니다.',
     'new Book(...)의 내부 단계(새 객체 생성, this 연결, 본문 실행)는 new 연산자 개념에서 다루고, 시뮬레이터는 한 단계로 그립니다. 함수 선언은 선언 처리로 실행 전에 만들어지므로(호이스팅 개념) 0단계부터 보입니다.',
-    '클래스와 extends로 만드는 체인, 원시 값의 프로퍼티 접근(래퍼 객체)은 별도 개념에서 다룹니다.',
+    '클래스와 extends로 만드는 체인은 클래스 상속과 super 개념에서, 원시 값의 프로퍼티 접근(래퍼 객체)은 원시 값의 메서드 개념에서 다룹니다.',
     '예제 6을 파일로 실행할 때 .mjs 파일이거나 package.json에 "type": "module"이 있으면 모듈이라 항상 strict mode여서 4번 줄에서 TypeError가 납니다. 클래식 스크립트나 CommonJS(.cjs)로 실행하면 이 페이지의 결과와 같습니다.',
     '시뮬레이터는 선언문이 실행된 변수만 보이며 console·JSON·Object.getPrototypeOf 호출 과정과 Object·Function 바인딩을 생략합니다.',
   ],

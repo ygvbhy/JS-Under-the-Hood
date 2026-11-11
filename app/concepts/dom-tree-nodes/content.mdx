@@ -3,7 +3,7 @@ import { treeRoot } from './tree-root'
 
 ## 동작 원리
 
-`<ul>` 안에 `<li>`를 하나만 적었는데 `ul.childNodes.length`가 1이 아니라 3인 이유는 무엇일까요? 이 페이지는 브라우저가 HTML 문서를 노드의 트리로 바꾸는 규칙을 따라가며, 어떤 종류의 노드가 있는지, 줄바꿈과 들여쓰기가 왜 노드가 되는지, 파서가 소스와 다른 트리를 만드는 경우는 언제인지를 확인합니다. 노드와 트리는 ECMAScript가 아니라 WHATWG DOM 표준이 정하고, HTML 소스를 읽어 그 트리를 만드는 규칙은 WHATWG HTML 표준의 파싱 단계가 정하는 호스트(브라우저)의 동작입니다. 예제의 출력은 모두 테스트가 Chromium에서 실제로 열어 `console.log` 출력을 모은 값입니다. 문서가 파싱을 끝낸 뒤에 코드를 실행하는 방법(`defer`)은 [script의 async와 defer](/concepts/script-async-defer)에서 본 것을 전제하고, 노드의 상속 구조를 따라가는 마지막 절은 [프로토타입 체인](/concepts/prototype-chain)을 전제합니다. `getElementById`, `querySelectorAll`, `getAttributeNode`는 이 페이지에서 결과를 보이는 도구로만 씁니다. `childNodes`와 `children`이 돌려주는 컬렉션의 차이(NodeList와 HTMLCollection)와 어트리뷰트는 별도 개념입니다.
+`<ul>` 안에 `<li>`를 하나만 적었는데 `ul.childNodes.length`가 1이 아니라 3인 이유는 무엇일까요? 이 페이지는 브라우저가 HTML 문서를 노드의 트리로 바꾸는 규칙을 따라가며, 어떤 종류의 노드가 있는지, 줄바꿈과 들여쓰기가 왜 노드가 되는지, 파서가 소스와 다른 트리를 만드는 경우는 언제인지를 확인합니다. 노드와 트리는 ECMAScript가 아니라 WHATWG DOM 표준이 정하고, HTML 소스를 읽어 그 트리를 만드는 규칙은 WHATWG HTML 표준의 파싱 단계가 정하는 호스트(브라우저)의 동작입니다. 예제의 출력은 모두 테스트가 Chromium에서 실제로 열어 `console.log` 출력을 모은 값입니다. 문서가 파싱을 끝낸 뒤에 코드를 실행하는 방법(`defer`)은 [script의 async와 defer](/concepts/script-async-defer)에서 본 것을 전제하고, 노드의 상속 구조를 따라가는 마지막 절은 [프로토타입 체인](/concepts/prototype-chain)을 전제합니다. `getElementById`, `querySelectorAll`, `getAttributeNode`는 이 페이지에서 결과를 보이는 도구로만 씁니다. `childNodes`와 `children`이 돌려주는 컬렉션의 차이(NodeList와 HTMLCollection)는 [HTMLCollection은 살아 있다](/concepts/live-html-collection), 어트리뷰트는 [HTML 어트리뷰트와 DOM 프로퍼티](/concepts/html-attribute-dom-property)에서 다룹니다.
 
 ### HTML 문서는 노드 트리가 된다
 
@@ -40,7 +40,7 @@ import { treeRoot } from './tree-root'
 
 > The firstElementChild getter steps are to return the first child that is an element; otherwise null.
 
-그래서 `firstChild`는 첫 번째 자식 노드(공백 텍스트일 수 있음)이고 `firstElementChild`는 첫 번째 자식 요소입니다. `nextSibling`과 `nextElementSibling`, `parentNode`와 `parentElement`도 같은 짝입니다. 뒤의 것은 요소만 찾으므로 해당하는 것이 없으면 `null`입니다. `html` 요소의 부모는 문서 노드라서 `parentNode`는 문서이지만 `parentElement`는 `null`입니다(예제 3). 두 컬렉션이 "살아 있는지"의 차이는 별도 개념이고, 이 페이지는 개수와 내용만 비교합니다.
+그래서 `firstChild`는 첫 번째 자식 노드(공백 텍스트일 수 있음)이고 `firstElementChild`는 첫 번째 자식 요소입니다. `nextSibling`과 `nextElementSibling`, `parentNode`와 `parentElement`도 같은 짝입니다. 뒤의 것은 요소만 찾으므로 해당하는 것이 없으면 `null`입니다. `html` 요소의 부모는 문서 노드라서 `parentNode`는 문서이지만 `parentElement`는 `null`입니다(예제 3). 두 컬렉션이 살아 있는 컬렉션이라는 점은 [HTMLCollection은 살아 있다](/concepts/live-html-collection)에서 다루고, 이 페이지는 개수와 내용만 비교합니다.
 
 ### head와 body 밖의 공백은 어디로 갈까
 

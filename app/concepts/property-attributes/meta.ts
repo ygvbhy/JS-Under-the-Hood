@@ -33,7 +33,7 @@ export const concept = {
     { label: '원시 값과 객체', slug: 'primitives-and-objects' },
     { label: 'TDZ', slug: 'tdz' },
   ],
-  related: [],
+  related: ['error-handling', 'this-binding', 'prototype-chain'],
   examples: [
     {
       id: 'descriptor',
@@ -90,9 +90,9 @@ export const concept = {
   ],
   simplifications: [
     '명세는 프로퍼티 어트리뷰트, 내부 슬롯, 내부 메서드를 [[ ]] 표기로 쓰는데, 이 이름들은 코드에서 직접 접근할 수 없습니다. 이 페이지의 화면에 나오는 어트리뷰트 칩은 디스크립터의 필드 이름(value·writable·get·set·enumerable·configurable)을 그대로 보입니다.',
-    '예제는 오류를 보이려고 try…catch와 e.name을 씁니다. 오류 처리는 별도 개념에서 다룹니다.',
-    'getter와 setter는 보통 this로 자기 프로퍼티를 읽고 쓰지만 this는 별도 개념에서 다루므로, 예제의 getter와 setter는 바깥 변수를 읽고 씁니다.',
-    '상속된 프로퍼티(프로토타입)의 writable이나 setter도 대입 결과에 영향을 주지만 별도 개념에서 다룹니다. 예제는 객체 자기 프로퍼티만 씁니다.',
+    '예제는 오류를 보이려고 try…catch와 e.name을 씁니다. 오류 처리는 try/catch/finally 개념에서 다룹니다.',
+    'getter와 setter는 보통 this로 자기 프로퍼티를 읽고 쓰지만 this의 일반 규칙은 this 개념에서 다루므로, 예제의 getter와 setter는 바깥 변수를 읽고 씁니다.',
+    '상속된 프로퍼티(프로토타입)의 writable이나 setter도 대입 결과에 영향을 주며 프로토타입 체인 개념에서 다룹니다. 예제는 객체 자기 프로퍼티만 씁니다.',
     '심벌 키와 for…in은 이 페이지에서 다루지 않습니다.',
     '대입과 delete가 오류 없이 무시되는 sloppy 예제(2, 7, 8번)는 ES 모듈에서는 TypeError로 끝납니다. 모듈은 항상 strict mode이기 때문입니다. 직접 작성한 CommonJS 파일은 이 페이지의 실행 결과와 같지만, TypeScript나 Babel이 변환한 CommonJS 출력에는 보통 use strict 지시어가 붙어 strict mode로 실행됩니다.',
     '시뮬레이터는 바깥 변수를 찾는 과정과 console·JSON 호출 과정을 보이지 않습니다.',

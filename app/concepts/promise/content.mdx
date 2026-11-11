@@ -75,6 +75,8 @@ resolve 함수는 받은 값이 객체가 아니면 바로 프로미스를 이�
 - `Promise.race`는 먼저 정해진 프로미스를 따릅니다.
 - `Promise.any`는 하나라도 이행되면 그 값으로 이행하고, 모두 거부되면 `errors`에 사유들을 담은 AggregateError로 거부합니다.
 
+각 메서드가 결과를 어떻게 정하는지와 결과 배열이 입력 순서를 따르는 이유는 [Promise 정적 메서드](/concepts/promise-static-methods)에서 다룹니다.
+
 ### 처리되지 않은 거부
 
 거부된 프로미스에 거부 핸들러가 없을 때 무엇을 할지는 HostPromiseRejectionTracker가 호스트에 맡기는 동작이고, 이 페이지의 예제는 모든 거부를 처리하므로 다루지 않습니다.

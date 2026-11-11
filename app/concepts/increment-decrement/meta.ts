@@ -39,7 +39,7 @@ export const concept = {
     { label: '암묵적 타입 변환', slug: 'type-coercion' },
     { label: '원시 값과 객체', slug: 'primitives-and-objects' },
   ],
-  related: ['type-coercion', 'primitives-and-objects'],
+  related: ['type-coercion', 'primitives-and-objects', 'hoisting', 'tdz'],
   examples: [
     {
       id: 'postfix-prefix',
@@ -75,7 +75,7 @@ export const concept = {
     '"읽기", "쓰기", "식의 값", "옛 값", "새 값"은 교육용 이름입니다(옛 값·새 값은 명세 알고리즘의 oldValue·newValue). "부수 효과"는 명세 용어가 아니라 식이 값을 만드는 것 말고 변수 등 상태를 바꾸는 일을 가리키는 일반 용어입니다.',
     'BigInt의 증감(BigInt::add), 객체 프로퍼티의 증감, 함수 호출 식에 증감을 쓸 때 SyntaxError가 아니라 실행 중 ReferenceError가 나는 예외(명세의 web-compat)는 다루지 않습니다.',
     '복합 대입 연산자는 +=만, 대입은 변수에 하는 것만 다룹니다. 다른 복합 대입·논리 대입(&&= 등)·구조 분해 할당은 다루지 않습니다.',
-    '변수는 선언문이 실행된 뒤에만 표시합니다(호이스팅·TDZ는 별도 개념에서 다룹니다). 이 코드가 선언한 변수만 표시합니다.',
+    '변수는 선언문이 실행된 뒤에만 표시합니다(호이스팅·TDZ는 각각 호이스팅 개념과 TDZ 개념에서 다룹니다). 이 코드가 선언한 변수만 표시합니다.',
     'console.log는 호스트 API입니다. 예제의 typeof 결과(number)는 문자열이며 따옴표 없이 출력됩니다.',
   ],
   references: [

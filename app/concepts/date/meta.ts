@@ -36,7 +36,15 @@ export const concept = {
     { label: '동등 비교', slug: 'equality-operators' },
     { label: 'new 연산자', slug: 'new-operator' },
   ],
-  related: ['json', 'type-coercion', 'number-pitfalls', 'new-operator'],
+  related: [
+    'json',
+    'type-coercion',
+    'number-pitfalls',
+    'new-operator',
+    'symbol',
+    'error-handling',
+    'timers',
+  ],
   examples: [
     {
       id: 'month-overflow',
@@ -115,11 +123,11 @@ export const concept = {
     '시뮬레이터는 시각 값(밀리초 숫자) 대신 로컬 시간대로 풀어 읽은 연·월·일만 그립니다. new Date(2026, 0, 31)처럼 로컬 자정을 가리키는 코드는 실행 시간대마다 다른 시각 값을 만들므로 고정된 숫자로 쓸 수 없고, 필드 계산은 시간대와 상관없이 같은 모양이기 때문입니다.',
     '시뮬레이터는 로컬 필드와 UTC 시각 값을 오가는 변환(LocalTime과 그 역변환)을 한 칸으로 줄여 그리고, 시·분·초·밀리초는 그리지 않습니다. setMonth는 하루 안의 시각을 그대로 두고 연·월·일만 다시 계산합니다.',
     '서머타임 전환 시각 자체를 처리하는 규칙(건너뛴 시각과 반복된 시각)은 다루지 않습니다. 하루를 더하는 두 방법의 차이만 문장으로 다룹니다.',
-    'Date가 연산자에서 바뀌는 방식은 명세가 Date에만 "default"를 문자열로 다루게 정했다는 데까지만 설명합니다. Symbol.toPrimitive의 일반 규칙은 별도 개념에서 다룹니다.',
+    'Date가 연산자에서 바뀌는 방식은 명세가 Date에만 "default"를 문자열로 다루게 정했다는 데까지만 설명합니다. Symbol.toPrimitive의 일반 규칙은 심벌 개념에서 다룹니다.',
     'toLocaleString 같은 지역화 출력은 ECMA-402(Intl)가 정하는 결과라 다루지 않습니다.',
     'Date.parse가 명세의 날짜 시간 문자열 형식에 맞지 않고 toString·toUTCString이 만들 수도 없는 문자열을 어떻게 읽는지는 구현이 정하므로 다루지 않습니다. 이 페이지의 문자열 예제는 명세 형식만 씁니다.',
     '예제의 console.log는 ECMAScript가 아니라 호스트가 제공하는 출력 API입니다. 어떤 시간대를 쓸지는 명세가 호스트 환경의 현재 시간대로 정하고, 그 시간대의 오프셋 규칙은 구현이 정합니다(implementation-defined).',
-    'JSON의 toJSON(43장), 타이머(41장), try...catch(47장)는 별도 개념이고, Temporal과 부록 B의 setYear·getYear는 다루지 않습니다.',
+    'JSON의 toJSON(43장), 타이머(41장), try...catch(47장)는 각각 JSON 개념, 타이머 개념, try/catch/finally 개념에서 다루고, Temporal과 부록 B의 setYear·getYear는 다루지 않습니다.',
   ],
   references: [
     {

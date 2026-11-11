@@ -34,7 +34,7 @@ export const concept = {
     { label: '원시 값과 객체', slug: 'primitives-and-objects' },
     { label: '단축 평가와 truthy/falsy', slug: 'short-circuit-evaluation' },
   ],
-  related: ['short-circuit-evaluation', 'primitives-and-objects'],
+  related: ['short-circuit-evaluation', 'primitives-and-objects', 'hoisting', 'tdz'],
   examples: [
     {
       id: 'to-string',
@@ -85,7 +85,7 @@ export const concept = {
     '숫자로 바꾸는 연산은 정확히는 ToNumeric(BigInt면 BigInt를 그대로 사용)입니다. >·< 비교에서 한쪽이 BigInt이고 다른 쪽이 문자열이면 문자열을 숫자가 아니라 BigInt로 바꿔 비교합니다. Symbol과 BigInt 자체는 다루지 않고 "변환이 안 되는 경우"에서 오류가 나는지만 다룹니다. 문자열을 숫자로 바꾸는 세부 규칙(0x10, Infinity, 지수 표기 등)과 숫자를 문자열로 바꾸는 세부 규칙(지수 표기, -0)은 다루지 않습니다.',
     'ToBoolean에는 브라우저 호스트의 document.all(명세 부록 B의 [[IsHTMLDDA]])만 falsy로 다루는 예외가 있지만 이 페이지에서는 다루지 않습니다.',
     '==(느슨한 동등 비교)의 변환과 <=, >=, 비트 연산자 등 다른 연산자는 다루지 않습니다.',
-    '변수는 선언문이 실행된 뒤에만 표시합니다(호이스팅·TDZ는 별도 개념에서 다룹니다). 변수 열에는 이 코드가 선언한 변수만 표시하며 console, JSON 같은 내장 값은 표시하지 않습니다.',
+    '변수는 선언문이 실행된 뒤에만 표시합니다(호이스팅·TDZ는 각각 호이스팅 개념과 TDZ 개념에서 다룹니다). 변수 열에는 이 코드가 선언한 변수만 표시하며 console, JSON 같은 내장 값은 표시하지 않습니다.',
     'console.log는 호스트 API이며, 문자열을 따옴표 없이 출력하는 것은 호스트의 출력 형식입니다. 시각화의 값 표시에서는 문자열에 큰따옴표를 붙이고 타입을 함께 적습니다.',
   ],
   references: [

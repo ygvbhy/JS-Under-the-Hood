@@ -46,7 +46,7 @@ export const approaches: {
     method: 'ES 모듈',
     exampleId: null,
     globals: [],
-    hidden: '별도 개념',
-    changeable: '별도 개념',
+    hidden: 'ES 모듈 개념에서 다룸',
+    changeable: 'ES 모듈 개념에서 다룸',
   },
 ]

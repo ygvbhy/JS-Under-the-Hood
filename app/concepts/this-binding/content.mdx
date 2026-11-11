@@ -27,7 +27,7 @@ thisArg가 정해지면 함수가 불리면서 OrdinaryCallBindThis가 함수가
 - sloppy mode 함수는 thisArg가 객체이면 그대로 받고, `undefined`나 `null`이면 전역 객체를 받고, 원시 값이면 그 값을 객체(래퍼 객체)로 바꿔 받습니다. 원시 값을 객체로 바꾸는 규칙은 [원시 값의 메서드 호출](/concepts/primitive-methods)에서 설명합니다.
 - 화살표 함수는 `this`를 받지 않습니다. thisArg가 무엇이든 쓰이지 않고, 자기 바깥의 `this`를 씁니다. 자세한 동작은 아래 화살표 함수 절에서 봅니다.
 
-이 페이지의 예제는 파일 첫 줄이나 함수 본문 첫 줄의 `'use strict';`로 strict mode 함수를 만들고, 지시어가 없는 함수는 sloppy mode입니다. 전역 객체가 무엇인지는 별도 개념이고, 이 페이지에서는 sloppy 함수의 `this`가 `globalThis`와 같은지만 비교합니다. 이 순서가 이 페이지의 시뮬레이터가 네 칸으로 나눠 보여 주는 과정입니다.
+이 페이지의 예제는 파일 첫 줄이나 함수 본문 첫 줄의 `'use strict';`로 strict mode 함수를 만들고, 지시어가 없는 함수는 sloppy mode입니다. 전역 객체가 무엇인지는 [전역 객체](/concepts/global-object)에서 다루고, 이 페이지에서는 sloppy 함수의 `this`가 `globalThis`와 같은지만 비교합니다. 이 순서가 이 페이지의 시뮬레이터가 네 칸으로 나눠 보여 주는 과정입니다.
 
 ### 메서드를 꺼내 부르면
 
@@ -73,7 +73,7 @@ bound function을 `new`로 부르면 묶인 `this`는 무시되고 새로 만든
 
 화살표 함수는 호출될 때 thisArg를 받지 않고, 자기 바깥의 `this`를 그대로 씁니다. 예제 10의 `outer.call(kim)`은 `outer`의 `this`를 `kim`으로 하여 부르고, `outer` 안에서 만든 `arrow`는 그 `this`인 `kim`을 씁니다. 그래서 `arrow.call(lee)`나 `arrow.bind(lee)()`처럼 thisArg를 바꿔도 `Kim`이고, 객체의 프로퍼티로 붙여 `obj.arrow()`로 메서드처럼 불러도 점 앞의 `obj`가 아니라 `Kim`입니다. 화살표 함수에 `call(1)`을 해도 `this`는 바깥 `this` 그대로입니다.
 
-객체 리터럴에 화살표 함수를 프로퍼티로 쓰는 `{ m: () => this }`에서도 마찬가지입니다. `o.m()`으로 불러도 `this`는 `o`가 아니라 객체 리터럴을 쓴 자리의 바깥 `this`입니다. 화살표 함수가 바깥 `this`를 어떻게 얻는지와 문법 전반은 별도 개념이고, 이 페이지는 `this`가 어떻게 정해지는지까지만 다룹니다.
+객체 리터럴에 화살표 함수를 프로퍼티로 쓰는 `{ m: () => this }`에서도 마찬가지입니다. `o.m()`으로 불러도 `this`는 `o`가 아니라 객체 리터럴을 쓴 자리의 바깥 `this`입니다. 화살표 함수가 바깥 `this`를 어떻게 얻는지와 문법 전반은 [화살표 함수와 메서드 축약](/concepts/arrow-functions)에서 다루고, 이 페이지는 `this`가 어떻게 정해지는지까지만 다룹니다.
 
 ### 괄호와 쉼표
 

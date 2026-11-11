@@ -28,7 +28,7 @@ export const concept = {
     { label: 'this', slug: 'this-binding' },
     { label: '클로저', slug: 'closure' },
   ],
-  related: ['this-binding', 'closure', 'global-object'],
+  related: ['this-binding', 'closure', 'global-object', 'promise', 'microtask-queue'],
   examples: [
     {
       id: 'sync-first',
@@ -101,7 +101,7 @@ export const concept = {
   ],
   simplifications: [
     '이벤트 루프와 태스크 큐가 태스크를 고르고 처리하는 순서는 이벤트 루프와 태스크 큐 개념에서 다룹니다. 이 페이지는 "타이머 콜백은 태스크로 큐에 들어가 지금 실행 중인 코드가 끝난 뒤에 실행된다" 수준까지만 설명합니다.',
-    'Promise와 마이크로태스크는 별도 개념이며 이 페이지에서 다루지 않습니다.',
+    'Promise와 마이크로태스크는 이 페이지에서 다루지 않고 프로미스 개념과 마이크로태스크 큐 개념에서 다룹니다.',
     '정확한 밀리초 값은 주장하지 않고, "50ms 이상 지났다" 같은 하한과 실행 순서만 확인합니다.',
     '예제 3에서 나중에 등록한 0ms 타이머가 먼저 등록한 50ms 타이머보다 먼저 실행되는 것은 Chromium에서 관찰한 결과입니다. 표준은 먼저 등록했고 지연이 같거나 짧은 타이머가 먼저라는 순서만 정하며, 나중에 등록한 타이머가 지연이 짧다는 이유로 먼저 실행된다고 보장하지 않습니다.',
     '중첩 단계가 5를 넘으면 4ms보다 짧은 지연을 4ms로 올리는 timer initialization steps의 단계는 인용으로만 소개하고 실행으로 확인하지 않았습니다.',

@@ -28,7 +28,14 @@ export const concept = {
     { label: 'DOM 트리와 노드 종류', slug: 'dom-tree-nodes' },
     { label: '프로퍼티 어트리뷰트', slug: 'property-attributes' },
   ],
-  related: ['dom-tree-nodes', 'live-html-collection', 'property-attributes', 'prototype-chain'],
+  related: [
+    'dom-tree-nodes',
+    'live-html-collection',
+    'property-attributes',
+    'prototype-chain',
+    'event-propagation-delegation',
+    'prevent-default-stop-propagation',
+  ],
   examples: [
     {
       id: 'value-dirty',

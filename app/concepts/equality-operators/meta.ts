@@ -39,7 +39,7 @@ export const concept = {
     { label: '암묵적 타입 변환', slug: 'type-coercion' },
     { label: '원시 값과 객체', slug: 'primitives-and-objects' },
   ],
-  related: ['type-coercion', 'primitives-and-objects'],
+  related: ['type-coercion', 'primitives-and-objects', 'hoisting', 'tdz'],
   examples: [
     {
       id: 'strict',
@@ -89,7 +89,7 @@ export const concept = {
     '문자열의 일치 비교는 명세상 길이와 같은 위치의 UTF-16 코드 유닛이 모두 같은지로 판정합니다. 이 페이지는 "같은 문자열인지"로 줄여 말합니다.',
     '같은 값인지 판정하는 명세 알고리즘에는 IsStrictlyEqual, IsLooselyEqual, SameValue 외에 SameValueZero도 있지만 다루지 않습니다. Object.is는 SameValue이며 이 페이지는 NaN과 +0/-0에서의 차이만 다룹니다.',
     '<=, >= 같은 비교 연산자는 ==와 다른 규칙을 쓰며 다루지 않습니다.',
-    '변수는 선언문이 실행된 뒤에만 표시합니다(호이스팅·TDZ는 별도 개념에서 다룹니다). 변수 열에는 이 코드가 선언한 변수만 표시합니다.',
+    '변수는 선언문이 실행된 뒤에만 표시합니다(호이스팅·TDZ는 각각 호이스팅 개념과 TDZ 개념에서 다룹니다). 변수 열에는 이 코드가 선언한 변수만 표시합니다.',
     'console.log는 호스트 API이며, 문자열을 따옴표 없이 출력하는 것은 호스트의 출력 형식입니다. 시각화는 문자열에 큰따옴표를 붙이고 타입을 함께 적습니다.',
   ],
   references: [

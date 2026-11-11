@@ -31,7 +31,16 @@ export const concept = {
     { label: 'TDZ', slug: 'tdz' },
     { label: '프로퍼티 어트리뷰트와 접근자', slug: 'property-attributes' },
   ],
-  related: ['new-operator', 'prototype-chain', 'this-binding', 'closure', 'iife-module-pattern'],
+  related: [
+    'new-operator',
+    'prototype-chain',
+    'this-binding',
+    'closure',
+    'iife-module-pattern',
+    'class-inheritance',
+    'arrow-functions',
+    'error-handling',
+  ],
   examples: [
     {
       id: 'class-is-function',
@@ -89,13 +98,13 @@ export const concept = {
     },
   ],
   simplifications: [
-    '상속(extends, super, 파생 클래스 생성자)은 다루지 않고 별도 개념으로만 언급합니다.',
-    '메서드 축약 표현과 화살표 함수의 차이는 다루지 않고 별도 개념으로만 언급합니다. 메서드는 클래스 메서드만 다룹니다.',
+    '상속(extends, super, 파생 클래스 생성자)은 다루지 않고 클래스 상속과 super 개념에서 다룹니다.',
+    '메서드 축약 표현과 화살표 함수의 차이는 다루지 않고 화살표 함수와 메서드 축약 개념에서 다룹니다. 메서드는 클래스 메서드만 다룹니다.',
     'private 메서드, static 블록, `#x in obj` 검사, 필드 초기화 순서의 세부, 계산된 메서드 이름, getter와 setter는 다루지 않습니다.',
     '비교표의 "생성자 함수" 칸은 function 선언으로 만든 생성자 함수 기준이고, "클래스" 칸은 class 선언 기준입니다.',
     '예제의 console은 ECMAScript 언어가 아니라 호스트가 제공하는 API입니다.',
     '이 페이지의 예제는 스크립트로 실행한 결과를 기준으로 합니다. 모듈은 항상 strict mode라서 예제 4의 6번 줄에서 생성자 함수 메서드의 this도 undefined가 되어 a() === globalThis가 false입니다. 나머지 예제는 모듈에서도 결과가 같습니다.',
-    '예제는 오류를 보이려고 try…catch와 e.name을 씁니다. 오류 처리는 별도 개념에서 다룹니다.',
+    '예제는 오류를 보이려고 try…catch와 e.name을 씁니다. 오류 처리는 try/catch/finally 개념에서 다룹니다.',
   ],
   references: [
     {

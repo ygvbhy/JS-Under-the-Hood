@@ -39,6 +39,10 @@ export const concept = {
     'array-method-pitfalls',
     'prototype-chain',
     'for-let',
+    'generator',
+    'async-generator',
+    'spread-destructuring',
+    'set-map',
   ],
   examples: [
     {
@@ -101,8 +105,8 @@ export const concept = {
     },
   ],
   simplifications: [
-    '제너레이터(46장)와 yield, 비동기 이터레이션(for await...of, Symbol.asyncIterator)은 별도 개념이라 다루지 않습니다.',
-    '스프레드 문법(35장)과 배열 디스트럭처링(36장)은 별도 개념입니다. 같은 이터레이션 프로토콜을 쓴다는 점만 예제 하나로 확인하고, 기본값·rest·객체 디스트럭처링은 다루지 않습니다.',
+    '제너레이터(46장)와 yield는 제너레이터 개념에서, 비동기 이터레이션(for await...of, Symbol.asyncIterator)은 async 제너레이터 개념에서 다루므로 이 페이지에서는 다루지 않습니다.',
+    '스프레드 문법(35장)과 배열 디스트럭처링(36장)은 스프레드와 디스트럭처링 개념에서 다룹니다. 같은 이터레이션 프로토콜을 쓴다는 점만 예제 하나로 확인하고, 기본값·rest·객체 디스트럭처링은 다루지 않습니다.',
     '이터레이터 헬퍼(Iterator.prototype.map 등)와 전역 Iterator는 ES2025에 추가되어 책 범위 밖이라 다루지 않습니다. Iterator.prototype은 배열 이터레이터의 프로토타입 체인에 있는 객체라는 이름만 언급합니다.',
     'Map·Set(37장)과 TypedArray의 이터레이터, 배열의 entries·keys가 돌려주는 이터레이터는 다루지 않습니다. 배열 이터레이터는 Array.prototype[Symbol.iterator]가 돌려주는 값을 기준으로 설명합니다.',
     '이터레이터의 throw 메서드와 이터레이터를 쓰는 다른 내장 함수(Promise.all 등), using 선언은 다루지 않습니다.',

@@ -30,7 +30,7 @@ export const concept = {
     { label: '블록 스코프', slug: 'block-scope' },
     { label: '스코프 체인', slug: 'scope-chain' },
   ],
-  related: ['default-parameters'],
+  related: ['default-parameters', 'error-handling', 'execution-context', 'class-basics', 'for-let'],
   examples: [
     {
       id: 'let-before',
@@ -71,12 +71,12 @@ export const concept = {
   ],
   simplifications: [
     "'TDZ'(temporal dead zone)는 ECMAScript 명세가 정의한 용어가 아닙니다. 명세는 이를 초기화되지 않은 바인딩(uninitialized binding)을 읽거나 쓰려 할 때의 ReferenceError로 설명하며, 이 페이지는 널리 쓰이는 이름인 TDZ로 부릅니다.",
-    '예제는 오류를 보이려고 try…catch와 e.name을 씁니다. try·catch 블록이 만드는 스코프와 오류를 받는 변수 e는 시뮬레이터에 그리지 않으며, 오류 처리는 별도 개념에서 다룹니다.',
-    "'스코프' 카드는 명세의 환경 레코드(Environment Record)를 단순화한 것입니다. 환경 레코드는 별도 개념에서 다룹니다.",
+    '예제는 오류를 보이려고 try…catch와 e.name을 씁니다. try·catch 블록이 만드는 스코프와 오류를 받는 변수 e는 시뮬레이터에 그리지 않으며, 오류 처리는 try/catch/finally 개념에서 다룹니다.',
+    "'스코프' 카드는 명세의 환경 레코드(Environment Record)를 단순화한 것입니다. 환경 레코드는 실행 컨텍스트 개념에서 다룹니다.",
     '블록 실행이 끝나면 그 블록의 스코프를, 함수가 끝나면 그 함수의 스코프를 표시에서 뺍니다. 끝난 스코프가 어떻게 되는지는 클로저 개념에서 다룹니다.',
-    'class 선언과 기본값 매개변수에도 같은 오류가 있지만, 이 페이지는 let·const만 다룹니다. class는 별도 개념에서, 기본값 매개변수는 매개변수 기본값 개념에서 다룹니다.',
+    "class 선언과 기본값 매개변수에도 같은 오류가 있지만, 이 페이지는 let·const만 다룹니다. class 선언은 '클래스는 함수다' 개념에서, 기본값 매개변수는 매개변수 기본값 개념에서 다룹니다.",
     '브라우저 콘솔의 오류 메시지 문구는 엔진마다 다릅니다. 이 페이지는 오류의 종류(e.name)만 보입니다.',
-    'for (let …) 반복마다 새로 만들어지는 바인딩은 별도 개념에서 다룹니다.',
+    'for (let …) 반복마다 새로 만들어지는 바인딩은 for 문의 let 개념에서 다룹니다.',
   ],
   references: [
     {

@@ -41,6 +41,9 @@ export const concept = {
     'class-inheritance',
     'closure',
     'default-parameters',
+    'iterable-for-of',
+    'spread-destructuring',
+    'error-handling',
   ],
   examples: [
     {
@@ -89,13 +92,13 @@ export const concept = {
   simplifications: [
     '매개변수 기본값은 매개변수 기본값 개념에서 다룹니다.',
     'sloppy mode에서 arguments[0]과 매개변수가 연동되는 것(mapped arguments)과 arguments.callee는 다루지 않습니다. 예제 3·4의 arguments는 sloppy mode의 단순한 매개변수 목록이라 명세상 mapped 객체(CreateMappedArgumentsObject)이지만, 배열이 아니고 [[Prototype]]이 Object.prototype인 점은 unmapped 객체와 같습니다.',
-    'arguments를 진짜 배열로 바꾸는 방법(배열 메서드를 빌려 쓰기, 이터러블과 스프레드)은 이 사이트에서 아직 다루지 않은 별도 개념으로만 언급합니다.',
+    'arguments를 진짜 배열로 바꾸는 방법 중 배열 메서드를 빌려 쓰기는 배열로 바꾸는 용도로는 이 사이트에서 아직 다루지 않은 별도 개념으로만 언급하고, 이터러블과 스프레드는 이터러블과 for...of 개념, 스프레드와 디스트럭처링 개념에서 다룹니다.',
     '제너레이터와 async 화살표 함수, getter와 setter 축약은 다루지 않습니다.',
     '비교표의 "일반 함수" 칸은 sloppy 스크립트의 function 식 기준입니다.',
     'this의 세부(call, apply, bind로 정하는 값 등)는 this 페이지에서 다루고 여기서는 요약만 합니다.',
     '예제의 console은 ECMAScript 언어가 아니라 호스트가 제공하는 API입니다.',
     "이 페이지의 예제는 스크립트로 실행한 결과를 기준으로 합니다. Node의 CommonJS 파일로 실행하면 호스트가 파일을 함수로 감싸 실행하므로, 예제 4의 12번 줄이 'undefined' 대신 'object'를 출력합니다.",
-    '예제는 오류를 보이려고 try…catch와 e.name을 씁니다. 오류 처리는 별도 개념에서 다룹니다.',
+    '예제는 오류를 보이려고 try…catch와 e.name을 씁니다. 오류 처리는 try/catch/finally 개념에서 다룹니다.',
   ],
   references: [
     {

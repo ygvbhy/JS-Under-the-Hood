@@ -39,6 +39,10 @@ export const concept = {
     'prototype-chain',
     'arrow-functions',
     'typeof-operator',
+    'array-method-pitfalls',
+    'iterable-for-of',
+    'spread-destructuring',
+    'error-handling',
   ],
   examples: [
     {
@@ -96,12 +100,12 @@ export const concept = {
   ],
   simplifications: [
     '배열이 엔진 안에서 메모리에 어떻게 놓이는지(연속 메모리인지 해시 테이블인지 등)는 명세가 정하지 않으므로 다루지 않고, 명세가 정의한 프로퍼티 동작만 설명합니다.',
-    '배열 메서드(push, map, forEach 등)와 이터러블·스프레드·Array.from은 이 사이트에서 아직 다루지 않은 별도 개념입니다. 예제 7의 push는 키를 모으는 용도로만 쓰며, 배열 끝에 요소를 추가하는 메서드(별도 개념)입니다.',
+    '배열 메서드(push, map, forEach 등)는 배열 메서드의 함정 개념에서, 이터러블·스프레드·Array.from은 이터러블과 for...of 개념과 스프레드와 디스트럭처링 개념에서 다룹니다. 예제 7의 push는 키를 모으는 용도로만 쓰며, 배열 끝에 요소를 추가하는 메서드입니다.',
     'length의 writable이 false인 경우와, configurable이 false인 요소 때문에 length 줄이기가 중간에 멈추는 경로는 다루지 않습니다.',
     '시뮬레이터는 length를 뺀 자기 프로퍼티만 그리고, 프로토타입(Array.prototype)은 그리지 않습니다.',
     '시뮬레이터의 칸 보기(0부터 length - 1까지 늘어놓은 표)는 이해를 돕는 설명용 표현이며, 엔진의 저장 구조가 아닙니다.',
     '예제의 console은 ECMAScript 언어가 아니라 호스트가 제공하는 API입니다.',
-    '예제는 오류를 보이려고 try…catch와 e.name을 씁니다. 오류 처리는 별도 개념에서 다룹니다.',
+    '예제는 오류를 보이려고 try…catch와 e.name을 씁니다. 오류 처리는 try/catch/finally 개념에서 다룹니다.',
   ],
   references: [
     {

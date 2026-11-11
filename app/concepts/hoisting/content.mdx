@@ -31,7 +31,7 @@ import { scenarios } from './scenarios'
 
 ### 실행되지 않는 줄도 선언 처리에 포함됩니다
 
-`var` 선언은 그 줄이 실행되는지와 관계없이 선언 처리에 포함됩니다. 선언 처리는 코드를 실행하지 않고, 코드에 적힌 선언을 모아 처리하기 때문입니다. 그래서 `if (false) { var flag = true; }`처럼 한 번도 실행되지 않는 줄의 `var`도 바인딩이 만들어집니다. 블록과 `var`의 관계(스코프)는 별도 개념에서 다룹니다.
+`var` 선언은 그 줄이 실행되는지와 관계없이 선언 처리에 포함됩니다. 선언 처리는 코드를 실행하지 않고, 코드에 적힌 선언을 모아 처리하기 때문입니다. 그래서 `if (false) { var flag = true; }`처럼 한 번도 실행되지 않는 줄의 `var`도 바인딩이 만들어집니다. 블록과 `var`의 관계(스코프)는 [블록 스코프](/concepts/block-scope)에서 다룹니다.
 
 ### 찾을 수 없는 이름과의 차이
 
@@ -39,7 +39,7 @@ import { scenarios } from './scenarios'
 
 ### var에 담은 함수 표현식
 
-`var triple = function (n) { ... };`에서 선언 처리가 하는 일은 `triple` 바인딩을 만들어 `undefined`로 초기화하는 것까지입니다. 함수 객체는 실행 단계에서 그 줄에 도달해 함수 표현식을 평가할 때 만들어져 `triple`에 대입됩니다. 그 전에 `triple(3)`을 호출하면 `undefined`를 호출하려는 것이 되어 TypeError가 납니다. 함수가 아닌 값에 `()`를 붙이면 TypeError가 난다는 점은 [함수 호출](/concepts/function-calls)에서 다뤘습니다. `var` 대신 `const`나 `let`으로 선언하면 같은 호출이 TypeError가 아니라 ReferenceError가 납니다. 이 차이는 별도 개념에서 다룹니다.
+`var triple = function (n) { ... };`에서 선언 처리가 하는 일은 `triple` 바인딩을 만들어 `undefined`로 초기화하는 것까지입니다. 함수 객체는 실행 단계에서 그 줄에 도달해 함수 표현식을 평가할 때 만들어져 `triple`에 대입됩니다. 그 전에 `triple(3)`을 호출하면 `undefined`를 호출하려는 것이 되어 TypeError가 납니다. 함수가 아닌 값에 `()`를 붙이면 TypeError가 난다는 점은 [함수 호출](/concepts/function-calls)에서 다뤘습니다. `var` 대신 `const`나 `let`으로 선언하면 같은 호출이 TypeError가 아니라 ReferenceError가 납니다. 이 차이는 [TDZ](/concepts/tdz)에서 다룹니다.
 
 ### ES 모듈과 Node.js 파일에서는
 

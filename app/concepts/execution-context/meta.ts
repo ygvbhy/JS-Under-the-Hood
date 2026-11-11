@@ -36,7 +36,7 @@ export const concept = {
     { label: '함수 호출', slug: 'function-calls' },
     { label: 'this', slug: 'this-binding' },
   ],
-  related: ['scope-chain', 'this-binding'],
+  related: ['scope-chain', 'this-binding', 'global-object', 'error-handling'],
   examples: [
     {
       id: 'call-stack',
@@ -98,14 +98,14 @@ export const concept = {
     '환경 레코드 카드는 명세의 Environment Record를 단순화한 것입니다. 바인딩의 변경 가능 여부(const), 함수 환경 레코드의 [[FunctionObject]]·[[NewTarget]] 등은 생략하고 this만 보입니다.',
     'strict mode 함수는 LexicalEnvironment와 VariableEnvironment가 같은 레코드 하나를 가리킵니다. 이 페이지의 예제는 sloppy mode라 둘로 그립니다. 매개변수 목록에 기본값 같은 식이 있으면 레코드가 하나 더 생기지만 다루지 않습니다.',
     '함수가 끝나 어떤 실행 컨텍스트도 가리키지 않는 환경 레코드는 그림에서 지웁니다. 함수 객체가 그 레코드를 계속 가리키면 남는데, 이것은 클로저 개념에서 다룹니다.',
-    '전역 객체 자체(globalThis와 빌트인 프로퍼티)는 별도 개념입니다. 객체 환경 레코드 칸에는 예제가 선언한 이름만 보입니다.',
+    '전역 객체 자체(globalThis와 빌트인 프로퍼티)는 전역 객체 개념에서 다룹니다. 객체 환경 레코드 칸에는 예제가 선언한 이름만 보입니다.',
     '예제 3은 클래식 스크립트 결과입니다. .mjs·"type": "module"(모듈)로 실행하면 최상위가 모듈 코드이고, CommonJS(.cjs)는 Node가 파일을 함수로 감싸 최상위가 함수 코드라서, 어느 쪽이든 var·함수 선언이 전역 객체의 프로퍼티가 되지 않습니다.',
     'eval 코드의 실행 컨텍스트는 언급만 하고, 모듈 코드는 ES 모듈 개념에서 다룹니다. 제너레이터·async 함수처럼 실행 컨텍스트가 중단됐다가 다시 이어지는 경우와 클래스는 다루지 않습니다.',
     'Math.max 같은 빌트인 함수나 console.log 같은 호스트 제공 함수를 부를 때도 실행 컨텍스트가 만들어지지만 시뮬레이터에서는 생략합니다. 스택 크기 제한은 명세가 아니라 구현이 정하므로 다루지 않습니다.',
     '화살표 함수가 아닌 함수의 함수 환경 레코드에는 보통 arguments 바인딩도 만들어지지만, 시뮬레이터는 코드에 선언한 이름만 보입니다.',
     '블록 안 함수 선언은 sloppy mode에서 Annex B 규칙으로 함수 환경 레코드에도 var처럼 바인딩이 생기지만, 이 페이지의 예제에는 블록 안 함수 선언이 없어 다루지 않습니다.',
     '시뮬레이터는 선언 처리를 한 단계로 묶어 보이고, 바인딩 생성·초기화의 세부 순서(매개변수 → var → 함수 등)는 생략합니다.',
-    '예제는 오류를 보이려고 try…catch와 e.name을 씁니다. 오류 처리는 별도 개념에서 다룹니다.',
+    '예제는 오류를 보이려고 try…catch와 e.name을 씁니다. 오류 처리는 try/catch/finally 개념에서 다룹니다.',
   ],
   references: [
     {

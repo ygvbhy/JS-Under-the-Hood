@@ -28,7 +28,13 @@ export const concept = {
     { label: '실행 컨텍스트', slug: 'execution-context' },
     { label: '타이머', slug: 'timers' },
   ],
-  related: ['timers', 'execution-context', 'event-propagation-delegation'],
+  related: [
+    'timers',
+    'execution-context',
+    'event-propagation-delegation',
+    'microtask-queue',
+    'promise',
+  ],
   examples: [
     {
       id: 'sync-and-timers',
@@ -72,7 +78,7 @@ export const concept = {
     '시뮬레이터에서 타이머가 대기 칸에서 태스크 큐로 옮겨 가는 순간은 그림을 위해 고른 것이며, 실제 시각은 관찰할 수 없습니다. 보장되는 것은 실행 순서뿐입니다.',
     '태스크 큐는 타이머 태스크 소스 하나로 그립니다. 실제 브라우저는 여러 태스크 큐를 가지고, 어느 큐에서 태스크를 고를지는 구현이 정합니다.',
     '스크립트 실행을 "스크립트 태스크" 하나로 그립니다. 표준은 HTML 파서가 바이트를 처리하는 태스크 안에서 스크립트가 실행된다고 서술하며, 이 페이지는 그 서술을 단순화했습니다.',
-    '마이크로태스크 체크포인트와 Promise는 별도 개념이며 이 페이지에서 다루지 않습니다.',
+    '마이크로태스크 체크포인트와 Promise는 이 페이지에서 다루지 않고 마이크로태스크 큐 개념과 프로미스 개념에서 다룹니다.',
     '표준은 고른 큐에서 실행할 수 있는(runnable) 첫 태스크를 꺼낸다고 쓰고, 그래서 태스크 큐를 큐가 아니라 집합(set)이라고 부릅니다. 이 페이지는 활성 창 하나만 다루므로 태스크 큐를 앞에서부터 꺼내는 줄로 그립니다.',
     '렌더링 갱신과 requestAnimationFrame은 다루지 않습니다.',
     '실제 사용자 입력은 만들지 않습니다. 입력 이벤트가 사용자 상호작용 태스크 소스의 태스크로 들어온다는 것은 표준 서술을 근거로만 설명하며 실행으로 확인하지 않았습니다.',

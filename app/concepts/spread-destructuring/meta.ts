@@ -42,6 +42,8 @@ export const concept = {
     'type-coercion',
     'string-utf16',
     'default-parameters',
+    'error-handling',
+    'json',
   ],
   examples: [
     {
@@ -112,7 +114,7 @@ export const concept = {
     '깊은 복사와 structuredClone(호스트 API)은 다루지 않습니다.',
     'for...of 머리와 catch 매개변수의 디스트럭처링, 계산된 키 패턴, 프로퍼티를 대상으로 하는 할당 디스트럭처링은 다루지 않습니다.',
     'TypeError와 SyntaxError는 try...catch(47장)를 쓰지 않고 본문 문장과 테스트로 확인합니다.',
-    'JSON.stringify는 43장에서 다루는 주제이며 이 페이지에서는 결과를 출력하는 도구로만 씁니다.',
+    'JSON.stringify는 JSON 개념에서 다루는 주제이며 이 페이지에서는 결과를 출력하는 도구로만 씁니다.',
     '예제의 console은 ECMAScript 언어가 아니라 호스트가 제공하는 API입니다.',
   ],
   references: [

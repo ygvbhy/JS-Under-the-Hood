@@ -38,6 +38,7 @@ export const concept = {
     'property-attributes',
     'type-coercion',
     'regexp-lastindex',
+    'iterable-for-of',
   ],
   examples: [
     {
@@ -94,7 +95,7 @@ export const concept = {
   ],
   simplifications: [
     '엔진이 문자열을 내부에서 어떻게 저장하는지는 명세가 정하지 않습니다. 명세는 문자열을 16비트 값의 나열로 정의하고, 내용을 해석하는 연산이 각 값을 UTF-16 코드 유닛으로 본다고 정합니다.',
-    'for...of와 스프레드가 문자열을 코드 포인트 단위로 도는 것(34·35장)은 별도 개념이라 한 줄 언급만 합니다.',
+    'for...of와 스프레드가 문자열을 코드 포인트 단위로 도는 것(34·35장)은 이터러블과 for...of 개념에서 다루므로 이 페이지에서는 한 줄 언급만 합니다.',
     '자소 클러스터 분할(Intl.Segmenter)은 국제화 API 명세(ECMA-402)의 기능이라 다루지 않습니다. localeCompare와 toLocaleUpperCase 같은 로캘 의존 메서드도 결과가 로캘과 구현에 따라 달라질 수 있어 다루지 않습니다.',
     'normalize의 NFC를 "합칠 수 있는 것을 합친다"로 줄여 설명합니다. 실제로는 정준 분해한 뒤 다시 합성하며, 합성에서 제외되는 문자는 합치지 않습니다.',
     '대소문자 변환과 normalize 결과는 호스트가 따르는 유니코드 데이터 판에 따릅니다(Node 24 기준으로 확인).',

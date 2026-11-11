@@ -33,7 +33,7 @@ export const concept = {
     { label: '호이스팅', slug: 'hoisting' },
     { label: '함수 호출', slug: 'function-calls' },
   ],
-  related: [],
+  related: ['execution-context', 'block-scope', 'tdz'],
   examples: [
     {
       id: 'scope-chain',
@@ -67,12 +67,12 @@ export const concept = {
     },
   ],
   simplifications: [
-    "'스코프' 카드는 명세의 환경 레코드(Environment Record)를, '바깥 스코프'는 그 [[OuterEnv]] 연결을 단순화한 것입니다. 실행 컨텍스트와 환경 레코드는 별도 개념에서 다룹니다.",
+    "'스코프' 카드는 명세의 환경 레코드(Environment Record)를, '바깥 스코프'는 그 [[OuterEnv]] 연결을 단순화한 것입니다. 실행 컨텍스트와 환경 레코드는 실행 컨텍스트 개념에서 다룹니다.",
     '함수 실행이 끝나면 그 함수의 스코프를 표시에서 뺍니다. 함수가 끝난 뒤 스코프가 어떻게 되는지는 클로저 개념에서 다룹니다.',
     '코드를 실행하기 전 전역 선언 처리와 함수 호출 시작의 선언 처리는 각각 한 단계로 묶었습니다. 선언 처리 순서는 호이스팅 개념에서 다룹니다.',
     'console을 찾는 과정은 표시하지 않습니다. console은 호스트가 제공하는 이름이며 같은 방식으로 스코프 체인에서 찾습니다.',
-    '예제는 var와 함수 선언만 씁니다. let·const로 바꿔도 예제 1~3의 결과는 같지만, 블록({ }) 스코프와 선언 전 참조(TDZ)에서 차이가 나며 별도 개념에서 다룹니다. 예를 들어 예제 5를 let으로 바꾸면 ReferenceError가 납니다.',
-    '끝까지 찾지 못한 이름을 읽으면 ReferenceError입니다. 찾지 못한 이름에 대입하면 strict mode가 아닐 때는 오류 없이 전역 객체에 그 이름의 프로퍼티가 만들어지고(암묵적 전역), strict mode에서는 ReferenceError입니다. 이는 별도 개념에서 다룹니다.',
+    '예제는 var와 함수 선언만 씁니다. let·const로 바꿔도 예제 1~3의 결과는 같지만, 블록({ }) 스코프와 선언 전 참조(TDZ)에서 차이가 나며 블록 스코프 개념과 TDZ 개념에서 다룹니다. 예를 들어 예제 5를 let으로 바꾸면 ReferenceError가 납니다.',
+    '끝까지 찾지 못한 이름을 읽으면 ReferenceError입니다. 찾지 못한 이름에 대입하면 strict mode가 아닐 때는 오류 없이 전역 객체에 그 이름의 프로퍼티가 만들어지고(암묵적 전역), strict mode에서는 ReferenceError입니다. 이는 블록 스코프 개념(암묵적 전역)에서 다룹니다.',
     '전역 스코프는 전역 객체와 연결되어 있지만 이 페이지에서는 다루지 않습니다.',
   ],
   references: [
