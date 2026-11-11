@@ -4,7 +4,7 @@ export const concept = {
   slug: 'arrow-functions',
   title: '화살표 함수와 메서드 축약: function과 무엇이 다를까',
   summary:
-    '화살표 함수와 메서드 축약도 typeof는 function이지만 new로 부를 수 없고 prototype이 없습니다. 화살표 함수는 자기 this와 arguments가 없어 바깥에서 찾고, rest 파라미터는 나머지 인수를 배열로 받습니다.',
+    '화살표 함수와 메서드 축약도 typeof는 function이지만 new로 부를 수 없고, 제너레이터 메서드가 아니면 prototype이 없습니다. 화살표 함수는 자기 this와 arguments가 없어 바깥에서 찾고, rest 파라미터는 나머지 인수를 배열로 받습니다.',
   category: 'execution',
   order: 250,
   tags: [
@@ -22,7 +22,7 @@ export const concept = {
     '생성자',
   ],
   goals: [
-    '화살표 함수와 메서드 축약이 typeof는 function이지만 new로 부르면 TypeError이고 prototype 프로퍼티가 없는 이유를 설명할 수 있다.',
+    '화살표 함수와 메서드 축약이 typeof는 function이지만 new로 부르면 TypeError이고, 화살표 함수와 제너레이터가 아닌 메서드 축약에 prototype 프로퍼티가 없는 이유를 설명할 수 있다.',
     '일반 함수의 arguments가 무엇이고 배열과 어떻게 다른지 설명할 수 있다.',
     '화살표 함수 안의 this, arguments, new.target, super가 자기 바인딩이 아니라 바깥 환경의 것을 쓰는 과정을 설명할 수 있다.',
     '객체 리터럴에서 m: function () {} 형태가 아니라 메서드 축약으로 써야 super를 쓸 수 있는 이유와, rest 파라미터가 arguments와 어떻게 다른지 설명할 수 있다.',
@@ -93,8 +93,8 @@ export const concept = {
     '매개변수 기본값은 매개변수 기본값 개념에서 다룹니다.',
     'sloppy mode에서 arguments[0]과 매개변수가 연동되는 것(mapped arguments)과 arguments.callee는 다루지 않습니다. 예제 3·4의 arguments는 sloppy mode의 단순한 매개변수 목록이라 명세상 mapped 객체(CreateMappedArgumentsObject)이지만, 배열이 아니고 [[Prototype]]이 Object.prototype인 점은 unmapped 객체와 같습니다.',
     'arguments를 진짜 배열로 바꾸는 방법 중 배열 메서드를 빌려 쓰기는 배열로 바꾸는 용도로는 이 사이트에서 아직 다루지 않은 별도 개념으로만 언급하고, 이터러블과 스프레드는 이터러블과 for...of 개념, 스프레드와 디스트럭처링 개념에서 다룹니다.',
-    '제너레이터와 async 화살표 함수, getter와 setter 축약은 다루지 않습니다.',
-    '비교표의 "일반 함수" 칸은 sloppy 스크립트의 function 식 기준입니다.',
+    '제너레이터와 async 화살표 함수, getter와 setter 축약은 다루지 않습니다. 제너레이터 메서드(*m() {})와 async 제너레이터 메서드는 메서드 축약이지만 prototype 프로퍼티가 있으므로, 이 페이지에서 메서드 축약에 prototype이 없다고 한 것은 그 둘을 뺀 메서드에 대한 설명입니다.',
+    '비교표의 "일반 함수" 칸은 sloppy 스크립트의 function 식 기준이고, "메서드 축약" 칸은 제너레이터가 아닌 메서드 기준입니다.',
     'this의 세부(call, apply, bind로 정하는 값 등)는 this 페이지에서 다루고 여기서는 요약만 합니다.',
     '예제의 console은 ECMAScript 언어가 아니라 호스트가 제공하는 API입니다.',
     "이 페이지의 예제는 스크립트로 실행한 결과를 기준으로 합니다. Node의 CommonJS 파일로 실행하면 호스트가 파일을 함수로 감싸 실행하므로, 예제 4의 12번 줄이 'undefined' 대신 'object'를 출력합니다.",

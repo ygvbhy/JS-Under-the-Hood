@@ -4,7 +4,7 @@ export const concept = {
   slug: 'event-propagation-delegation',
   title: '이벤트 전파와 위임: 버튼을 눌렀는데 event.target은 왜 버튼이 아닐까',
   summary:
-    '이벤트는 window에서 타깃까지 내려갔다가 다시 올라오며 경로를 두 번 지납니다. eventPhase, target과 currentTarget, 이벤트 위임을 DOM 표준과 Chromium 실행 결과로 확인합니다.',
+    '이벤트는 window에서 타깃까지 내려갔다가 다시 올라오며 경로를 두 번 지나고, 버블링하지 않는 이벤트는 올라올 때 타깃이 아닌 노드를 건너뜁니다. eventPhase, target과 currentTarget, 이벤트 위임을 DOM 표준과 Chromium 실행 결과로 확인합니다.',
   category: 'browser',
   order: 380,
   tags: [

@@ -27,6 +27,16 @@ describe('본문 주장 검증', () => {
     expect(errorNameOf(source)).toBe('SyntaxError')
   })
 
+  it('제너레이터 메서드와 async 제너레이터 메서드는 new로 부를 수 없지만 prototype 프로퍼티가 있다', () => {
+    expect(
+      runInNewContext(
+        'var o = { *g() {}, async *ag() {} }; JSON.stringify([o.g.hasOwnProperty("prototype"), o.ag.hasOwnProperty("prototype")])',
+      ),
+    ).toBe('[true,true]')
+    expect(errorNameOf('var o = { *g() {} }; new o.g()')).toBe('TypeError')
+    expect(errorNameOf('var o = { async *ag() {} }; new o.ag()')).toBe('TypeError')
+  })
+
   it('전역 화살표 함수에서 arguments를 읽으면 ReferenceError다', () => {
     expect(errorNameOf('var f = () => arguments; f()')).toBe('ReferenceError')
   })

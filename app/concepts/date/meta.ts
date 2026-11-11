@@ -5,7 +5,7 @@ const MDN = 'https://developer.mozilla.org/ko/docs/Web/JavaScript/Reference/Glob
 
 export const concept = {
   slug: 'date',
-  title: 'Date: 1월 31일에 setMonth(1)을 하면 왜 3월 3일일까',
+  title: 'Date: 2026년 1월 31일에 setMonth(1)을 하면 왜 3월 3일일까',
   summary:
     'Date는 시각 값 하나를 담고, setMonth는 연·월·일을 다시 계산해 넘친 날을 다음 달로 보냅니다. 날짜 문자열이 UTC로 읽히는 경우와 Date가 연산자에서 바뀌는 방식을 명세와 실행 결과로 확인합니다.',
   category: 'objects',
@@ -25,7 +25,7 @@ export const concept = {
     '월 넘침',
   ],
   goals: [
-    '1월 31일에 setMonth(1)을 하면 왜 3월 3일이 되는지, 월이 0부터 세어지는 것과 MakeDay가 넘친 일을 다음 달로 보내는 규칙으로 설명할 수 있다.',
+    '2026년 1월 31일에 setMonth(1)을 하면 왜 3월 3일이 되는지, 월이 0부터 세어지는 것과 MakeDay가 넘친 일을 다음 달로 보내는 규칙으로 설명할 수 있다.',
     'Date가 시각 값 하나를 담고, 연·월·일 같은 필드는 그 시각 값을 시간대로 풀어 읽은 값이라는 것을 getX와 getUTCX의 차이로 설명할 수 있다.',
     '명세 형식의 날짜 문자열에 오프셋이 없을 때, 날짜만 쓰면 UTC로, 시각까지 쓰면 로컬 시각으로 해석된다는 규칙을 설명하고 결과를 예측할 수 있다.',
     'Date가 +와 -에서 다르게 변환되는 이유와, 같은 시각의 두 Date를 ===로 비교하면 false인 이유를 설명할 수 있다.',

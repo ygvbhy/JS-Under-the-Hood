@@ -12,7 +12,7 @@ import { comparison } from './comparison'
 
 ### 생성자가 아니다
 
-예제 2의 4번 줄에서 일반 함수 `normal`, 메서드 축약으로 만든 `obj.short`, 화살표 함수 `arrow`의 `typeof`는 모두 `'function'`입니다. 셋 다 `[[Call]]` 내부 메서드를 가졌기 때문입니다. 하지만 `new`로 부를 수 있는지는 다릅니다. `new`는 피연산자가 생성자(`[[Construct]]`가 있는 객체)가 아니면 TypeError를 만듭니다(명세의 EvaluateNew). 그런데 명세에서 함수 객체를 만드는 `OrdinaryFunctionCreate`는 `[[Call]]`만 있는 함수를 만들 뿐이고, `[[Construct]]`는 `MakeConstructor`를 따로 불러야 붙습니다. `MakeConstructor`는 `[[Construct]]`를 붙이면서 `prototype` 프로퍼티도 함께 만듭니다. `function` 식과 선언은 `MakeConstructor`를 부르므로 `new`로 부를 수 있고 `prototype`이 있습니다. 메서드 축약(`DefineMethod`)과 화살표 함수(`InstantiateArrowFunctionExpression`)는 `OrdinaryFunctionCreate`만 부르고 `MakeConstructor`는 부르지 않습니다. 그래서 5번 줄에서 `new normal()`과 `function` 식으로 만든 `new obj.old()`는 객체를 만들지만, 6번 줄의 `new obj.short()`와 7번 줄의 `new arrow()`는 `TypeError`입니다. 8번 줄의 `prototype` 프로퍼티 유무도 같은 원인으로 갈립니다. `normal`은 `true`이고 `obj.short`와 `arrow`는 `false`입니다.
+예제 2의 4번 줄에서 일반 함수 `normal`, 메서드 축약으로 만든 `obj.short`, 화살표 함수 `arrow`의 `typeof`는 모두 `'function'`입니다. 셋 다 `[[Call]]` 내부 메서드를 가졌기 때문입니다. 하지만 `new`로 부를 수 있는지는 다릅니다. `new`는 피연산자가 생성자(`[[Construct]]`가 있는 객체)가 아니면 TypeError를 만듭니다(명세의 EvaluateNew). 그런데 명세에서 함수 객체를 만드는 `OrdinaryFunctionCreate`는 `[[Call]]`만 있는 함수를 만들 뿐이고, `[[Construct]]`는 `MakeConstructor`를 따로 불러야 붙습니다. `MakeConstructor`는 `[[Construct]]`를 붙이면서 `prototype` 프로퍼티도 함께 만듭니다. `function` 식과 선언은 `MakeConstructor`를 부르므로 `new`로 부를 수 있고 `prototype`이 있습니다. 메서드 축약(`DefineMethod`)과 화살표 함수(`InstantiateArrowFunctionExpression`)는 `OrdinaryFunctionCreate`만 부르고 `MakeConstructor`는 부르지 않습니다. 그래서 5번 줄에서 `new normal()`과 `function` 식으로 만든 `new obj.old()`는 객체를 만들지만, 6번 줄의 `new obj.short()`와 7번 줄의 `new arrow()`는 `TypeError`입니다. 8번 줄의 `prototype` 프로퍼티 유무도 같은 원인으로 갈립니다. `normal`은 `true`이고 `obj.short`와 `arrow`는 `false`입니다. 메서드 축약으로 쓴 제너레이터 메서드(`*m() {}`)도 `new`로 부를 수 없지만 `prototype` 프로퍼티는 가지며, 이 페이지에서 다루지 않는 별도 개념입니다.
 
 ### arguments 객체
 
@@ -125,7 +125,7 @@ rest 파라미터(`...이름`)는 선언한 매개변수에 대응하지 않는 
     'function function function / object object / TypeError / TypeError / true true false',
   ]}
   answer={0}
-  explanation="셋 모두 [[Call]]이 있어 typeof가 function입니다. 메서드 축약과 화살표 함수는 MakeConstructor가 불리지 않아 [[Construct]]도 prototype 프로퍼티도 없으므로 new는 TypeError이고 hasOwnProperty('prototype')은 false입니다. function 식과 선언만 true입니다."
+  explanation="셋 모두 [[Call]]이 있어 typeof가 function입니다. obj.short와 arrow는 MakeConstructor가 불리지 않아 [[Construct]]도 prototype 프로퍼티도 없으므로 new는 TypeError이고 hasOwnProperty('prototype')은 false입니다. function 식과 선언만 true입니다."
 />
 
 ### 예제 3: arguments 객체
@@ -236,7 +236,7 @@ rest 파라미터(`...이름`)는 선언한 매개변수에 대응하지 않는 
 
 <Callout type="misconception" title="메서드 축약은 m: function () {}을 줄여 쓴 것일 뿐이다">
 
-둘 다 객체의 프로퍼티이고, 호출 방식(`o.m()`)으로 `this`가 정해지는 점은 같습니다. 하지만 메서드 축약은 생성자가 아니고 `prototype`이 없으며(예제 2), `[[HomeObject]]`가 있어 `super`를 쓸 수 있고(예제 5), 매개변수 이름이 중복되면 SyntaxError입니다. `m: function () {}`으로 쓴 함수는 반대로 `new`로 부를 수 있고 `prototype`이 있으며, 안에서 `super`를 쓰면 SyntaxError이고, sloppy mode이고 매개변수 목록이 단순하면 중복 매개변수도 허용됩니다.
+둘 다 객체의 프로퍼티이고, 호출 방식(`o.m()`)으로 `this`가 정해지는 점은 같습니다. 하지만 메서드 축약은 생성자가 아니고 제너레이터 메서드가 아니면 `prototype`도 없으며(예제 2), `[[HomeObject]]`가 있어 `super`를 쓸 수 있고(예제 5), 매개변수 이름이 중복되면 SyntaxError입니다. `m: function () {}`으로 쓴 함수는 반대로 `new`로 부를 수 있고 `prototype`이 있으며, 안에서 `super`를 쓰면 SyntaxError이고, sloppy mode이고 매개변수 목록이 단순하면 중복 매개변수도 허용됩니다.
 
 </Callout>
 

@@ -4,7 +4,7 @@ export const concept = {
   slug: 'html-attribute-dom-property',
   title: 'HTML 어트리뷰트와 DOM 프로퍼티: value를 바꿨는데 getAttribute는 왜 그대로일까',
   summary:
-    'input의 value를 바꿔도 getAttribute("value")가 그대로인 이유는 dirty value flag이고, 어트리뷰트와 짝인 프로퍼티는 대부분 어트리뷰트를 반영합니다. 폼 컨트롤, 반영, 타입 변환, dataset을 Chromium과 표준으로 확인합니다.',
+    '텍스트 입력류의 value 프로퍼티는 어트리뷰트가 아닌 요소의 값을 바꿔 getAttribute("value")는 그대로이고, 그 뒤엔 dirty value flag 때문에 어트리뷰트를 바꿔도 값이 따르지 않습니다. 반영, 타입 변환, dataset도 Chromium과 표준으로 봅니다.',
   category: 'browser',
   order: 370,
   tags: [
@@ -19,7 +19,7 @@ export const concept = {
     'setAttribute',
   ],
   goals: [
-    'input의 value를 바꾼 뒤 getAttribute("value")가 그대로인 이유를 dirty value flag로 설명하고, 입력 전에는 어트리뷰트가 value를 바꾸는 이유를 예측할 수 있다.',
+    '텍스트 입력류의 value를 바꾼 뒤 getAttribute("value")가 그대로인 이유를 value setter가 어트리뷰트를 쓰지 않는 것으로, 그 뒤 어트리뷰트를 바꿔도 값이 따르지 않는 이유를 dirty value flag로 설명하고, 입력 전에는 어트리뷰트가 value를 바꾸는 이유를 예측할 수 있다.',
     'checked와 defaultChecked, form.reset()이 어트리뷰트 기준으로 되돌리는 동작을 같은 구조로 설명할 수 있다.',
     'id, className, htmlFor처럼 어트리뷰트를 반영하는 프로퍼티와, 반영하면서 불리언·숫자·절대 URL로 타입이 바뀌는 경우를 구분할 수 있다.',
     '없는 어트리뷰트의 값, 이름의 대소문자, dataset의 이름 변환, 비표준 어트리뷰트가 프로퍼티가 되지 않는 이유를 예측할 수 있다.',
