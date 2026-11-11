@@ -4,7 +4,7 @@ export const concept = {
   slug: 'equality-operators',
   title: '동등 비교: ==와 ===는 무엇이 다른가',
   summary:
-    "===는 타입이 다르면 바로 false이고, ==는 타입이 다르면 대개 값을 바꾼 뒤 비교합니다(null·undefined는 바꾸지 않고 서로만 같습니다). 0 == ''가 true인데 '0' == ''는 false이고 NaN === NaN이 false인 이유를 설명할 수 있습니다.",
+    "===는 타입이 다르면 바로 false이고, ==는 타입이 다르면 대개 값을 바꾼 뒤 비교합니다(null·undefined는 바꾸지 않고 서로만 같습니다). 0 == ''는 true인데 '0' == ''는 false인 이유와 NaN === NaN이 false인 이유를 확인합니다.",
   category: 'fundamentals',
   order: 40,
   tags: [
