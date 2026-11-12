@@ -1,8 +1,9 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { runInNewContext } from 'node:vm'
+import { runInContext, runInNewContext } from 'node:vm'
 import { describe, expect, it } from 'vitest'
 import { assertScenarioInvariants } from '../../../tests/helpers/scenario-invariants'
+import { exampleContext, tableBody } from '../../../tests/helpers/expression-tables'
 import { runExample } from '../../../tests/helpers/run-example'
 import { concept } from './meta'
 import {
@@ -406,5 +407,32 @@ describe.each(scenarios)('시나리오 $id', (scenario) => {
     for (const b of last.bindings) {
       expectSameVal(b.value, actual[b.name], `${b.name}의 값이 실제 실행 결과와 다릅니다`)
     }
+  })
+})
+
+// 표 글자는 content.mdx에서 읽고, 식 칸을 그대로 평가해 결과 칸과 대조한다.
+// 식에 쓰는 p, q는 페이지의 예제 파일(objects.js)에서 가져온다.
+describe('결과와 이유 표', () => {
+  const mdx = readFileSync(join(import.meta.dirname, 'content.mdx'), 'utf8')
+  const rows = tableBody(mdx, ['식', '적용된 규칙', '결과'])
+  const ctx = exampleContext(examplesDir, ['objects.js'])
+  // 식 칸이 실행 가능한 식이 아닌 행은 같은 의미의 코드로 바꿔 평가한다.
+  const override: Record<string, string> = {
+    'value == null': '[undefined, null, 0].map((value) => value == null)',
+  }
+  // Array.isArray는 vm 다른 realm의 배열도 판별한다(instanceof는 안 된다).
+  const format = (v: unknown) => (Array.isArray(v) ? v.map(String).join(', ') : String(v))
+
+  it('표 행이 14개 이상이다', () => {
+    expect(rows.length).toBeGreaterThanOrEqual(14)
+  })
+
+  it('대체 코드의 키가 모두 표의 식 칸에 있다', () => {
+    const keys = rows.map((r) => r[0])
+    for (const key of Object.keys(override)) expect(keys).toContain(key)
+  })
+
+  it.each(rows.map((r) => [r[0], r[2]]))('`%s` → 결과 칸', (key, result) => {
+    expect(format(runInContext(override[key] ?? key, ctx))).toBe(result)
   })
 })

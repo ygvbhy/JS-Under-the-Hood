@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { runInNewContext, Script } from 'node:vm'
 import { describe, expect, it } from 'vitest'
+import { tableBody } from '../../../tests/helpers/expression-tables'
 import { assertScenarioInvariants } from '../../../tests/helpers/scenario-invariants'
 import { runExample } from '../../../tests/helpers/run-example'
 import { concept } from './meta'
@@ -379,4 +380,42 @@ describe.each(scenarios)('시나리오 $id', (scenario) => {
     const actual = JSON.parse(lines.at(-1)!) as number[]
     expect(actual).toEqual(steps.at(-1)!.state.bindings.map((b) => n(b.value)))
   })
+})
+
+// 본문 "식 / 변수에 남는 값 / 식의 값" 표를 content.mdx에서 읽어 행마다 대조한다.
+// 행 키마다 새 컨텍스트에서 실행할 코드를 두고, 완료 값 [변수 칸, 식의 값 칸]을 표 칸과 비교한다.
+// 초깃값은 examples/*.js와 같다. `(옛 값)`·`쓰지 않음` 같은 말은 그대로 적고, 값과 `(숫자)` 타입은 계산한다.
+describe('결과와 이유 표', () => {
+  const mdx = readFileSync(
+    join(process.cwd(), 'app', 'concepts', 'increment-decrement', 'content.mdx'),
+    'utf8',
+  )
+  const rows = tableBody(mdx, ['식', '변수에 남는 값', '식의 값'])
+
+  const codeByKey: Record<string, string> = {
+    'const b = a++': 'let a = 1; const b = a++; [`a는 ${a}, b는 ${b}`, `${b} (옛 값)`]',
+    'const d = ++c': 'let c = 1; const d = ++c; [`c는 ${c}, d는 ${d}`, `${d} (새 값)`]',
+    'n++; ++n; n--;': 'let n = 5; n++; ++n; n--; [`n은 ${n}`, "쓰지 않음"]',
+    'p = 3': 'let p; const v = (p = 3); [`p는 ${p}`, `${v}`]',
+    'p = q = 7':
+      'let p; let q; const v = (p = q = 7); [`p는 ${p}, q는 ${q}`, `${v} (안쪽 q = 7의 값이 p에 들어감)`]',
+    'm += 5': 'let m = 10; const v = (m += 5); [`m은 ${m}`, `${v} (계산 결과)`]',
+    "s++ (s는 '5')":
+      "let s = '5'; const v = s++; [`s는 ${s} (${typeof s === 'number' ? '숫자' : typeof s})`, `${v} (${typeof v === 'number' ? '숫자' : typeof v})`]",
+    'x = x++': 'let x = 1; const v = (x = x++); [`x는 ${x}`, `${v}`]',
+    'i++ + i': 'let i = 1; const v = i++ + i; [`i는 ${i}`, `${v}`]',
+  }
+
+  it('표의 행 키 집합과 코드 표의 키 집합이 같다', () => {
+    expect(rows.map((r) => r[0]).sort()).toEqual(Object.keys(codeByKey).sort())
+  })
+
+  it.each(rows.map((r) => [r[0], r[1], r[2]]))(
+    '%s → 변수 칸·식의 값 칸',
+    (key, variable, value) => {
+      const [expectedVariable, expectedValue] = runInNewContext(codeByKey[key]) as [string, string]
+      expect(variable).toBe(expectedVariable)
+      expect(value).toBe(expectedValue)
+    },
+  )
 })

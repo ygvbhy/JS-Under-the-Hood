@@ -1,8 +1,9 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { runInNewContext } from 'node:vm'
+import { runInContext, runInNewContext } from 'node:vm'
 import { describe, expect, it } from 'vitest'
 import { assertScenarioInvariants } from '../../../tests/helpers/scenario-invariants'
+import { exampleContext, tableBody } from '../../../tests/helpers/expression-tables'
 import { runExample } from '../../../tests/helpers/run-example'
 import { conversionTable } from './conversion-table'
 import { concept } from './meta'
@@ -485,5 +486,50 @@ describe.each(scenarios)('시나리오 $id', (scenario) => {
         new RegExp(`^${b.declaredWith} ${b.name}\\b`, 'm'),
       )
     }
+  })
+})
+
+// 본문 "결과와 이유" 표의 예·결과 칸을 content.mdx에서 읽어, 같은 페이지 예제를 준비한 컨텍스트에서
+// 식을 평가한 값과 대조한다. 식이 아닌 칸만 아래 override로 따로 적는다.
+describe('결과와 이유 표', () => {
+  const mdx = readFileSync(
+    join(process.cwd(), 'app', 'concepts', 'type-coercion', 'content.mdx'),
+    'utf8',
+  )
+  const rows = tableBody(mdx, ['연산', '피연산자를 바꾸는 타입', '예', '결과'])
+  const ctx = exampleContext(examplesDir, ['object.js', 'to-string.js', 'to-boolean.js'])
+
+  // 칸 문자열 그대로 평가하면 식이 되지 않는 칸: 평가할 식으로 바꾼다.
+  const expressionOverride: Record<string, string> = {
+    "'10' - '4' + 2의 마지막 +": "'10' - '4' + 2",
+  }
+  // 칸 전체가 식 여러 개와 말로 이뤄진 칸: 완성된 기대 문자열을 계산하는 코드.
+  const cellOverride: Record<string, string> = {
+    "'0' ? … : …, !count": "[text ? '참으로 판단' : '거짓으로 판단', String(!count)].join(', ')",
+  }
+
+  const format = (v: unknown) => (typeof v === 'string' ? JSON.stringify(v) : String(v))
+
+  function expected(key: string): string {
+    if (key in cellOverride) return runInContext(cellOverride[key], ctx) as string
+    const code = expressionOverride[key] ?? key
+    return code
+      .split(', ')
+      .map((piece) => format(runInContext(piece, ctx)))
+      .join(', ')
+  }
+
+  it('표 행이 9개 이상이다', () => {
+    expect(rows.length).toBeGreaterThanOrEqual(9)
+  })
+
+  it('override 키가 모두 표의 "예" 칸에 있다', () => {
+    const keys = rows.map((r) => r[2])
+    for (const key of [...Object.keys(expressionOverride), ...Object.keys(cellOverride)])
+      expect(keys, key).toContain(key)
+  })
+
+  it.each(rows.map((r) => [r[2], r[3]]))('%s → 결과 칸', (key, result) => {
+    expect(result).toBe(expected(key))
   })
 })

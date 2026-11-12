@@ -1,5 +1,8 @@
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { runInNewContext } from 'node:vm'
 import { describe, expect, it } from 'vitest'
+import { tableBody } from '../../../tests/helpers/expression-tables'
 import { storedValues } from './stored-values'
 
 describe('본문 주장 검증', () => {
@@ -44,5 +47,19 @@ describe('본문 주장 검증', () => {
     ])('`%s` → %j', (source, expected) => {
       expect(runInNewContext(source)).toBe(expected)
     })
+  })
+})
+
+// 표 글자는 content.mdx에서 읽고, 식 칸을 행마다 새 컨텍스트에서 그대로 평가해 결과 칸과 대조한다.
+describe('결과와 이유 표', () => {
+  const mdx = readFileSync(join(import.meta.dirname, 'content.mdx'), 'utf8')
+  const rows = tableBody(mdx, ['식', '결과', '이유'])
+
+  it('표 행이 10개 이상이다', () => {
+    expect(rows.length).toBeGreaterThanOrEqual(10)
+  })
+
+  it.each(rows.map((r) => [r[0], r[1]]))('`%s` → 결과 칸', (key, result) => {
+    expect(String(runInNewContext(key))).toBe(result)
   })
 })
