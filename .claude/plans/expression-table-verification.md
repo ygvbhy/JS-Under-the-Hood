@@ -207,9 +207,9 @@
 
 ### 후속 작업
 
-- [ ] 표와 겹치는 `본문 서술의 근거` 항목 정리(number-type `0.1 + 0.2 === 0.3` 등)
-- [ ] 예제 행으로 쓰려던 표가 첫 칸 형식을 어겨 조용히 빠지는 경우를 잡는 검사(`result-table-verification.md` 후속)
-- [ ] Low 2건: content-guide 문장 한정, type-coercion 대체 코드를 표의 `'0'`로
+- [x] 표와 겹치는 `본문 서술의 근거` 항목 정리(number-type `0.1 + 0.2 === 0.3` 등) — 2026-11-12 정리하지 않기로 결정(사용자). 겹치는 6개 모두 표 밖 본문 문장의 근거라서, 지우면 표 행이 바뀔 때 본문 문장이 검증 없이 남는다(`table-verification-followups.md`)
+- [x] 예제 행으로 쓰려던 표가 첫 칸 형식을 어겨 조용히 빠지는 경우를 잡는 검사(`result-table-verification.md` 후속) — 2026-11-12 `table-verification-followups.md`에서 처리
+- [x] Low 2건: content-guide 문장 한정, type-coercion 대체 코드를 표의 `'0'`로 — 2026-11-12 `table-verification-followups.md`에서 처리
 
 ### 이해 확인
 

@@ -156,6 +156,29 @@ describe('checkClaims', () => {
     expect(violations).toEqual([])
   })
 
+  it.each([
+    ['결과 열이 없고 첫 칸이 숫자뿐', ['예제', '클래식 스크립트'], [['4', '100 / 100']]],
+    ['"예제 4." 같은 형식 어긋남', ['예제', '결과'], [['예제 4.', 'x']]],
+    ['결과·출력 열이 없는데 예제 행 형식', ['예제', '값'], [['예제 1: 설명', 'x']]],
+    ['"예제 9 출력" 머리', ['호출', '예제 9 출력'], [['식', 'x']]],
+  ])('형식 근접 위반 1개: %s', (_name, h, body) => {
+    const { claims, violations } = extractOutputClaims(table(h, body))
+    expect(claims).toEqual([])
+    expect(violations).toHaveLength(1)
+    expect(violations[0]).toContain('표 1행')
+  })
+
+  it.each([
+    [
+      '마지막 열 머리가 예제',
+      ['대상', '저장되는 곳', '예제'],
+      [['전역 var', '객체 환경 레코드', '3, 4']],
+    ],
+    ['식 표 꼴', ['식', '결과', '이유'], [['5 / 2', '2.5', '나눗셈']]],
+  ])('형식 근접 위반 없음: %s', (_name, h, body) => {
+    expect(extractOutputClaims(table(h, body)).violations).toEqual([])
+  })
+
   it('.map( 표는 주장을 만들지 않는다', () => {
     const mdx =
       '<table><thead><tr><th>예제</th><th>결과</th></tr></thead><tbody>{rows.map((r) => <tr><td>예제 1</td><td>x</td></tr>)}</tbody></table>'
@@ -204,8 +227,8 @@ describe('모든 개념의 표 출력 칸', () => {
     expect(all.flatMap((c) => c.violations.map((v) => `${c.slug}: ${v}`))).toEqual([])
   })
 
-  // 파서가 행을 못 알아보면 조용히 검사에서 빠지므로, 대조한 칸 수에 하한을 둔다(현재 행 99 + 열 1).
-  it('대조한 칸이 100개 이상이다', () => {
-    expect(rows.length).toBeGreaterThanOrEqual(100)
+  // 파서가 행을 못 알아보면 조용히 검사에서 빠지므로, 대조한 칸 수에 하한을 둔다(현재 행 102 + 열 1).
+  it('대조한 칸이 103개 이상이다', () => {
+    expect(rows.length).toBeGreaterThanOrEqual(103)
   })
 })

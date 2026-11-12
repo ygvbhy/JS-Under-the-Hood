@@ -82,7 +82,8 @@ export function extractTables(mdx: string): Table[] {
 
 const EXAMPLE_ROW = /^(?:예제\s*(\d+)(?::|\s|$)|(\d+):)/
 
-// 예제 출력 주장(행 형식·열 형식)과 형식 위반(예제 행과 아닌 행이 섞인 표)을 뽑는다.
+// 예제 출력 주장(행 형식·열 형식)과 형식 위반을 뽑는다. 형식 위반은 예제 행과 아닌 행이 섞인 표,
+// 행 형식 주장이 없는데 예제 행처럼 보이는 첫 칸이 있는 표, 열 형식에 가깝지만 정확한 머리가 아닌 칸이다.
 export function extractOutputClaims(mdx: string): {
   claims: OutputClaim[]
   violations: string[]
@@ -94,6 +95,7 @@ export function extractOutputClaims(mdx: string): {
     const [header, ...body] = rows
 
     // 행 형식
+    const claimsBefore = claims.length
     const resultCol = header.findIndex((h) => h.startsWith('결과') || h.startsWith('출력'))
     if (resultCol >= 0) {
       const exampleRows = body.map((r) => {
@@ -114,6 +116,33 @@ export function extractOutputClaims(mdx: string): {
             })
           }
         })
+      }
+    }
+
+    // 판정 A: 행 형식 주장이 없는 표에서 예제 행처럼 보이는 첫 칸(표당 하나만 보고)
+    if (claims.length === claimsBefore) {
+      const numericFirstHeader = header[0].startsWith('예제')
+      const odd = body.find((r) => {
+        const first = r[0] ?? ''
+        return (
+          /^예제\s*\d/.test(first) ||
+          EXAMPLE_ROW.test(first) ||
+          (numericFirstHeader && /^\d+$/.test(first))
+        )
+      })
+      if (odd) {
+        violations.push(
+          `표 ${line}행: 예제 행처럼 보이는 칸("${odd[0] ?? ''}")이 있지만 결과·출력 열 형식이 아니어서 대조되지 않습니다`,
+        )
+      }
+    }
+
+    // 판정 B: 열 형식에 가깝지만 정확한 머리가 아닌 칸
+    for (const h of header) {
+      if (/예제\s*\d+/.test(h) && /출력/.test(h) && !/^예제\s*(\d+)의 출력$/.test(h)) {
+        violations.push(
+          `표 ${line}행: 머리 "${h}"는 "예제 N의 출력" 형식이 아니어서 대조되지 않습니다`,
+        )
       }
     }
 

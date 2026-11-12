@@ -505,7 +505,7 @@ describe('결과와 이유 표', () => {
   }
   // 칸 전체가 식 여러 개와 말로 이뤄진 칸: 완성된 기대 문자열을 계산하는 코드.
   const cellOverride: Record<string, string> = {
-    "'0' ? … : …, !count": "[text ? '참으로 판단' : '거짓으로 판단', String(!count)].join(', ')",
+    "'0' ? … : …, !count": "['0' ? '참으로 판단' : '거짓으로 판단', String(!count)].join(', ')",
   }
 
   const format = (v: unknown) => (typeof v === 'string' ? JSON.stringify(v) : String(v))

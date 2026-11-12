@@ -132,7 +132,7 @@
 
 ### 후속 작업
 - [ ] 식 → 결과 표 5개(equality-operators, number-type, typeof-operator, type-coercion, increment-decrement)를 데이터 파일로 옮겨 식을 직접 평가해 대조
-- [ ] 예제 행으로 쓰려던 표가 첫 칸 형식을 어겨 조용히 빠지는 경우를 잡는 검사(예: `예제`로 시작하지만 형식에 맞지 않는 첫 칸 경고)
+- [x] 예제 행으로 쓰려던 표가 첫 칸 형식을 어겨 조용히 빠지는 경우를 잡는 검사(예: `예제`로 시작하지만 형식에 맞지 않는 첫 칸 경고) — 2026-11-12 `table-verification-followups.md`에서 처리(형식 위반 판정 A·B, block-scope 표를 형식에 맞춤)
 
 ### 이해 확인
 
