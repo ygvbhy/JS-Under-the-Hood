@@ -127,7 +127,7 @@ export const concept = {
     'toLocaleString 같은 지역화 출력은 ECMA-402(Intl)가 정하는 결과라 다루지 않습니다.',
     'Date.parse가 명세의 날짜 시간 문자열 형식에 맞지 않고 toString·toUTCString이 만들 수도 없는 문자열을 어떻게 읽는지는 구현이 정하므로 다루지 않습니다. 이 페이지의 문자열 예제는 명세 형식만 씁니다.',
     '예제의 console.log는 ECMAScript가 아니라 호스트가 제공하는 출력 API입니다. 어떤 시간대를 쓸지는 명세가 호스트 환경의 현재 시간대로 정하고, 그 시간대의 오프셋 규칙은 구현이 정합니다(implementation-defined).',
-    'JSON의 toJSON(43장), 타이머(41장), try...catch(47장)는 각각 JSON 개념, 타이머 개념, try/catch/finally 개념에서 다루고, Temporal과 부록 B의 setYear·getYear는 다루지 않습니다.',
+    'JSON의 toJSON, 타이머, try...catch는 각각 JSON 개념, 타이머 개념, try/catch/finally 개념에서 다루고, Temporal과 부록 B의 setYear·getYear는 다루지 않습니다.',
   ],
   references: [
     {

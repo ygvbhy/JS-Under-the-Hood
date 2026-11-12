@@ -101,7 +101,7 @@ export const concept = {
     '예제의 console은 ECMAScript 언어가 아니라 호스트가 제공하는 API입니다.',
     '이 페이지의 예제는 스크립트로 실행한 결과를 기준으로 합니다.',
     'extends의 조건 중 "prototype 프로퍼티가 객체나 null"은 본문에서 설명만 하고 예제로 보이지 않습니다. 예를 들어 생성자 함수를 bind로 묶은 함수는 여전히 생성자이지만 prototype 프로퍼티가 없어서 extends하면 TypeError입니다.',
-    '현행 명세 기준으로 기본 생성자는 constructor(...args) { super(...args) }와 비슷하게 동작하지만, 인수를 넘길 때 배열의 반복자(Symbol.iterator)를 호출하지 않는다는 차이가 있습니다. 반복자는 이터러블(34장)의 내용이라 이 페이지에서는 다루지 않습니다.',
+    '현행 명세 기준으로 기본 생성자는 constructor(...args) { super(...args) }와 비슷하게 동작하지만, 인수를 넘길 때 배열의 반복자(Symbol.iterator)를 호출하지 않는다는 차이가 있습니다. 반복자는 이터러블의 내용이라 이 페이지에서는 다루지 않습니다.',
     '예제는 오류를 보이려고 try…catch와 e.name을 씁니다. 오류 처리는 try/catch/finally 개념에서 다룹니다.',
   ],
   references: [

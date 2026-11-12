@@ -117,7 +117,7 @@ export const concept = {
   simplifications: [
     'ECMA-404 문법 세부와 문자열 이스케이프(QuoteJSONString, 짝 없는 서로게이트)는 다루지 않습니다.',
     'JSON.rawJSON·JSON.isRawJSON과 reviver의 세 번째 인수(context)는 ES2026판에 추가된 기능이라 다루지 않으며, 본문의 알고리즘 설명은 그 단계를 뺀 것입니다.',
-    'BigInt·순환 참조의 TypeError와 JSON.parse의 SyntaxError는 try...catch(47장) 대신 이 페이지의 테스트로 확인합니다.',
+    'BigInt·순환 참조의 TypeError와 JSON.parse의 SyntaxError는 try...catch 대신 이 페이지의 테스트로 확인합니다.',
     '깊은 복사의 대안인 structuredClone은 HTML 표준이 정한 호스트 API라 다루지 않습니다.',
     'replacer 배열의 숫자·래퍼 객체 항목, JSON.parse의 __proto__ 키 같은 세부는 다루지 않습니다.',
     '"복사"·"사본"은 결과를 부르는 말이며 엔진이 값을 복사한다는 뜻이 아닙니다.',

@@ -122,7 +122,7 @@ export const concept = {
   ],
   simplifications: [
     '예제의 실행 결과는 Chromium에서 실행한 값입니다. 노드 종류·트리 규칙은 DOM 표준, 파서가 트리를 고치는 규칙은 HTML 표준의 파싱 단계를 근거로 합니다.',
-    'getElementById, querySelectorAll, getAttributeNode는 39장 뒤쪽(요소 취득, 어트리뷰트)에서 다루는 API이며 이 페이지에서는 결과를 보이는 도구로만 씁니다.',
+    'getElementById, querySelectorAll, getAttributeNode는 요소 취득과 어트리뷰트를 다루는 API이며, 이 페이지에서는 설명하지 않고 결과를 보이는 도구로만 씁니다.',
     "childNodes가 돌려주는 NodeList와 children이 돌려주는 HTMLCollection이 살아 있는 컬렉션이라는 점은 'HTMLCollection은 살아 있다' 개념에서 다루며, 이 페이지는 개수와 내용만 비교합니다.",
     '어트리뷰트와 프로퍼티의 관계는 HTML 어트리뷰트와 DOM 프로퍼티 개념에서 다룹니다. 이 페이지에서 어트리뷰트 노드는 트리의 자식이 아님을 보이는 데만 씁니다.',
     'innerHTML, insertAdjacentHTML, createElement 같은 DOM 조작과 Shadow DOM, DocumentFragment는 다루지 않습니다.',

@@ -120,7 +120,7 @@ export const concept = {
     '예제의 실행 결과는 Chromium에서 실행한 값입니다. 순서 주장은 WHATWG HTML 표준의 처리 단계(prepare the script element, the end)를 근거로 하며, 표준이 정하지 않은 동작은 브라우저마다 다를 수 있습니다.',
     '예제의 스크립트 응답 시간은 테스트가 정한 지연(delayMs)으로, 페이지에는 보이지 않는 조건입니다. 지연 때문에 정해진 순서(async 스크립트끼리의 순서, async와 DOMContentLoaded의 선후 등)는 표준이 보장하는 순서가 아니며, 본문에서 그렇게 구분해 씁니다.',
     'CSSOM, 렌더 트리, 레이아웃, 페인트, 리플로우는 이름만 언급하고 다루지 않습니다. HTML 파서가 위에서부터 읽어 DOM을 만든다는 데까지만 설명합니다.',
-    'querySelectorAll, getElementById, createElement, append, innerHTML, textContent는 39장(DOM)에서, addEventListener는 40장(이벤트)에서 다루는 API이며 이 페이지에서는 결과를 보이는 도구로만 씁니다.',
+    'querySelectorAll, getElementById, createElement, append, innerHTML, textContent는 DOM API, addEventListener는 이벤트 API이며, 이 페이지에서는 설명하지 않고 결과를 보이는 도구로만 씁니다.',
     'type="module" 스크립트는 이 페이지에서 다루지 않고 ES 모듈 개념에서 다룹니다.',
     '파서가 멈춘 동안 브라우저가 뒤쪽 리소스를 미리 받는 추측 파싱(speculative parsing)과, 스타일 시트가 script 실행을 막는 조건은 다루지 않습니다.',
     'innerHTML로 넣은 script는 실행되지 않는다고 설명하지만, Trusted Types 기본 정책이 실행을 허용하는 예외는 다루지 않습니다.',

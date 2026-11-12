@@ -106,7 +106,7 @@ export const concept = {
     'WeakMap·WeakSet에서 닿을 수 없게 된 키의 엔트리가 언제 제거되는지는 명세가 정하지 않고 관찰할 수도 없어 예제로 보이지 않습니다. WeakRef와 FinalizationRegistry는 다루지 않습니다.',
     'Map·Set 서브클래싱, Symbol.species, forEach의 thisArg는 다루지 않습니다.',
     'JSON.stringify는 JSON 개념에서 다루는 주제이며 이 페이지에서는 결과를 출력하는 도구로만 씁니다.',
-    'TypeError는 try...catch(47장)를 쓰지 않고 본문 문장과 테스트로 확인합니다.',
+    'TypeError는 try...catch를 쓰지 않고 본문 문장과 테스트로 확인합니다.',
     '예제의 console은 ECMAScript 언어가 아니라 호스트가 제공하는 API입니다.',
   ],
   references: [

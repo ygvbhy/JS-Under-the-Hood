@@ -99,7 +99,7 @@ export const concept = {
     },
   ],
   simplifications: [
-    '이터러블과 Symbol.iterator, for...of(34장)는 이터러블과 for...of 개념에서, 스프레드 문법(35장)은 스프레드와 디스트럭처링 개념에서 다루므로 이 페이지에서는 한 줄 언급만 합니다.',
+    '이터러블과 Symbol.iterator, for...of는 이터러블과 for...of 개념에서, 스프레드 문법은 스프레드와 디스트럭처링 개념에서 다루므로 이 페이지에서는 한 줄 언급만 합니다.',
     'Symbol.hasInstance, Symbol.species, Symbol.match 같은 다른 well-known 심벌은 이름만 언급하고 다루지 않습니다.',
     '참고 링크가 가리키는 현재 명세 초안(ES2027 draft)은 전역 심벌 레지스트리를 에이전트(agent)마다 하나인 목록으로 정의합니다. 발행된 ES2026판까지는 모든 렐름이 공유하는 하나의 목록으로 적었습니다. 렐름 사이의 공유와 WeakMap의 심벌 키는 다루지 않습니다.',
     '키 순서는 일반 객체의 OrdinaryOwnPropertyKeys 기준이며 프록시 같은 다른 객체는 다룰 범위 밖입니다. for...in의 순서는 명세가 일부만 정하므로 예제로 쓰지 않습니다.',

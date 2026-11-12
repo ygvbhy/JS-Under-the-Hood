@@ -107,9 +107,9 @@ export const concept = {
   ],
   simplifications: [
     '예제의 실행 결과는 Chromium에서 실행한 값입니다. 컬렉션의 live·static 규칙과 각 API가 돌려주는 값은 WHATWG DOM 표준, id의 Window 이름 있는 프로퍼티 노출은 WHATWG HTML 표준을 근거로 합니다.',
-    'append, createElement, removeChild, className 대입은 39장 뒤쪽(DOM 조작)에서 다루는 API이며 이 페이지에서는 컬렉션이 변하는 모습을 보이는 도구로만 씁니다. Array.from과 화살표 함수는 앞선 장의 내용을 그대로 씁니다.',
+    'append, createElement, removeChild, className 대입은 DOM 조작 API이며, 이 페이지에서는 설명하지 않고 컬렉션이 변하는 모습을 보이는 도구로만 씁니다. Array.from과 화살표 함수도 설명 없이 씁니다.',
     '같은 인수로 getElementsByClassName을 다시 부르면 같은 HTMLCollection이 돌아오는지는 표준이 "may"로 열어 둔 동작이라 다루지 않습니다.',
-    'namedItem, getElementsByName, matches와 closest, 선택자 문법, 잘못된 선택자가 던지는 SyntaxError(47장 try...catch)는 다루지 않습니다.',
+    'namedItem, getElementsByName, matches와 closest, 선택자 문법, 잘못된 선택자가 던지는 SyntaxError는 다루지 않습니다.',
     '섀도 트리는 다루지 않습니다. id의 유일성은 같은 트리 안에서의 규칙으로만 설명합니다.',
     ':scope와 선택자 매칭의 상세는 다루지 않습니다. 요소의 querySelectorAll이 선택자를 문서 전체 기준으로 맞춘다는 점만 확인합니다.',
     '예제의 console은 ECMAScript 언어가 아니라 호스트가 제공하는 API입니다.',

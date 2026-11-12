@@ -142,7 +142,7 @@ export const concept = {
     'value와 defaultValue가 갈라지는 동작은 value 모드인 텍스트 입력에만 해당합니다. 체크박스처럼 value 모드가 아닌 type은 value 프로퍼티가 value 어트리뷰트를 그대로 읽고 씁니다.',
     'option의 selected 어트리뷰트와 selected 프로퍼티(dirtiness)는 checked와 같은 구조이고, textarea도 dirty value flag를 갖지만 기본값이 어트리뷰트가 아니라 자식 텍스트에서 옵니다. 둘 다 이 페이지에서는 다루지 않습니다. type을 바꿀 때의 value 처리와 값 정제(sanitization)의 세부 규칙도 다루지 않습니다.',
     'disabled="false"는 표준이 허용하지 않는 값이며, 불리언 어트리뷰트는 값과 상관없이 있으면 true라는 동작을 보이려고 일부러 썼습니다.',
-    'classList와 style은 별도 개념이며 이 페이지에서 다루지 않습니다. form.reset()이 일으키는 reset 이벤트는 40장의 별도 개념입니다.',
+    'classList와 style은 별도 개념이며 이 페이지에서 다루지 않습니다. form.reset()이 일으키는 reset 이벤트도 별도 개념입니다.',
     '접근자 프로퍼티의 enumerable 등 세부 속성과 DOM 프로퍼티의 Web IDL 변환 규칙 전체는 다루지 않고, 프로토타입에 접근자로 놓인다는 점만 확인합니다.',
     '예제에서 href가 http://example.test/ 로 시작하는 것은 예제를 연 주소가 기준이기 때문입니다. URL로 해석할 수 없는 href는 href 프로퍼티가 어트리뷰트 값을 그대로 돌려주며, 이 경우는 예제로 실행하지 않았습니다.',
     'form 요소에서 컨트롤의 name으로 그 컨트롤에 닿는 form.이름, 문서의 id로 요소에 닿는 window의 이름 프로퍼티처럼 named getter로 요소에 닿는 경로는 다루지 않습니다(window의 경우는 HTMLCollection은 살아 있다 페이지에서 다룹니다).',

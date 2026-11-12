@@ -5,7 +5,7 @@ import { columns, rows } from './mode-table'
 
 `<script defer src="/first.js">`를 300ms 늦게 받아도 먼저 받은 `<script defer src="/second.js">`보다 먼저 실행되는 이유는 무엇일까요? 이 페이지는 HTML 문서에 `<script>`를 넣는 방식에 따라 파서가 기다리는지, 스크립트가 언제 어떤 순서로 실행되는지, `DOMContentLoaded`·`load`와 어떤 선후를 갖는지를 따라갑니다. 스크립트를 언제 받고 언제 실행할지는 ECMAScript가 아니라 WHATWG HTML 표준이 정하는 호스트(브라우저)의 동작입니다. ECMAScript는 스크립트를 실행할 때의 언어 동작을 정하고, 그 실행을 언제 시작할지는 호스트가 정합니다. 먼저 파서와 보통 `<script>`, `defer`, `async`, 인라인 script의 `defer`, `async`와 `defer`를 함께 쓴 경우, 동적으로 만든 script, `innerHTML`로 넣은 script를 차례로 보고, 예제 아홉 개로 확인한 뒤 마지막에 모드 비교표로 정리합니다.
 
-이 페이지의 예제는 테스트가 Chromium에서 실제로 열어 `console.log` 출력을 모은 결과이고, 외부 스크립트마다 응답을 일부러 늦춰 받는 순서를 정해 두었습니다. 이 지연은 화면에 보이지 않는 테스트 조건이라 예제마다 코드 바로 앞에 적었고, 결과와 이유 절에서 표준이 강제하는 순서와 이 지연 때문에 생긴 순서를 구분해 설명합니다. 브라우저가 화면을 그리는 과정의 CSSOM, 렌더 트리, 레이아웃, 리플로우는 별도 주제이므로 이름만 언급하고, 이 페이지는 파서가 HTML을 위에서부터 읽어 DOM을 만든다는 데까지만 다룹니다. 전역 `window`가 무엇인지는 [전역 객체](/concepts/global-object)에서 본 것을 전제합니다. `querySelectorAll`, `createElement`, `append`, `innerHTML`, `addEventListener` 같은 DOM과 이벤트 API는 뒤의 장(39장, 40장)에서 다루므로 여기서는 결과를 보이는 도구로만 쓰고, `type="module"` 스크립트는 [ES 모듈](/concepts/es-modules) 개념에서 다룹니다.
+이 페이지의 예제는 테스트가 Chromium에서 실제로 열어 `console.log` 출력을 모은 결과이고, 외부 스크립트마다 응답을 일부러 늦춰 받는 순서를 정해 두었습니다. 이 지연은 화면에 보이지 않는 테스트 조건이라 예제마다 코드 바로 앞에 적었고, 결과와 이유 절에서 표준이 강제하는 순서와 이 지연 때문에 생긴 순서를 구분해 설명합니다. 브라우저가 화면을 그리는 과정의 CSSOM, 렌더 트리, 레이아웃, 리플로우는 별도 주제이므로 이름만 언급하고, 이 페이지는 파서가 HTML을 위에서부터 읽어 DOM을 만든다는 데까지만 다룹니다. 전역 `window`가 무엇인지는 [전역 객체](/concepts/global-object)에서 본 것을 전제합니다. `querySelectorAll`, `createElement`, `append`, `innerHTML`, `addEventListener` 같은 DOM과 이벤트 API는 여기서 설명하지 않고 결과를 보이는 도구로만 쓰며, `type="module"` 스크립트는 [ES 모듈](/concepts/es-modules) 개념에서 다룹니다.
 
 ### 파서는 위에서부터 읽고, 보통 script는 파싱을 멈춘다
 

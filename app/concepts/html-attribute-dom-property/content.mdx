@@ -65,7 +65,7 @@ HTML 표준은 `input`의 `value` 어트리뷰트를 이렇게 정의합니다.
 
 > set the checkedness of the element to true if the element has a checked content attribute and false if it does not
 
-즉 두 dirty 플래그를 false로 되돌리고, 값과 체크 상태를 어트리뷰트(기본값) 기준으로 다시 정합니다. 예제 4에서 `nick.value = '철수'`, `agree.checked = true`로 바꾼 뒤 `form.reset()`을 호출하면 `손님 false`로 돌아갑니다. 어트리뷰트 `value="손님"`이 있고 `checked` 어트리뷰트는 없기 때문입니다. 플래그가 false로 돌아갔으니, 그 뒤의 `setAttribute('value', '영희')`는 다시 `.value`를 바꿉니다. 이벤트의 전파와 취소 일반은 40장의 [이벤트 전파와 위임](/concepts/event-propagation-delegation)과 [기본 동작과 전파 막기](/concepts/prevent-default-stop-propagation)에서 다루고, `reset` 이벤트 자체는 이 페이지에서 다루지 않습니다(예제 4에는 `reset` 이벤트를 취소하는 코드가 없습니다).
+즉 두 dirty 플래그를 false로 되돌리고, 값과 체크 상태를 어트리뷰트(기본값) 기준으로 다시 정합니다. 예제 4에서 `nick.value = '철수'`, `agree.checked = true`로 바꾼 뒤 `form.reset()`을 호출하면 `손님 false`로 돌아갑니다. 어트리뷰트 `value="손님"`이 있고 `checked` 어트리뷰트는 없기 때문입니다. 플래그가 false로 돌아갔으니, 그 뒤의 `setAttribute('value', '영희')`는 다시 `.value`를 바꿉니다. 이벤트의 전파와 취소 일반은 [이벤트 전파와 위임](/concepts/event-propagation-delegation)과 [기본 동작과 전파 막기](/concepts/prevent-default-stop-propagation)에서 다루고, `reset` 이벤트 자체는 이 페이지에서 다루지 않습니다(예제 4에는 `reset` 이벤트를 취소하는 코드가 없습니다).
 
 ### 짝이 있는 프로퍼티는 대부분 어트리뷰트를 반영한다
 
