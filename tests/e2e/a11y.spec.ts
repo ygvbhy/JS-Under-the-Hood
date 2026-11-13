@@ -91,6 +91,7 @@ import {
   SCRIPT_ASYNC_DEFER_PATH,
   SET_MAP_PATH,
   SPREAD_DESTRUCTURING_PATH,
+  STRING_REPLACE_SPLIT_PATH,
   SYMBOL_PATH,
   SWITCH_PATH,
   SWITCH_SIMULATOR_NAME,
@@ -834,6 +835,13 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await region.getByRole('radio', { name: '(2.5).toFixed(0)', exact: true }).check()
       await expect(region.getByText('정확히 가운데').first()).toBeVisible()
       await expect(region.getByText('결과 3')).toBeVisible()
+    })
+
+    test('개념 페이지: 문자열 replace와 split', async ({ page }) => {
+      await page.goto(STRING_REPLACE_SPLIT_PATH)
+      await waitForHydration(page)
+      await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
+      await expectNoSeriousViolations(page)
     })
 
     test('개념 페이지: 심벌', async ({ page }) => {

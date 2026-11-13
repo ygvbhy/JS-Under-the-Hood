@@ -968,6 +968,20 @@ describe('프리렌더 (number-pitfalls)', () => {
 })
 
 // 25~37장 로드맵 8번(symbol)의 비교 표와 퀴즈도 프리렌더 HTML에 정적으로 들어 있어야 한다.
+describe('프리렌더 (string-replace-split)', () => {
+  const html = read('concepts/string-replace-split/index.html')
+
+  it('퀴즈 정답이 <details>로 6개 이상 프리렌더된다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(6)
+  })
+
+  it('본문의 식·결과 표가 <table>로 프리렌더된다', () => {
+    expect(html).toContain('<table')
+    expect(html).toMatch(/<th[^>]*>\s*식\s*<\/th>/)
+    expect(html).toMatch(/<th[^>]*>\s*결과\s*<\/th>/)
+  })
+})
+
 describe('프리렌더 (symbol)', () => {
   const html = read('concepts/symbol/index.html')
   const text = htmlToText(html)

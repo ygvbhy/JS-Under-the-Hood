@@ -37,6 +37,7 @@ export const concept = {
     'primitive-methods',
     'array-method-pitfalls',
     'arrow-functions',
+    'string-replace-split',
   ],
   examples: [
     {
@@ -90,7 +91,7 @@ export const concept = {
   ],
   simplifications: [
     '정규 표현식 패턴 문법과 i·m·s·u·v·d 플래그는 다루지 않습니다. 예제의 ^는 문자열의 시작을 뜻하는 것으로만 씁니다. u·v 플래그에서 한 칸이 코드 포인트가 되는 점은 예제 7의 반복문 주의로만 언급합니다.',
-    'replace·split·search와 match가 심벌 메서드를 거쳐 정규 표현식 쪽 검색을 부르는 방식은 별도 개념이라 다루지 않습니다. matchAll(ES2020)은 이터레이터를 쓰는 별도 개념이라, 정규 표현식을 복제해 써서 원래 객체의 lastIndex를 바꾸지 않지만 복제본은 원래 lastIndex 값에서 찾기 시작한다는 점, 빈 문자열에 매치해도 다음 위치로 나아간다는 점, g 플래그가 없으면 TypeError라는 점만 언급합니다.',
+    '정규 표현식을 넘긴 replace·split이 g와 lastIndex를 어떻게 다루는지는 문자열 replace와 split 개념에서 다루고, replace·split·search와 match가 심벌 메서드를 거쳐 정규 표현식 쪽 검색을 부르는 방식은 별도 개념이라 다루지 않습니다. matchAll(ES2020)은 이터레이터를 쓰는 별도 개념이라, 정규 표현식을 복제해 써서 원래 객체의 lastIndex를 바꾸지 않지만 복제본은 원래 lastIndex 값에서 찾기 시작한다는 점, 빈 문자열에 매치해도 다음 위치로 나아간다는 점, g 플래그가 없으면 TypeError라는 점만 언급합니다.',
     'y(sticky) 플래그는 『모던 자바스크립트 Deep Dive』 31장 밖의 ES2015 플래그이며, 이 페이지는 학습 편의를 위해 함께 다룹니다.',
     '시뮬레이터는 매칭 과정(백트래킹)을 그리지 않고, 검색 한 번의 시작 위치·매치 범위·lastIndex 변화만 그립니다.',
     '글자 칸은 UTF-16 코드 유닛 단위이며, 예제는 ASCII 문자만 씁니다.',
