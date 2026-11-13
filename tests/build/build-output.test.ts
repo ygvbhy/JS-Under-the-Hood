@@ -1400,6 +1400,28 @@ describe('시뮬레이터 프리렌더 (es-modules)', () => {
   })
 })
 
+// 추가 게시글 property-order: 키 순서 시뮬레이터의 첫 단계와 퀴즈가 프리렌더 HTML에 정적으로 있어야 한다.
+describe('시뮬레이터 프리렌더 (property-order)', () => {
+  const html = read('concepts/property-order/index.html')
+  const text = htmlToText(html)
+
+  it('단계 1(실행 전) 텍스트가 HTML에 있다', () => {
+    expect(text).toContain('단계 1: 실행 전')
+  })
+
+  it('시뮬레이터 region과 시나리오 선택 라디오 3개 이상이 있다', () => {
+    expect(html).toMatch(/role="region"[^>]*aria-label="키 순서 시뮬레이터"/)
+    for (const label of ['키를 하나씩 추가', '다시 대입과 delete', '배열 인덱스가 아닌 숫자 키']) {
+      expect(text).toContain(label)
+    }
+    expect(html.match(/type="radio"/g)?.length).toBeGreaterThanOrEqual(3)
+  })
+
+  it('퀴즈 정답이 <details>로 프리렌더된다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(6)
+  })
+})
+
 // 학습 순서 이전/다음: 관련 개념 링크와 섞이지 않도록 nav 영역만 잘라 검사한다.
 describe('학습 순서 pager', () => {
   const ordered = sortByOrder(concepts)

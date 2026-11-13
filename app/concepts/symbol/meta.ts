@@ -43,6 +43,7 @@ export const concept = {
     'iterable-for-of',
     'spread-destructuring',
     'json',
+    'property-order',
   ],
   examples: [
     {

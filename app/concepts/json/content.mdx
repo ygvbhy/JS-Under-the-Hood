@@ -38,7 +38,7 @@ replacer 배열이 없을 때 SerializeJSONObject는 키를 EnumerableOwnPropert
 - `enumerable: false`인 프로퍼티([프로퍼티 어트리뷰트](/concepts/property-attributes))
 - 키가 심벌인 프로퍼티
 
-접근자 프로퍼티는 자기 것이고 열거 가능하면 getter가 돌려준 값으로 직렬화됩니다. 키 순서는 자기 키를 나열하는 OrdinaryOwnPropertyKeys의 순서(배열 인덱스 형태의 문자열 키를 오름차순으로 먼저, 나머지는 만든 순서)라서 `{ 2: 'b', z: 'z', 1: 'a' }`는 `1`, `2`, `z` 순서가 됩니다([프로퍼티 키](/concepts/property-keys)).
+접근자 프로퍼티는 자기 것이고 열거 가능하면 getter가 돌려준 값으로 직렬화됩니다. 키 순서는 자기 키를 나열하는 OrdinaryOwnPropertyKeys의 순서(배열 인덱스 형태의 문자열 키를 오름차순으로 먼저, 나머지는 만든 순서)라서 `{ 2: 'b', z: 'z', 1: 'a' }`는 `1`, `2`, `z` 순서가 됩니다([프로퍼티 순서](/concepts/property-order)).
 
 배열은 SerializeJSONArray가 0부터 `length` 앞까지의 인덱스만 읽습니다. 명세 Note가 "Properties whose keys are not array indices are excluded from the stringification."이라고 적은 대로 `scores.label = 'math'` 같은 인덱스가 아닌 프로퍼티는 빠집니다.
 

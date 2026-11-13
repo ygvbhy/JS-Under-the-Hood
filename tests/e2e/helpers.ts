@@ -122,3 +122,5 @@ export async function waitForHydration(page: Page) {
     return !!el && Object.keys(el).some((key) => key.startsWith('__reactFiber'))
   })
 }
+export const PROPERTY_ORDER_PATH = '/concepts/property-order'
+export const PROPERTY_ORDER_SIMULATOR_NAME = '키 순서 시뮬레이터'

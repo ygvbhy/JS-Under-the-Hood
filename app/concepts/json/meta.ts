@@ -39,6 +39,7 @@ export const concept = {
     'number-type',
     'primitives-and-objects',
     'error-handling',
+    'property-order',
   ],
   examples: [
     {

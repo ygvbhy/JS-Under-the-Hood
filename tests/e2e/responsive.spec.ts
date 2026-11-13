@@ -45,6 +45,8 @@ import {
   ARROW_FUNCTIONS_PATH,
   ARRAY_INDEX_LENGTH_PATH,
   ARRAY_INDEX_LENGTH_SIMULATOR_NAME,
+  PROPERTY_ORDER_PATH,
+  PROPERTY_ORDER_SIMULATOR_NAME,
   ARRAY_METHOD_PITFALLS_PATH,
   REGEXP_LASTINDEX_PATH,
   REGEXP_LASTINDEX_SIMULATOR_NAME,
@@ -851,6 +853,35 @@ test('배열은 객체다 개념 페이지: 시뮬레이터를 끝까지 진행�
   }
 })
 
+test(`${PROPERTY_ORDER_PATH}: 가로 스크롤이 없다`, async ({ page }) => {
+  await page.goto(PROPERTY_ORDER_PATH)
+  await waitForHydration(page)
+  const { scrollWidth, innerWidth } = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    innerWidth: window.innerWidth,
+  }))
+  expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
+})
+
+test('프로퍼티 순서 개념 페이지: 시뮬레이터를 끝까지 진행해도 가로 스크롤이 없다', async ({
+  page,
+}) => {
+  await page.goto(PROPERTY_ORDER_PATH)
+  await waitForHydration(page)
+  const region = page.getByRole('region', { name: PROPERTY_ORDER_SIMULATOR_NAME })
+  for (const scenario of ['키를 하나씩 추가', '다시 대입과 delete', '배열 인덱스가 아닌 숫자 키']) {
+    await region.getByRole('radio', { name: scenario, exact: true }).check()
+    const next = region.getByRole('button', { name: '다음' })
+    while (await next.isEnabled()) {
+      await next.click()
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - window.innerWidth,
+      )
+      expect(overflow).toBeLessThanOrEqual(0)
+    }
+  }
+})
+
 test(`${ARRAY_METHOD_PITFALLS_PATH}: 가로 스크롤이 없다`, async ({ page }) => {
   await page.goto(ARRAY_METHOD_PITFALLS_PATH)
   await waitForHydration(page)
@@ -1434,7 +1465,7 @@ test('Promise 정적 메서드 개념 페이지: 두 시나리오를 끝까지 �
 test('홈 학습 순서 보기: 가로 스크롤이 없다', async ({ page }) => {
   await page.goto('/?view=order')
   await waitForHydration(page)
-  await expect(page.getByRole('article')).toHaveCount(56)
+  await expect(page.getByRole('article')).toHaveCount(57)
   const { scrollWidth, innerWidth } = await page.evaluate(() => ({
     scrollWidth: document.documentElement.scrollWidth,
     innerWidth: window.innerWidth,

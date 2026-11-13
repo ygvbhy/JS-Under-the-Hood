@@ -1,0 +1,281 @@
+import { Simulator } from './Simulator'
+import { scenarios } from './scenarios'
+
+"객체의 키 순서는 보장되지 않는다"는 말을 흔히 듣습니다. 그런데 `title`, `2`, `author`, `1` 순서로 키를 만들어도 `Object.keys`는 `["1","2","title","author"]`를 돌려줍니다(예제 1). 만든 순서와 다르게 나왔는데 우연일까요, 규칙일까요? 이 페이지는 이 순서가 명세가 정한 규칙임을 확인하고, 규칙이 적용되는 범위와 그렇지 않은 경우를 구분합니다.
+
+## 동작 원리
+
+### 일반 객체의 키 나열 순서
+
+객체의 자기 키 목록은 내부 메서드 `[[OwnPropertyKeys]]`가 돌려주고, 일반 객체에서 그 내용을 정하는 명세 알고리즘은 OrdinaryOwnPropertyKeys입니다. 키를 세 묶음으로 나누어 이 순서로 내놓습니다.
+
+1. 배열 인덱스 형태의 문자열 키(줄여서 배열 인덱스 키)를 작은 수부터.
+2. 그 밖의 문자열 키를 만든 순서대로.
+3. 심벌 키를 만든 순서대로.
+
+심벌 키가 마지막이라는 점은 [심벌](/concepts/symbol)의 '키는 어떤 순서로 나열될까'에서 예제로 확인합니다. 프로퍼티 키는 문자열이나 심벌이므로 `book[2]`의 키는 숫자 2가 아니라 문자열 `'2'`입니다([프로퍼티 키](/concepts/property-keys)). 그래서 숫자처럼 보이는 키도 이 규칙에서는 문자열 키로 다룹니다.
+
+### 배열 인덱스 키의 기준
+
+배열 인덱스의 정의는 이렇습니다. 키를 숫자로 바꿨다가 다시 문자열로 바꿨을 때 원래 문자열과 같고, 그 숫자가 0 이상 2^32 − 2(4294967294) 이하의 정수인 키입니다. `'-0'`은 명세가 따로 다루는 문자열인데, 명세는 `'-0'`이 배열 인덱스가 아니라고 밝힙니다. 이 기준은 배열이 아닌 일반 객체에도 똑같이 쓰입니다. 배열에서 인덱스가 하는 일(`length`와의 관계)은 ['배열은 객체다'](/concepts/array-index-length)에서 다룹니다.
+
+<div className="my-6 overflow-x-auto">
+  <table className="w-full border-collapse text-left">
+    <thead>
+      <tr>
+        <th className="border-border border px-3 py-2">키</th>
+        <th className="border-border border px-3 py-2">배열 인덱스인가</th>
+        <th className="border-border border px-3 py-2">이유</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{"'0'"}</code>
+        </td>
+        <td className="border-border border px-3 py-2">예</td>
+        <td className="border-border border px-3 py-2">0 이상의 정수이고 되돌려도 같음</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{"'9'"}</code>
+        </td>
+        <td className="border-border border px-3 py-2">예</td>
+        <td className="border-border border px-3 py-2">0 이상의 정수이고 되돌려도 같음</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{"'10'"}</code>
+        </td>
+        <td className="border-border border px-3 py-2">예</td>
+        <td className="border-border border px-3 py-2">0 이상의 정수이고 되돌려도 같음</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{"'4294967294'"}</code>
+        </td>
+        <td className="border-border border px-3 py-2">예</td>
+        <td className="border-border border px-3 py-2">2^32 − 2로, 가장 큰 배열 인덱스</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{"'4294967295'"}</code>
+        </td>
+        <td className="border-border border px-3 py-2">아니요</td>
+        <td className="border-border border px-3 py-2">2^32 − 1로, 범위를 하나 넘음</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{"'9007199254740991'"}</code>
+        </td>
+        <td className="border-border border px-3 py-2">아니요</td>
+        <td className="border-border border px-3 py-2">정수지만 2^32 − 2보다 큼</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{"'01'"}</code>
+        </td>
+        <td className="border-border border px-3 py-2">아니요</td>
+        <td className="border-border border px-3 py-2">
+          숫자로 바꿨다 다시 문자열로 바꾸면 <code>{"'1'"}</code>이라 원래와 다름
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{"'1.5'"}</code>
+        </td>
+        <td className="border-border border px-3 py-2">아니요</td>
+        <td className="border-border border px-3 py-2">정수가 아님</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{"'-1'"}</code>
+        </td>
+        <td className="border-border border px-3 py-2">아니요</td>
+        <td className="border-border border px-3 py-2">음수</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{"'-0'"}</code>
+        </td>
+        <td className="border-border border px-3 py-2">아니요</td>
+        <td className="border-border border px-3 py-2">
+          명세가 배열 인덱스가 아니라고 밝힌 문자열
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+### '만든 순서'의 뜻
+
+두 번째 묶음은 프로퍼티를 만든 순서를 따릅니다. 무엇이 '만든 것'인지가 중요합니다.
+
+- 이미 있는 키에 다시 대입하면 프로퍼티를 새로 만드는 것이 아니라 값만 바뀝니다. 그래서 자리가 그대로입니다.
+- `delete`로 지운 뒤 다시 대입하면 새로 만든 프로퍼티이므로 그 밖의 문자열 키 가운데 맨 뒤로 갑니다. 배열 인덱스 키는 다시 만들어도 숫자 크기에 따른 자리로 돌아갑니다.
+- 없던 키를 `Object.defineProperty`로 만들면 그때가 만든 시점입니다.
+- 이미 있는 키의 값이나 열거 가능 여부 같은 어트리뷰트만 `Object.defineProperty`로 바꾸는 것은 새로 만드는 것이 아니므로 위치를 바꾸지 않습니다. 명세(ValidateAndApplyPropertyDescriptor)는 키가 없을 때만 프로퍼티를 만들고, 있을 때는 그 프로퍼티의 어트리뷰트를 바꿉니다. 다시 대입도 같은 단계로 값을 바꿉니다. 데이터 프로퍼티와 접근자 프로퍼티 사이의 전환은 명세가 프로퍼티를 바꾼다(replace)고만 써서 이 페이지에서 다루지 않습니다.
+
+### 이 순서를 쓰는 함수들
+
+`Object.keys`, `Object.values`, `Object.entries`는 같은 자기 키 목록에서 열거 가능한 문자열 키만 골라(명세의 EnumerableOwnProperties) 키, 값, 키와 값의 쌍으로 돌려줍니다. 셋은 순서가 같습니다. `Object.getOwnPropertyNames`는 열거 불가능한 키까지 포함한 문자열 키를 같은 순서로 돌려줍니다. 열거 가능 여부는 [프로퍼티 어트리뷰트와 접근자](/concepts/property-attributes)에서 본 `enumerable`입니다. 예제 4가 이를 보입니다.
+
+### for...in의 순서
+
+명세는 `for...in`이 키를 열거하는 방식과 순서를 원칙적으로 정하지 않습니다. 대신 대상 객체와 그 프로토타입 체인의 어느 객체도 Proxy 객체, TypedArray, 모듈 네임스페이스 객체, 구현이 제공하는 특수(exotic) 객체가 아니면, 열거하는 도중에 다음 중 하나가 일어나기 전까지 CreateForInIterator가 내는 순서대로 동작해야 한다고 정합니다.
+
+- 대상 객체나 체인의 객체의 `[[Prototype]]`이 바뀜
+- 대상 객체나 체인의 객체에서 프로퍼티가 지워짐
+- 체인의 객체(대상 객체 자신이 아님)에 프로퍼티가 추가됨
+- 대상 객체나 체인의 객체의 프로퍼티의 열거 가능 여부가 바뀜
+
+이 경우 명세가 정하는 순서는 이렇습니다. 먼저 대상 객체의 자기 키 가운데 문자열 키를 위와 같은 순서로 돌고(심벌 키는 `for...in`에 나오지 않습니다), 그다음 프로토타입의 키를 돕니다. 이미 처리한 이름은 건너뛰는데, 열거할 수 없어 출력되지 않은 자기 키도 처리한 이름에 들어가므로 같은 이름의 상속된 키는 나오지 않습니다. 프로토타입을 따라 올라가는 방식은 [프로토타입 체인](/concepts/prototype-chain)에서 봤습니다. 예제 5는 이 조건 안에 있는 코드입니다.
+
+### 명세 판에 따른 변화
+
+명세는 판마다 문장이 바뀌어 왔습니다. 순서 규칙 자체(OrdinaryOwnPropertyKeys의 세 묶음)는 ES2019판에도 같았습니다. 바뀐 것은 `Object.keys` 같은 함수가 그 순서를 따르는지입니다. ES2019판의 EnumerableOwnPropertyNames(현재 판의 EnumerableOwnProperties, 당시 이름)에는 결과를 for...in(EnumerateObjectProperties)이 낼 순서에 맞추라는 문장이 있었고, 그 for...in 순서는 명세가 정하지 않았습니다. ES2020판에서는 그 문장이 없어졌습니다. 그래서 ES2020판부터 `Object.keys`, `Object.values`, `Object.entries`는 `[[OwnPropertyKeys]]`의 순서를 그대로 씁니다. 같은 판에서 for...in에도 위에서 본 조건 문단이 생겼습니다.
+
+## 예제
+
+예제의 `console.log`는 값을 출력하는 호스트 API이며 ECMAScript 언어의 일부가 아닙니다. 예제 코드는 `'use strict'`가 없는 sloppy mode 스크립트이고, 키 목록은 `JSON.stringify`로 문자열로 만들어 출력합니다. 여러 줄 출력은 퀴즈에서 슬래시로 이어 적었습니다. 예제 3을 푼 뒤에 나오는 시뮬레이터로 예제 1~3을 한 단계씩 실행해 볼 수 있습니다.
+
+### 예제 1: 키를 하나씩 추가
+
+```js file=./examples/basic-order.js
+
+```
+
+<PredictQuiz
+  question="예제 1의 출력은 무엇일까요? (여러 줄은 슬래시로 이어 적었습니다.)"
+  choices={[
+    '["title","2","author","1"] / ["title","2","author","1"]',
+    '["1","2","title","author"] / ["title","2","author","1"]',
+    '["1","2","title","author"] / ["1","2","title","author"]',
+    '["title","author","1","2"] / ["title","author","1","2"]',
+  ]}
+  answer={2}
+  explanation="2와 1은 배열 인덱스 키라서 작은 수부터 먼저 나오고, title과 author는 그 밖의 문자열 키라서 만든 순서대로 뒤에 나옵니다. 하나씩 대입한 객체와 같은 순서로 쓴 객체 리터럴은 규칙이 같아 결과도 같습니다."
+/>
+
+<PredictQuiz
+  question="const o = { b: 0, 10: 0, a: 0, 9: 0 }일 때 JSON.stringify(Object.keys(o))의 결과는 무엇일까요?"
+  choices={['["b","10","a","9"]', '["9","10","b","a"]', '["10","9","b","a"]', '["b","a","9","10"]']}
+  answer={1}
+  explanation="10과 9는 배열 인덱스 키라서 숫자 크기순인 9, 10이 먼저 나옵니다. 그 밖의 문자열 키 b와 a는 만든 순서대로 그 뒤에 옵니다. 10이 9보다 먼저 만들어졌어도 순서는 만든 순서가 아니라 숫자 크기입니다."
+/>
+
+### 예제 2: 배열 인덱스가 아닌 숫자 키
+
+```js file=./examples/not-index.js
+
+```
+
+<PredictQuiz
+  question="예제 2의 출력은 무엇일까요?"
+  choices={[
+    '["9","10","4294967294","01","1.5","-1","4294967295"]',
+    '["9","10","01","1.5","-1","4294967294","4294967295"]',
+    '["01","1.5","-1","4294967295","9","10","4294967294"]',
+    '["10","9","01","1.5","-1","4294967295","4294967294"]',
+  ]}
+  answer={0}
+  explanation="9, 10, 4294967294는 배열 인덱스라서 작은 수부터 앞에 옵니다. 01, 1.5, -1, 4294967295는 숫자 모양이어도 배열 인덱스가 아니라서 만든 순서대로 뒤에 옵니다. 4294967294는 맨 마지막에 만들었지만 배열 인덱스라 앞쪽에 있습니다."
+/>
+
+### 예제 3: 다시 대입과 delete
+
+```js file=./examples/reassign-delete.js
+
+```
+
+<PredictQuiz
+  question="예제 3의 출력은 무엇일까요? (여러 줄은 슬래시로 이어 적었습니다.)"
+  choices={[
+    '["name","age","city"] / ["name","age","city"]',
+    '["age","city","name"] / ["age","city","name"]',
+    '["name","age","city"] / ["age","city","name"]',
+    '["age","city","name"] / ["name","age","city"]',
+  ]}
+  answer={2}
+  explanation="이미 있는 name에 다시 대입하면 프로퍼티를 새로 만들지 않으므로 자리가 그대로입니다. delete로 지운 뒤 다시 대입하면 새로 만든 프로퍼티라서 맨 뒤로 갑니다."
+/>
+
+### 시뮬레이터로 확인하기
+
+예제 1~3을 한 단계씩 실행하며 객체의 키가 두 묶음으로 나뉘어 쌓이는 과정을 확인해 보세요.
+
+<Simulator scenarios={scenarios} />
+
+### 예제 4: values, entries, getOwnPropertyNames
+
+```js file=./examples/values-names.js
+
+```
+
+<PredictQuiz
+  question="예제 4의 출력은 무엇일까요? (여러 줄은 슬래시로 이어 적었습니다.)"
+  choices={[
+    '["B","one","A","C"] / [["b","B"],["1","one"],["a","A"],["c","C"]] / ["b","a","hidden","c","1"]',
+    '["one","B","A","C"] / [["1","one"],["b","B"],["a","A"],["c","C"]] / ["1","b","a","c"]',
+    '["one","B","A","H","C"] / [["1","one"],["b","B"],["a","A"],["hidden","H"],["c","C"]] / ["1","b","a","hidden","c"]',
+    '["one","B","A","C"] / [["1","one"],["b","B"],["a","A"],["c","C"]] / ["1","b","a","hidden","c"]',
+  ]}
+  answer={3}
+  explanation="세 함수 모두 배열 인덱스 키 1이 먼저고 b, a, hidden, c는 만든 순서입니다. hidden은 defineProperty로 만들 때 enumerable이 false라서 values와 entries에서는 빠지고, getOwnPropertyNames에는 들어갑니다. hidden은 c보다 먼저 만들었으므로 c 앞에 있습니다."
+/>
+
+### 예제 5: for...in의 순서
+
+```js file=./examples/for-in-order.js
+
+```
+
+<PredictQuiz
+  question="예제 5의 출력은 무엇일까요? (여러 줄은 슬래시로 이어 적었습니다.)"
+  choices={[
+    'b / 3 / shared / z / 7',
+    '3 / b / shared / 7 / z',
+    '3 / b / shared / shared / 7 / z',
+    '3 / 7 / b / shared / z',
+  ]}
+  answer={1}
+  explanation="자기 키를 같은 규칙으로 먼저 돌아 3, b, shared 순서가 되고, 그다음 프로토타입 base의 키 7, z를 돕니다. base의 shared는 이미 나온 이름이라 건너뛰므로 shared는 한 번만 나옵니다."
+/>
+
+## 결과와 이유
+
+### 예제 1
+
+2~5번 줄에서 키를 `title`, `'2'`, `author`, `'1'` 순서로 만듭니다. 6번 줄의 `Object.keys`는 먼저 배열 인덱스 키를 작은 수부터 내놓아 `'1'`, `'2'`가 앞에 오고, 그 밖의 문자열 키 `title`, `author`가 만든 순서대로 뒤에 옵니다. 7번 줄의 객체 리터럴도 같은 규칙을 쓰므로 8번 줄의 결과는 6번 줄과 같습니다. 만든 순서와 다르게 나온 것은 우연이 아니라 규칙의 결과입니다.
+
+### 예제 2
+
+2~8번 줄이 키를 `'10'`, `'9'`, `'01'`, `'1.5'`, `'-1'`, `'4294967295'`, `'4294967294'` 순서로 만듭니다. 9번 줄의 결과에서 앞쪽 `"9","10","4294967294"`는 배열 인덱스 키입니다. `'4294967294'`는 8번 줄에서 마지막에 만들었지만 2^32 − 2이므로 배열 인덱스이고, 같은 묶음 안에서 숫자 크기순이라 `'10'` 뒤에 옵니다. 뒤쪽 `"01","1.5","-1","4294967295"`는 배열 인덱스가 아니라서 만든 순서 그대로입니다. `'01'`은 숫자로 바꿨다 다시 문자열로 바꾸면 `'1'`이 되어 원래와 다르고, `'1.5'`는 정수가 아니고, `'-1'`은 음수이고, `'4294967295'`는 2^32 − 2보다 큽니다.
+
+### 예제 3
+
+1번 줄에서 `name`, `age`, `city` 순서로 만들었습니다. 2번 줄의 `user.name = 'Park'`는 이미 있는 `name`에 대한 대입이라 프로퍼티를 새로 만들지 않고 값만 바꿉니다. 그래서 3번 줄의 결과는 `["name","age","city"]`로 자리가 그대로입니다. 4번 줄의 `delete`가 `name`을 지우고, 5번 줄의 대입은 없는 키에 하는 대입이라 새 프로퍼티를 만듭니다. 새로 만든 것이 가장 나중이므로 6번 줄의 결과는 `["age","city","name"]`입니다.
+
+### 예제 4
+
+1번 줄에서 `b`, `'1'`, `a` 순서로 만들고, 2번 줄에서 `enumerable: false`인 `hidden`을, 3번 줄에서 `c`를 만듭니다. 전체 자기 키 목록은 `'1'`(배열 인덱스 키)이 앞이고 `b`, `a`, `hidden`, `c`가 만든 순서입니다. 4번 줄의 `Object.values`와 5번 줄의 `Object.entries`는 그 목록에서 열거 가능한 문자열 키만 고르므로 `hidden`이 빠지고 값은 `one`, `B`, `A`, `C` 순서입니다. 6번 줄의 `Object.getOwnPropertyNames`는 `hidden`을 포함해 `["1","b","a","hidden","c"]`입니다. 없던 키를 `defineProperty`로 만든 시점이 `hidden`의 자리를 정했습니다.
+
+### 예제 5
+
+`item`의 자기 키는 3~5번 줄에서 `b`, `'3'`, `shared` 순서로 만들었습니다(`Object.create(base)`로 만든 `item`의 프로토타입이 `base`입니다). 6번 줄의 `for...in`은 자기 키를 배열 인덱스 키 `'3'`, 그 밖의 문자열 키 `b`, `shared` 순서로 돕니다. 그다음 프로토타입 `base`의 키를 도는데, 배열 인덱스 키 `'7'`이 먼저이고 `z`가 뒤입니다. `base`의 `shared`는 `item`의 자기 `shared`에서 이미 나온 이름이라 건너뜁니다. 그래서 출력은 `3`, `b`, `shared`, `7`, `z`입니다. 체인(`item` → `base` → `Object.prototype`)에 Proxy, TypedArray, 모듈 네임스페이스 객체, 구현이 제공하는 특수 객체가 없고, 반복 도중 프로토타입을 바꾸거나 프로퍼티를 지우거나 더하지 않으므로 명세가 이 순서를 정하는 경우입니다. `Object.prototype`에는 열거할 수 있는 키가 없어서 출력에 나오는 것이 없습니다.
+
+<Callout type="misconception" title="객체의 키 순서는 보장되지 않는다">
+  일반 객체의 자기 키 순서는 `[[OwnPropertyKeys]]`가 정합니다. `Object.keys`, `Object.values`,
+  `Object.entries`는 ES2020판부터 명세에서 그 순서를 그대로 씁니다. `for...in`은 명세가 모든 경우에
+  순서를 정하지는 않고, 동작 원리에서 본 조건(대상 객체와 프로토타입 체인에 Proxy, TypedArray, 모듈
+  네임스페이스 객체, 구현이 제공하는 특수 객체가 없고, 열거하는 도중에 네 가지 변화가 일어나기
+  전)에서 정합니다. 순서에 기대는 코드를 쓸 때는 어느 경우에 해당하는지 구분해야 합니다.
+</Callout>
+
+<Callout type="misconception" title="숫자 모양 키는 모두 앞으로 간다">
+  앞으로 가는 것은 배열 인덱스 키뿐입니다. 예제 2에서 `'01'`, `'1.5'`, `'-1'`, `'4294967295'`는
+  숫자처럼 보여도 만든 순서대로 뒤에 놓였습니다. 키가 앞으로 가는지 알려면 숫자로 바꿨다 다시
+  문자열로 바꿔 같은지, 0 이상 2^32 − 2 이하의 정수인지 확인하면 됩니다.
+</Callout>
+
+키를 넣은 순서가 중요한 데이터라면 객체 대신 `Map`을 쓸 수 있습니다. `Map`은 숫자 모양 키도 넣은 순서(삽입 순서)로 돌려주며, [Set과 Map](/concepts/set-map)에서 다룹니다. 같은 키 순서 규칙은 `JSON.stringify`가 객체를 직렬화할 때도 적용되며, [JSON](/concepts/json)에서 확인할 수 있습니다.
