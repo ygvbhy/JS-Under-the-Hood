@@ -34,7 +34,7 @@ export const concept = {
     '문자열 변수에 ++를 쓰면 숫자로 바꾼 값으로 계산하고 옛 값도 숫자가 된다는 것을 설명할 수 있다.',
   ],
   prerequisites: [
-    { label: '표현식과 문' },
+    { label: '표현식과 문', slug: 'expressions-statements' },
     { label: '연산자' },
     { label: '암묵적 타입 변환', slug: 'type-coercion' },
     { label: '원시 값과 객체', slug: 'primitives-and-objects' },

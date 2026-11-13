@@ -99,24 +99,24 @@ describe('getAdjacentConcepts', () => {
   it('첫 개념은 이전이 없고 position은 1이다', () => {
     const adj = getAdjacentConcepts('variable-declaration')
     expect(adj.prev).toBeNull()
-    expect(adj.next?.slug).toBe('primitives-and-objects')
+    expect(adj.next?.slug).toBe('expressions-statements')
     expect(adj.position).toBe(1)
-    expect(adj.total).toBe(60)
+    expect(adj.total).toBe(61)
   })
 
   it('마지막 개념은 다음이 없다', () => {
     const adj = getAdjacentConcepts('es-modules')
     expect(adj.prev?.slug).toBe('async-generator')
     expect(adj.next).toBeNull()
-    expect(adj.position).toBe(60)
-    expect(adj.total).toBe(60)
+    expect(adj.position).toBe(61)
+    expect(adj.total).toBe(61)
   })
 
   it('중간 개념은 앞뒤 개념을 돌려준다', () => {
     const adj = getAdjacentConcepts('hoisting')
     expect(adj.prev?.slug).toBe('function-calls')
     expect(adj.next?.slug).toBe('scope-chain')
-    expect(adj.position).toBe(12)
+    expect(adj.position).toBe(13)
   })
 
   it('없는 슬러그는 오류를 던진다', () => {

@@ -34,7 +34,7 @@ export const concept = {
     '레이블을 붙인 break로 바깥 반복문을 끝낼 수 있다는 것과 break·continue를 쓸 수 없는 위치를 설명할 수 있다.',
   ],
   prerequisites: [
-    { label: '표현식과 문' },
+    { label: '표현식과 문', slug: 'expressions-statements' },
     { label: 'if 문과 for 문' },
     { label: '함수 선언과 호출' },
     { label: '동등 비교', slug: 'equality-operators' },
