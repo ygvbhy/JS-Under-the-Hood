@@ -1,0 +1,212 @@
+## 동작 원리
+
+이 페이지는 클래식 스크립트, 즉 `type="module"`이 아닌 `<script>`로 실행되는 코드의 맨 바깥에서 `var`로 선언한 변수를 기준으로 설명합니다. 예제의 출력도 이 조건으로 실행해 확인했습니다. 변수를 선언만 하고 값을 넣지 않은 채 읽으면 왜 오류가 아니라 `undefined`가 나오는지, 값을 넣는 줄과 아무것도 하지 않는 줄이 어떻게 다른지 알아봅니다.
+
+### 변수는 이름과 값의 연결이다
+
+변수(variable)는 이름과 값을 이어 주는 연결이고, 명세는 이를 바인딩(binding)이라고 부릅니다. 코드가 이름을 읽으면 그 이름의 바인딩에 이어진 값을 얻습니다. 명세는 값이 메모리 어디에 어떻게 놓이는지 정하지 않으므로, 이 페이지는 변수를 상자나 메모리 공간으로 설명하지 않습니다.
+
+코드에 이름으로 적는 단어를 식별자(identifier)라고 합니다. 선언문에서 이름 자리에 쓴 식별자가 바인딩의 이름이 됩니다.
+
+### 선언과 할당
+
+`var count;`처럼 `var`로 쓴 문장이 변수 선언문(variable statement)이고, 그 안의 `count` 하나하나가 선언(declaration)입니다. 코드에 선언이 있으면, 스크립트의 첫 줄을 실행하기 전에 그 이름의 바인딩이 만들어져 `undefined`로 초기화됩니다. 이 규칙에는 예외가 두 가지 있습니다. 같은 이름이 전역 객체 자신의 프로퍼티로 이미 있으면 `undefined`로 초기화하지 않고 기존 바인딩과 그 값을 그대로 씁니다([전역 객체](/concepts/global-object) 참고). 명세는 이 재사용을 CreateGlobalVarBinding에서 정하며, 상속받은 프로퍼티는 여기에 해당하지 않습니다. 또 같은 이름의 함수 선언이 있으면 그 이름의 값은 함수입니다([호이스팅](/concepts/hoisting) 참고). 이 페이지의 예제는 그런 이름을 쓰지 않습니다.
+
+이렇게 실행 전에 바인딩을 만드는 과정은 [호이스팅](/concepts/hoisting)에서 자세히 다룹니다. 이 페이지는 예제에서 모든 변수를 선언문 뒤에서만 읽습니다.
+
+값을 넣는 것은 선언이 아니라 할당(assignment)입니다. `var x = 1;`은 한 줄이지만 선언과 할당 두 가지입니다. 바인딩은 그 줄을 실행하기 전에 선언으로 이미 만들어져 있고, `= 1`은 그 줄에 도달했을 때 실행됩니다. 명세의 `BindingIdentifier Initializer` 평가는 이름을 찾고, 초기값을 평가하고, 그 값을 바인딩에 넣는 순서로 진행합니다.
+
+초기값이 없는 `var x;` 줄은 실행해도 아무것도 하지 않습니다. 명세의 평가 규칙이 이 경우 아무 일도 하지 않고 끝나도록("Return empty") 정하기 때문입니다. 그렇다고 지워도 되는 줄은 아닙니다. 이 선언이 코드에 있어야 바인딩이 만들어집니다. 위의 예외가 아니면 바인딩은 줄을 실행하기 전에 이미 있고 `undefined`로 초기화되어 있으므로, 값을 할당하기 전까지 읽으면 `undefined`입니다. 예제 1에서 확인합니다.
+
+### 한 문장에 여러 변수 선언
+
+`var first, second = 2;`처럼 쉼표로 이으면 선언문 하나에 선언을 여러 개 쓸 수 있습니다. 명세는 이 목록을 앞에서부터 하나씩 평가합니다. 문법에서 초기값 `= 2`는 그 앞의 선언 `second` 하나에 속합니다. 그래서 `second`만 `2`이고 `first`는 값을 할당받지 않습니다. 예제 2에서 확인합니다.
+
+### 할당과 재할당
+
+이 페이지에서 할당(대입이라고도 합니다)은 `=`로 변수에 값을 넣는 것입니다. 이미 할당한 변수에 다시 할당하는 것은 재할당(reassignment)이라고 부릅니다. 예제 1의 `count = 5;`는 할당이고 `count = 7;`은 재할당입니다. 명세는 둘을 구별하지 않고 같은 동작(PutValue)으로 처리하므로, 이 구분은 설명을 위한 것입니다. [원시 값과 객체](/concepts/primitives-and-objects)는 `=`로 변수의 값을 바꾸는 동작 전체를 재할당이라 부르고, 객체의 내용을 바꾸는 변경과 비교합니다.
+
+### 찾을 수 없는 이름을 읽으면
+
+선언하지 않았고 전역 객체나 호스트가 제공하지도 않는 이름, 즉 어디에서도 찾을 수 없는 이름을 읽으면 명세의 GetValue가 ReferenceError를 던집니다. `Math`처럼 선언하지 않아도 미리 있는 이름은 오류가 아닙니다([전역 객체](/concepts/global-object) 참고). `typeof`는 찾을 수 없는 이름에도 오류 없이 `'undefined'`를 돌려줍니다([typeof 연산자](/concepts/typeof-operator) 참고).
+
+중복 선언, 선언 없이 이름에 값을 할당하는 경우, `let`과 `const`는 이 페이지에서 다루지 않습니다. 중복 선언과 선언 없는 할당은 [블록 스코프](/concepts/block-scope)에서, `let`과 `const`는 [블록 스코프](/concepts/block-scope)와 [TDZ](/concepts/tdz)에서 다룹니다.
+
+### 식별자 규칙
+
+- 첫 글자는 글자, `$`, `_` 중 하나이고, 둘째 글자부터는 숫자도 쓸 수 있습니다.
+- `if`, `class` 같은 예약어(reserved word)는 식별자로 쓸 수 없습니다.
+- 대소문자를 구분합니다. 예제 3에서 확인합니다.
+- strict mode에서만 식별자로 쓸 수 없는 이름이 있습니다. 예를 들어 `let`이 그렇고, strict mode는 별도 개념으로 다룹니다.
+
+<div className="my-6 overflow-x-auto" tabIndex={0} role="region" aria-label="식별자 규칙 표">
+  <table className="w-full border-collapse text-left [&_code]:whitespace-nowrap">
+    <thead>
+      <tr>
+        <th className="border-border border px-3 py-2">코드</th>
+        <th className="border-border border px-3 py-2">결과</th>
+        <th className="border-border border px-3 py-2">이유</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th scope="row" className="border-border border px-3 py-2">
+          <code>{'var 점수 = 1;'}</code>
+        </th>
+        <td className="border-border border px-3 py-2">가능</td>
+        <td className="border-border border px-3 py-2">
+          한글 같은 글자도 식별자의 첫 글자로 쓸 수 있습니다.
+        </td>
+      </tr>
+      <tr>
+        <th scope="row" className="border-border border px-3 py-2">
+          <code>{'var $total = 1, _count = 2;'}</code>
+        </th>
+        <td className="border-border border px-3 py-2">가능</td>
+        <td className="border-border border px-3 py-2">
+          <code>$</code>와 <code>_</code>도 첫 글자로 쓸 수 있습니다.
+        </td>
+      </tr>
+      <tr>
+        <th scope="row" className="border-border border px-3 py-2">
+          <code>{'var 2nd = 1;'}</code>
+        </th>
+        <td className="border-border border px-3 py-2">SyntaxError</td>
+        <td className="border-border border px-3 py-2">
+          숫자는 첫 글자로 쓸 수 없고, 둘째 글자부터 쓸 수 있습니다.
+        </td>
+      </tr>
+      <tr>
+        <th scope="row" className="border-border border px-3 py-2">
+          <code>{'var first-name = 1;'}</code>
+        </th>
+        <td className="border-border border px-3 py-2">SyntaxError</td>
+        <td className="border-border border px-3 py-2">
+          <code>-</code>는 식별자에 쓸 수 있는 글자가 아니라서 식별자가 <code>first</code>에서
+          끝나고, 뒤의 <code>-name = 1</code>은 선언문 문법에 맞지 않습니다.
+        </td>
+      </tr>
+      <tr>
+        <th scope="row" className="border-border border px-3 py-2">
+          <code>{'var if = 1;'}</code>
+        </th>
+        <td className="border-border border px-3 py-2">SyntaxError</td>
+        <td className="border-border border px-3 py-2">
+          <code>if</code>는 예약어라서 식별자로 쓸 수 없습니다.
+        </td>
+      </tr>
+      <tr>
+        <th scope="row" className="border-border border px-3 py-2">
+          <code>{'var let = 1;'}</code>
+        </th>
+        <td className="border-border border px-3 py-2">가능</td>
+        <td className="border-border border px-3 py-2">
+          strict mode가 아닌 코드에서는 <code>let</code>을 <code>var</code>의 이름으로 쓸 수
+          있습니다. 이 줄은 strict mode가 아닌 클래식 스크립트 코드입니다.
+        </td>
+      </tr>
+      <tr>
+        <th scope="row" className="border-border border px-3 py-2">
+          <code>{"'use strict'; var let = 1;"}</code>
+        </th>
+        <td className="border-border border px-3 py-2">SyntaxError</td>
+        <td className="border-border border px-3 py-2">
+          strict mode에서는 <code>let</code>을 식별자로 쓸 수 없습니다.
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+## 예제
+
+세 예제의 출력을 먼저 예측해 보세요. 예제의 `console.log`는 값을 출력하는 호스트 API이며 ECMAScript 언어의 일부가 아닙니다. 여러 줄 출력은 퀴즈에서 슬래시로 이어 적었습니다.
+
+### 예제 1: 선언만 한 변수, 할당, 재할당
+
+```js file=./examples/declare-assign.js
+
+```
+
+<PredictQuiz
+  question="예제 1의 출력은 무엇일까요? (여러 줄은 슬래시로 이어 적었습니다.)"
+  choices={['ReferenceError로 멈춤', 'null / 5 / 7', 'undefined / 5 / 5', 'undefined / 5 / 7']}
+  answer={3}
+  explanation="var count;로 선언한 바인딩은 undefined로 초기화되어 있으므로 첫 console.log는 오류 없이 undefined를 출력합니다. count = 5;를 실행하면 5가 되고, count = 7;로 다시 할당하면 마지막 출력은 처음 넣은 5가 아니라 7입니다."
+/>
+
+### 예제 2: 한 문장에 여러 변수 선언
+
+```js file=./examples/multiple-declare.js
+
+```
+
+<PredictQuiz
+  question="예제 2의 출력은 무엇일까요?"
+  choices={['2 2', 'undefined undefined', 'ReferenceError로 멈춤', 'undefined 2']}
+  answer={3}
+  explanation="초기값 = 2는 second의 선언에만 붙어 있습니다. first는 초기값이 없는 선언이라 값을 할당받지 않고 undefined로 남습니다."
+/>
+
+### 예제 3: 대소문자 구분
+
+```js file=./examples/case-sensitive.js
+
+```
+
+<PredictQuiz
+  question="예제 3의 출력은 무엇일까요?"
+  choices={['2 2', 'SyntaxError로 멈춤', '1 1', '1 2']}
+  answer={3}
+  explanation="score와 Score는 서로 다른 식별자라서 바인딩도 따로 만들어집니다. 그래서 각각 1과 2가 그대로 출력됩니다."
+/>
+
+## 결과와 이유
+
+<div className="my-6 overflow-x-auto" tabIndex={0} role="region" aria-label="예제 결과 표">
+  <table className="w-full border-collapse text-left">
+    <thead>
+      <tr>
+        <th className="border-border border px-3 py-2">예제</th>
+        <th className="border-border border px-3 py-2">결과</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td className="border-border border px-3 py-2">예제 1: 선언만 한 변수, 할당, 재할당</td>
+        <td className="border-border border px-3 py-2">
+          <code>undefined / 5 / 7</code>
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">예제 2: 한 문장에 여러 변수 선언</td>
+        <td className="border-border border px-3 py-2">
+          <code>undefined 2</code>
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">예제 3: 대소문자 구분</td>
+        <td className="border-border border px-3 py-2">
+          <code>1 2</code>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+예제 1에서 `count` 바인딩은 선언으로 만들어져 `undefined`로 초기화되어 있고, `var count;` 줄의 실행은 아무것도 하지 않습니다. 첫 `console.log`가 `undefined`를 출력하는 것은 선언으로 `undefined`로 초기화된 뒤 아직 어떤 값도 할당하지 않았기 때문입니다. `count = 5;`를 실행하면 5가 되고, `count = 7;`로 재할당하면 같은 변수를 읽은 값이 7로 바뀝니다.
+
+예제 2에서 `var first, second = 2;`는 선언 두 개의 목록입니다. 초기값이 붙은 것은 `second`뿐이라서 출력은 `undefined 2`입니다.
+
+예제 3에서 `score`와 `Score`는 서로 다른 식별자입니다. 대소문자를 구분하므로 두 변수는 따로 존재하고 각자의 값을 가집니다.
+
+<Callout type="misconception" title="선언만 한 변수를 읽으면 오류가 난다">
+  `var`로 선언한 변수는 바인딩이 만들어져 `undefined`로 초기화되어 있으므로, 값을 할당하기 전에
+  읽어도 오류가 아니라 `undefined`입니다. 예제 1의 첫 출력이 그렇습니다. 이 페이지가 다루는 `var`
+  범위에서 ReferenceError는 어디에서도 찾을 수 없는 이름을 읽을 때 납니다.
+</Callout>
+
+<Callout type="misconception" title="var a, b = 2는 두 변수 모두 2가 된다">
+  초기값은 그 초기값이 붙은 선언에만 적용됩니다. 예제 2에서 `first`는 값을 할당받지 않아
+  `undefined`입니다. 두 변수에 모두 값을 넣으려면 각각 초기값을 쓰거나 따로 할당해야 합니다.
+</Callout>

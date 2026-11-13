@@ -1004,6 +1004,22 @@ describe('프리렌더 (string-replace-split)', () => {
   })
 })
 
+// 기초 보강 로드맵 1번(variable-declaration)의 표와 퀴즈도 프리렌더 HTML에 정적으로 들어 있어야 한다.
+describe('프리렌더 (variable-declaration)', () => {
+  const html = read('concepts/variable-declaration/index.html')
+
+  it('퀴즈 정답이 <details>로 3개 이상 프리렌더된다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(3)
+  })
+
+  it('본문의 코드·결과·이유 표가 <table>로 프리렌더된다', () => {
+    expect(html.match(/<table/g)?.length).toBeGreaterThanOrEqual(2)
+    expect(html).toMatch(/<th[^>]*>\s*코드\s*<\/th>/)
+    expect(html).toMatch(/<th[^>]*>\s*결과\s*<\/th>/)
+    expect(html).toMatch(/<th[^>]*>\s*이유\s*<\/th>/)
+  })
+})
+
 describe('프리렌더 (symbol)', () => {
   const html = read('concepts/symbol/index.html')
   const text = htmlToText(html)

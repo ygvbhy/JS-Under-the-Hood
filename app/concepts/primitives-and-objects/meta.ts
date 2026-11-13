@@ -14,7 +14,11 @@ export const concept = {
     'const가 막는 것(재할당)과 막지 않는 것(객체 변경)을 구분할 수 있다.',
     '객체를 함수에 전달했을 때 프로퍼티 변경과 매개변수 재할당의 결과가 다른 이유를 설명할 수 있다.',
   ],
-  prerequisites: [{ label: '변수와 선언' }, { label: '데이터 타입' }, { label: '함수 호출' }],
+  prerequisites: [
+    { label: '변수와 선언', slug: 'variable-declaration' },
+    { label: '데이터 타입' },
+    { label: '함수 호출' },
+  ],
   related: ['hoisting', 'tdz'],
   examples: [
     { id: 'reassign', file: 'reassign.js', runtime: 'ecmascript', expectedOutput: ['10 20 1 2'] },

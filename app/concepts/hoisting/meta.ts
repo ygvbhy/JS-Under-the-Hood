@@ -25,7 +25,7 @@ export const concept = {
     '같은 이름의 var와 함수 선언, 같은 이름의 함수 선언 두 개, 실행되지 않는 줄의 var가 있을 때 결과를 예측할 수 있다.',
   ],
   prerequisites: [
-    { label: 'var로 변수 선언하기' },
+    { label: 'var로 변수 선언하기', slug: 'variable-declaration' },
     { label: '함수 호출', slug: 'function-calls' },
     { label: 'typeof 연산자', slug: 'typeof-operator' },
   ],

@@ -33,7 +33,12 @@ test.describe('개념 상세', () => {
 
     const prerequisites = page.getByRole('region', { name: '선행 개념' })
     await expect(prerequisites).toBeVisible()
-    for (const label of ['변수와 선언', '데이터 타입', '함수 호출']) {
+    // '변수와 선언'은 개념 페이지가 있어 링크다
+    await expect(prerequisites.getByRole('link', { name: '변수와 선언' })).toHaveAttribute(
+      'href',
+      '/concepts/variable-declaration',
+    )
+    for (const label of ['데이터 타입', '함수 호출']) {
       // 아직 개념 페이지가 없는 선행 개념은 링크가 아니라 텍스트 칩이다
       await expect(prerequisites.getByText(label)).toBeVisible()
       await expect(prerequisites.getByRole('link', { name: label })).toHaveCount(0)
