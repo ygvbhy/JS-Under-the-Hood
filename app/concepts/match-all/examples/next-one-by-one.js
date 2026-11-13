@@ -1,0 +1,10 @@
+var re = /[0-9]+/g;
+var it = 'a1b22'.matchAll(re);
+var r1 = it.next();
+console.log(r1.value[0], r1.value.index, r1.done, re.lastIndex);
+var r2 = it.next();
+console.log(r2.value[0], r2.value.index, r2.done);
+var r3 = it.next();
+console.log(r3.value, r3.done);
+var r4 = it.next();
+console.log(r4.done, re.lastIndex);

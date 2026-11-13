@@ -58,6 +58,8 @@ import {
   NUMBER_PITFALLS_VIEW_NAME,
   ITERABLE_FOR_OF_PATH,
   ITERABLE_FOR_OF_SIMULATOR_NAME,
+  MATCH_ALL_PATH,
+  MATCH_ALL_SIMULATOR_NAME,
   DOM_TREE_NODES_PATH,
   LIVE_HTML_COLLECTION_PATH,
   LIVE_HTML_COLLECTION_SIMULATOR_NAME,
@@ -842,6 +844,30 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await waitForHydration(page)
       await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
       await expectNoSeriousViolations(page)
+    })
+
+    test('개념 페이지: matchAll', async ({ page }) => {
+      await page.goto(MATCH_ALL_PATH)
+      await waitForHydration(page)
+      await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
+      await expectNoSeriousViolations(page)
+    })
+
+    test('개념 페이지: matchAll 시뮬레이터를 진행한 뒤', async ({ page }) => {
+      test.slow() // 2개 시나리오의 모든 단계에서 axe를 돌린다
+      await page.goto(MATCH_ALL_PATH)
+      await waitForHydration(page)
+      const region = page.getByRole('region', { name: MATCH_ALL_SIMULATOR_NAME })
+      for (const scenario of ['다음 매치를 하나씩', 'lastIndex 이어받기와 빈 매치']) {
+        await region.getByRole('radio', { name: scenario, exact: true }).check()
+        const next = region.getByRole('button', { name: '다음' })
+        // 시나리오의 단계 수는 모두 20 이하이므로 마지막 단계까지 모든 단계를 검사한다.
+        for (let i = 0; i < 20 && (await next.isEnabled()); i++) {
+          await next.click()
+          await expectNoSeriousViolations(page)
+        }
+        await expect(next).toBeDisabled()
+      }
     })
 
     test('개념 페이지: 심벌', async ({ page }) => {

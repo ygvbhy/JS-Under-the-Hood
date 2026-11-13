@@ -47,7 +47,7 @@ g도 y도 없는 정규식이면 `replace`는 `lastIndex` 값을 무시하고 �
 
 ### matchAll
 
-`matchAll`은 g가 없는 정규식을 받으면 호출만으로 TypeError를 던집니다. 문자열을 주면 그 문자열로 g 정규식을 만들기 때문에, `'a.b'.matchAll('.')`의 점은 글자 그대로가 아니라 줄 끝 문자를 제외한 아무 글자 하나에 매치되는 기호가 되어 세 글자 각각에 매치됩니다. 결과는 이터레이터이며 [이터러블과 for...of](/concepts/iterable-for-of)에서 다룹니다. `matchAll` 자체는 별도 개념입니다.
+`matchAll`은 g가 없는 정규식을 받으면 호출만으로 TypeError를 던집니다. 문자열을 주면 그 문자열로 g 정규식을 만들기 때문에, `'a.b'.matchAll('.')`의 점은 글자 그대로가 아니라 줄 끝 문자를 제외한 아무 글자 하나에 매치되는 기호가 되어 세 글자 각각에 매치됩니다. 결과는 이터레이터이며 [이터러블과 for...of](/concepts/iterable-for-of)에서 다룹니다. `matchAll` 자체는 [matchAll](/concepts/match-all)에서 다룹니다.
 
 ### 한 줄 식으로 비교하기
 

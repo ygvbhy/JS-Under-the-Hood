@@ -1,0 +1,125 @@
+import type { ConceptMeta } from '~/lib/concepts'
+
+export const concept = {
+  slug: 'match-all',
+  title: 'matchAll: g 정규식을 넘겼는데 lastIndex는 왜 그대로일까',
+  summary:
+    'matchAll은 넘긴 g 정규식의 패턴과 flags로 새 정규식을 만들고, next를 부를 때마다 한 매치씩 찾는 이터레이터를 돌려줍니다. 원래 lastIndex가 그대로인 이유와 빈 매치, 인수 종류를 봅니다.',
+  category: 'objects',
+  order: 315,
+  tags: [
+    'matchAll',
+    'String.prototype.matchAll',
+    'Symbol.matchAll',
+    '정규 표현식',
+    'RegExp',
+    'lastIndex',
+    'g 플래그',
+    '이터레이터',
+    'RegExp String Iterator',
+    '빈 매치',
+    'match',
+  ],
+  goals: [
+    'matchAll의 결과가 배열이 아니라 이터레이터임을 판별하고, 끝까지 꺼낸 뒤 다시 꺼내면 비어 있는 이유를 [[Done]]으로 설명할 수 있다.',
+    'matchAll이 호출될 때 원래 정규식의 패턴과 flags로 새 정규식을 만들고 lastIndex를 그 새 정규식에 옮긴 뒤 이터레이터만 돌려주므로, 원래 lastIndex가 바뀌지 않고 검색이 next마다 일어나는 것을 예측할 수 있다.',
+    'next의 갈래([[Done]]이 true일 때, exec가 null일 때, 매치이고 [[Global]]이 false일 때, 매치이고 [[Global]]이 true일 때)와 빈 매치에서 exec와 next가 lastIndex를 각각 어떻게 바꾸는지 설명할 수 있다.',
+    'g가 없는 정규식은 호출만으로 TypeError인 것, 문자열 인수와 인수 생략이 g 정규식이 되는 것, gy가 이어지지 않는 위치에서 멈추는 것, break가 이터레이터를 닫지 않는 것을 예측할 수 있다.',
+  ],
+  prerequisites: [
+    { label: '정규 표현식의 g 플래그', slug: 'regexp-lastindex' },
+    { label: '이터러블과 for...of', slug: 'iterable-for-of' },
+  ],
+  related: [
+    'regexp-lastindex',
+    'iterable-for-of',
+    'string-replace-split',
+    'string-utf16',
+    'symbol',
+    'spread-destructuring',
+    'error-handling',
+    'json',
+    'generator',
+  ],
+  examples: [
+    {
+      id: 'next-one-by-one',
+      file: 'next-one-by-one.js',
+      runtime: 'ecmascript',
+      expectedOutput: ['1 1 false 0', '22 3 false', 'undefined true', 'true 0'],
+    },
+    {
+      id: 'iterator-not-array',
+      file: 'iterator-not-array.js',
+      runtime: 'ecmascript',
+      expectedOutput: ['false false', '[object RegExp String Iterator] true', '2 0'],
+    },
+    {
+      id: 'lazy-exec',
+      file: 'lazy-exec.js',
+      runtime: 'ecmascript',
+      expectedOutput: ['0', '1', '2', 'true 3', '3', '[[false,0,1],[false,2,3],[false,4,null]]'],
+    },
+    {
+      id: 'match-results',
+      file: 'match-results.js',
+      runtime: 'ecmascript',
+      expectedOutput: ['2 b22 b 22 2 a1b22 22', '["a1","b22"]', 'false'],
+    },
+    {
+      id: 'inherit-empty',
+      file: 'inherit-empty.js',
+      runtime: 'ecmascript',
+      expectedOutput: ['"" 3', '"" 5', '0'],
+    },
+    {
+      id: 'flags-and-args',
+      file: 'flags-and-args.js',
+      runtime: 'ecmascript',
+      expectedOutput: ['TypeError TypeError', '[1,3]', '[0,1,2]', '[0]', '[0,1,2] [0,2]'],
+    },
+    {
+      id: 'break-resume',
+      file: 'break-resume.js',
+      runtime: 'ecmascript',
+      expectedOutput: ['1', 'undefined', '["2"]'],
+    },
+  ],
+  simplifications: [
+    '정규 표현식의 패턴 문법(예제의 [0-9], (?=[0-9]), (?:), 캡처 그룹과 이름 있는 그룹 문법)은 다루지 않습니다. 예제의 패턴은 결과를 확인하는 용도입니다.',
+    "'복제본'은 이 페이지가 쓰는 호칭입니다. 명세의 용어가 아니라, Symbol.matchAll 메서드가 Construct로 원래 정규식의 패턴과 flags를 가진 새 정규식을 만들고 lastIndex만 따로 Set으로 옮긴다는 동작을 가리킵니다. 원래 정규식의 다른 자기 프로퍼티는 옮기지 않습니다. 새 정규식을 만드는 생성자를 고르는 SpeciesConstructor와 RegExp를 상속한 클래스는 다루지 않습니다.",
+    'matchAll의 첫 인수는 g 플래그가 있는 정규식, g가 없는 정규식, 문자열, 생략한 경우만 다룹니다. 그 밖의 경로는 다루지 않습니다: 정규식이 아니어도 Symbol.matchAll 메서드를 가진 객체는(Symbol.match 값이 참 같은 값이 아니면) g 검사 없이 그 메서드에 맡겨지고, null은 문자열 "null"을 패턴으로 하는 g 정규식이 되며, 그 밖의 값도 문자열로 바뀌어 패턴이 되고, Symbol.match를 undefined가 아닌 거짓 같은 값(false, null, 0 등)으로 바꾼 정규식은 g 검사를 건너뜁니다(undefined이면 정규식으로 판정되어 g 검사를 그대로 거칩니다).',
+    'Symbol.matchAll은 well-known 심벌이며, well-known 심벌은 심벌 개념에서 다룹니다. match와 search가 심벌 메서드에 일을 넘기는 방식은 다루지 않습니다.',
+    'matchAll이 돌려주는 이터레이터는 %Iterator.prototype%을 상속하므로 ES2025에 추가된 이터레이터 헬퍼(map, toArray 등)도 쓸 수 있지만, 이 페이지는 헬퍼를 다루지 않습니다.',
+    '예제 3의 RegExp.prototype.exec 덮어쓰기는 검색이 next마다 일어나는 것을 관찰하려는 용도입니다. 일반 코드에서 내장 메서드를 덮어쓰는 방식을 권하지 않으며, 예제는 끝에서 원래 함수로 되돌립니다.',
+    '스프레드 문법은 스프레드와 디스트럭처링 개념에서 다룹니다. 여기서는 스프레드와 Array.from이 이터레이터를 끝까지 꺼내 배열로 모은다는 사실만 씁니다.',
+    '예제의 try…catch는 오류를 보이려는 용도이며 try/catch/finally 개념에서 다룹니다.',
+    '예제의 JSON.stringify는 출력 확인용이며 JSON 개념에서 다룹니다.',
+    '예제의 console은 ECMAScript 언어가 아니라 호스트가 제공하는 API입니다.',
+    'matchAll과 Symbol.matchAll은 ES2020, 이름 있는 그룹은 ES2018, 정규식의 v 플래그는 ES2024, RegExp.escape는 ES2025에 추가된 기능입니다. RegExp.escape가 어떤 글자를 어떻게 바꾸는지는 다루지 않습니다.',
+    '제너레이터 객체와 그 return 메서드는 제너레이터 개념에서 다룹니다.',
+  ],
+  references: [
+    {
+      label: 'ECMAScript 명세 — String.prototype.matchAll',
+      url: 'https://tc39.es/ecma262/#sec-string.prototype.matchall',
+    },
+    {
+      label: 'ECMAScript 명세 — RegExp.prototype [ %Symbol.matchAll% ]',
+      url: 'https://tc39.es/ecma262/#sec-regexp-prototype-%25symbol.matchall%25',
+    },
+    {
+      label: 'ECMAScript 명세 — CreateRegExpStringIterator',
+      url: 'https://tc39.es/ecma262/#sec-createregexpstringiterator',
+    },
+    {
+      label: 'ECMAScript 명세 — %RegExpStringIteratorPrototype%.next',
+      url: 'https://tc39.es/ecma262/#sec-%25regexpstringiteratorprototype%25.next',
+    },
+    {
+      label: 'MDN — String.prototype.matchAll()',
+      url: 'https://developer.mozilla.org/ko/docs/Web/JavaScript/Reference/Global_Objects/String/matchAll',
+    },
+  ],
+  reviewedAt: '2026-11-13',
+} satisfies ConceptMeta

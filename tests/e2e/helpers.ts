@@ -125,3 +125,5 @@ export async function waitForHydration(page: Page) {
 export const PROPERTY_ORDER_PATH = '/concepts/property-order'
 export const PROPERTY_ORDER_SIMULATOR_NAME = '키 순서 시뮬레이터'
 export const STRING_REPLACE_SPLIT_PATH = '/concepts/string-replace-split'
+export const MATCH_ALL_PATH = '/concepts/match-all'
+export const MATCH_ALL_SIMULATOR_NAME = 'matchAll 시뮬레이터'

@@ -30,7 +30,7 @@ export const concept = {
     { label: '정규 표현식의 g 플래그', slug: 'regexp-lastindex' },
     { label: '문자열 길이와 UTF-16', slug: 'string-utf16' },
   ],
-  related: ['regexp-lastindex', 'string-utf16', 'iterable-for-of', 'error-handling'],
+  related: ['regexp-lastindex', 'string-utf16', 'iterable-for-of', 'error-handling', 'match-all'],
   examples: [
     {
       id: 'first-only',
@@ -79,7 +79,7 @@ export const concept = {
     '문자열도 정규식도 아닌 첫 인수와 함수가 아닌 치환값은 문자열로 바뀐 뒤 같은 규칙을 따릅니다. 치환값을 생략하면 문자열 undefined가 들어갑니다. 단, split의 구분자가 undefined이면 생략한 것과 같아서, 문자열 undefined로 자르지 않고 원래 문자열 하나만 든 배열을 돌려줍니다. 이 페이지의 설명은 첫 인수가 문자열이나 정규식인 경우만 다룹니다.',
     '정규 표현식의 패턴 문법(\\d, [0-9], 그룹 문법 등)은 다루지 않습니다. 예제의 패턴은 결과를 확인하는 용도입니다.',
     'replace·replaceAll·split이 Symbol.replace·Symbol.split 메서드를 가진 객체(정규식 등)에 일을 넘기는 방식과, 인수가 정규식인지 판정하는 IsRegExp가 먼저 Symbol.match를 확인한다는 점은 별도 개념이라 다루지 않습니다. 본문은 그 결과로 정해지는 정규식의 동작만 설명합니다.',
-    'matchAll은 g가 없는 정규식이면 TypeError라는 점과 문자열 인수를 g 정규식으로 바꾼다는 점만 언급하고, 나머지는 별도 개념입니다. 그 결과인 이터레이터는 이터러블과 for...of 개념에서 다룹니다.',
+    'matchAll은 g가 없는 정규식이면 TypeError라는 점과 문자열 인수를 g 정규식으로 바꾼다는 점만 언급하고, 나머지는 matchAll 개념에서 다룹니다. 그 결과인 이터레이터는 이터러블과 for...of 개념에서 다룹니다.',
     'u·v 플래그와 빈 매치에서 위치를 한 칸 넘기는 규칙은 다루지 않습니다.',
     'split이 내부에서 y 플래그 정규식을 새로 만드는 방식은 다루지 않습니다.',
     'exec를 덮어쓴 정규식이나 RegExp를 상속한 객체는 다루지 않습니다.',

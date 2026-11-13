@@ -1,0 +1,21 @@
+var re = /[0-9]/g;
+var log = [];
+var origExec = RegExp.prototype.exec;
+RegExp.prototype.exec = function (s) {
+  var before = this.lastIndex;
+  var r = origExec.call(this, s);
+  log.push([this === re, before, r ? r.index : null]);
+  return r;
+};
+var it = 'a1b2'.matchAll(re);
+console.log(log.length);
+it.next();
+console.log(log.length);
+it.next();
+console.log(log.length);
+var last = it.next();
+console.log(last.done, log.length);
+it.next();
+console.log(log.length);
+RegExp.prototype.exec = origExec;
+console.log(JSON.stringify(log));
