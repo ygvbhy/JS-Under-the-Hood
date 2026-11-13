@@ -58,10 +58,14 @@ describe('본문 서술의 근거', () => {
     ).toBe('a,b')
   })
 
-  it('퀴즈: { b, 10, a, 9 }의 Object.keys는 ["9","10","b","a"]', () => {
-    expect(runInNewContext('JSON.stringify(Object.keys({ b: 0, 10: 0, a: 0, 9: 0 }))')).toBe(
-      '["9","10","b","a"]',
-    )
+  it("'-0'은 숫자로 바꾸면 -0이고, 그 -0을 다시 문자열로 바꾸면 '0'이다", () => {
+    expect(runInNewContext("Object.is(Number('-0'), -0)")).toBe(true)
+    expect(runInNewContext("String(Number('-0'))")).toBe('0')
+  })
+
+  it('JSON.stringify는 replacer 배열이 없으면 키 순서를, 있으면 배열의 순서를 따른다', () => {
+    expect(runInNewContext('JSON.stringify({ a: 1, b: 2 })')).toBe('{"a":1,"b":2}')
+    expect(runInNewContext("JSON.stringify({ a: 1, b: 2 }, ['b', 'a'])")).toBe('{"b":2,"a":1}')
   })
 
   it('delete 뒤 다시 만든 배열 인덱스 키는 숫자 크기 자리로 돌아간다', () => {

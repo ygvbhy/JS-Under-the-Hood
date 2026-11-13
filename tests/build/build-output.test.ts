@@ -1432,7 +1432,7 @@ describe('시뮬레이터 프리렌더 (property-order)', () => {
   })
 
   it('퀴즈 정답이 <details>로 프리렌더된다', () => {
-    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(6)
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(5)
   })
 })
 

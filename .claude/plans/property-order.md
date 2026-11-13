@@ -221,7 +221,7 @@
 
 ### 후속 작업
 
-- [ ] (선택) 남긴 Low 5건 정리
+- [x] (선택) 남긴 Low 5건 정리 — `.claude/plans/property-order-low-followups.md`에서 완료(2026-11-13)
 - [ ] (선택) array-index-length 예제 4 문장에서 새 페이지로 링크(9절)
 
 ### 이해 확인
