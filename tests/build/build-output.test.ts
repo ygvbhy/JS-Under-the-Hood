@@ -1052,6 +1052,27 @@ describe('프리렌더 (data-types)', () => {
   })
 })
 
+// strict-mode의 변화 표와 퀴즈, 이스케이프 지시어 설명도 프리렌더 HTML에 정적으로 들어 있어야 한다.
+describe('프리렌더 (strict-mode)', () => {
+  const html = read('concepts/strict-mode/index.html')
+
+  it('퀴즈 정답이 <details>로 3개 이상 프리렌더된다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(3)
+  })
+
+  it('본문의 변화 표가 <table>로 프리렌더되고 자세히 칸 링크가 표 안에 있다', () => {
+    expect(html.match(/<table/g)?.length).toBeGreaterThanOrEqual(2)
+    expect(html).toMatch(/<th[^>]*>\s*바뀌는 것\s*<\/th>/)
+    expect(html).toMatch(/<th[^>]*>\s*sloppy mode 결과\s*<\/th>/)
+    expect(html).toMatch(/<th[^>]*>\s*strict mode 결과\s*<\/th>/)
+    expect(html).toMatch(/<td[^>]*>\s*<a[^>]*href="\/concepts\/block-scope"/)
+  })
+
+  it('이스케이프 지시어 인라인 코드의 백슬래시가 HTML에 그대로 있다', () => {
+    expect(html).toContain('use\\u0020strict')
+  })
+})
+
 describe('프리렌더 (symbol)', () => {
   const html = read('concepts/symbol/index.html')
   const text = htmlToText(html)

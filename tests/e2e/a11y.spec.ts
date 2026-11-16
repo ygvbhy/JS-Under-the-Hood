@@ -102,6 +102,7 @@ import {
   TYPEOF_PATH,
   VARIABLE_DECLARATION_PATH,
   DATA_TYPES_PATH,
+  STRICT_MODE_PATH,
   EXPRESSIONS_STATEMENTS_PATH,
   waitForHydration,
 } from './helpers'
@@ -865,6 +866,13 @@ for (const colorScheme of ['light', 'dark'] as const) {
 
     test('개념 페이지: 데이터 타입', async ({ page }) => {
       await page.goto(DATA_TYPES_PATH)
+      await waitForHydration(page)
+      await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
+      await expectNoSeriousViolations(page)
+    })
+
+    test('개념 페이지: strict mode', async ({ page }) => {
+      await page.goto(STRICT_MODE_PATH)
       await waitForHydration(page)
       await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
       await expectNoSeriousViolations(page)

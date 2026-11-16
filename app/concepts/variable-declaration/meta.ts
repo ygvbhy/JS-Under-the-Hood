@@ -34,6 +34,7 @@ export const concept = {
     'typeof-operator',
     'global-object',
     'es-modules',
+    'strict-mode',
   ],
   examples: [
     {
@@ -65,7 +66,7 @@ export const concept = {
     'typeof는 typeof 연산자 개념에서, 재할당과 객체 변경의 차이는 원시 값과 객체 개념에서 다룹니다.',
     '재할당은 명세 용어가 아닙니다. 명세에서는 할당과 재할당이 같은 PutValue 동작입니다. 이 페이지는 이미 할당한 변수에 다시 할당하는 경우를 재할당이라고 부릅니다.',
     '식별자에 쓸 수 있는 글자는 유니코드 ID_Start(첫 글자)·ID_Continue(둘째 글자부터) 속성을 단순화한 말입니다. 둘째 글자부터는 숫자 말고도 결합 문자 같은 글자를 쓸 수 있습니다. 유니코드 이스케이프로 쓴 식별자는 다루지 않습니다.',
-    'strict mode에서만 막히는 이름은 let만 예로 듭니다. let은 let·const 선언의 이름으로는 strict mode가 아니어도 쓸 수 없습니다. 예약어 목록의 await와 yield는 문맥에 따라 식별자로 쓸 수 있으며 다루지 않습니다. strict mode는 별도 개념으로 다룹니다.',
+    'strict mode에서만 막히는 이름은 let만 예로 듭니다. let은 let·const 선언의 이름으로는 strict mode가 아니어도 쓸 수 없습니다. 예약어 목록의 await와 yield는 문맥에 따라 식별자로 쓸 수 있으며 다루지 않습니다. strict mode와 strict mode에서만 막히는 나머지 이름은 strict mode 개념에서 다룹니다.',
     '예제의 console.log는 값을 출력하는 호스트 API이며 ECMAScript 언어의 일부가 아닙니다.',
   ],
   references: [
