@@ -33,7 +33,14 @@ export const concept = {
     { label: '프로퍼티 어트리뷰트와 접근자', slug: 'property-attributes' },
     { label: '암묵적 타입 변환', slug: 'type-coercion' },
   ],
-  related: ['block-scope', 'execution-context', 'this-binding', 'hoisting', 'error-handling'],
+  related: [
+    'block-scope',
+    'execution-context',
+    'this-binding',
+    'hoisting',
+    'error-handling',
+    'strict-mode',
+  ],
   examples: [
     {
       id: 'builtin-lookup',

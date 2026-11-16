@@ -41,6 +41,7 @@ export const concept = {
     'this-binding',
     'error-handling',
     'global-object',
+    'strict-mode',
   ],
   examples: [
     {

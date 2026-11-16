@@ -49,6 +49,7 @@ export const concept = {
     'promise',
     'global-object',
     'iife-module-pattern',
+    'strict-mode',
   ],
   examples: [
     {

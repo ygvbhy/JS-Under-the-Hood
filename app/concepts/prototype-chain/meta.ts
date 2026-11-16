@@ -40,6 +40,7 @@ export const concept = {
     'class-inheritance',
     'primitive-methods',
     'property-order',
+    'strict-mode',
   ],
   examples: [
     {

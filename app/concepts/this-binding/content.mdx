@@ -23,7 +23,7 @@ import { scenarios } from './scenarios'
 
 thisArg가 정해지면 함수가 불리면서 OrdinaryCallBindThis가 함수가 실제로 받는 `this`를 정합니다. 이것은 부르는 쪽이 아니라 불린 함수의 종류가 정합니다.
 
-- strict mode 함수는 thisArg를 그대로 `this`로 받습니다.
+- [strict mode](/concepts/strict-mode) 함수는 thisArg를 그대로 `this`로 받습니다.
 - sloppy mode 함수는 thisArg가 객체이면 그대로 받고, `undefined`나 `null`이면 전역 객체를 받고, 원시 값이면 그 값을 객체(래퍼 객체)로 바꿔 받습니다. 원시 값을 객체로 바꾸는 규칙은 [원시 값의 메서드 호출](/concepts/primitive-methods)에서 설명합니다.
 - 화살표 함수는 `this`를 받지 않습니다. thisArg가 무엇이든 쓰이지 않고, 자기 바깥의 `this`를 씁니다. 자세한 동작은 아래 화살표 함수 절에서 봅니다.
 

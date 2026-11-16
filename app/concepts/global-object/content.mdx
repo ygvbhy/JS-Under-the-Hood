@@ -81,7 +81,7 @@ import { globalProps } from './global-props'
 
 ### 읽기 전용 undefined·NaN·Infinity
 
-전역 객체의 `undefined`, `NaN`, `Infinity` 프로퍼티는 writable도 configurable도 `false`입니다. 그래서 값을 바꿀 수 없고 지울 수도 없습니다. strict mode가 아닌 코드(흔히 sloppy mode라 부르며, 명세 용어는 non-strict code입니다)에서 대입하면 아무 일도 일어나지 않고 지나갑니다. `delete globalThis.undefined`는 오류 없이 `false`를 돌려줍니다(예제 4). strict mode에서는 대입이 TypeError입니다(예제 5).
+전역 객체의 `undefined`, `NaN`, `Infinity` 프로퍼티는 writable도 configurable도 `false`입니다. 그래서 값을 바꿀 수 없고 지울 수도 없습니다. [strict mode](/concepts/strict-mode)가 아닌 코드(흔히 sloppy mode라 부르며, 명세 용어는 non-strict code입니다)에서 대입하면 아무 일도 일어나지 않고 지나갑니다. `delete globalThis.undefined`는 오류 없이 `false`를 돌려줍니다(예제 4). strict mode에서는 대입이 TypeError입니다(예제 5).
 
 `undefined`는 예약어가 아니라 전역 객체의 프로퍼티일 뿐입니다. 그래서 스코프에 따라 선언할 수 있느냐가 갈립니다. 전역 코드에서 `let`·`const`·`class`로 `undefined`·`NaN`·`Infinity`를 선언하면, 전역 코드의 선언 처리(GlobalDeclarationInstantiation)의 HasRestrictedGlobalProperty 검사에서 SyntaxError가 납니다. 이 검사가 보는 것은 쓰기 가능 여부가 아니라 전역 객체의 그 프로퍼티가 configurable `false`인지입니다. `Math`는 configurable이 `true`라서 전역 `let Math`가 허용되고(예제 2), 앞서 실행한 다른 스크립트의 전역 `var`가 만든 프로퍼티는 configurable `false`라서 같은 이름을 `let`으로 선언하는 스크립트도 SyntaxError입니다. 실행 전에 일어나는 오류라서 그 스크립트의 어떤 줄도 실행되지 않습니다. 이 오류는 스크립트 전체를 실행하지 못하게 하므로 예제 파일로는 보일 수 없습니다. 함수 안에서는 선언할 수 있습니다. 함수 자신의 환경 레코드에 새 바인딩이 만들어지기 때문입니다(예제 6).
 

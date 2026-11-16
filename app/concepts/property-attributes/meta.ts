@@ -33,7 +33,7 @@ export const concept = {
     { label: '원시 값과 객체', slug: 'primitives-and-objects' },
     { label: 'TDZ', slug: 'tdz' },
   ],
-  related: ['error-handling', 'this-binding', 'prototype-chain'],
+  related: ['error-handling', 'this-binding', 'prototype-chain', 'strict-mode'],
   examples: [
     {
       id: 'descriptor',

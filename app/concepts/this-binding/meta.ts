@@ -43,6 +43,7 @@ export const concept = {
     'array-index-length',
     'event-propagation-delegation',
     'timers',
+    'strict-mode',
   ],
   examples: [
     {

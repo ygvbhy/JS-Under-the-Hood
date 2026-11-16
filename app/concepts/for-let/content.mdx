@@ -33,7 +33,7 @@ import { scenarios } from './scenarios'
 
 ### 머리의 const
 
-머리가 `const`이면 반복마다 새로 만들 이름의 목록이 비어 있습니다. 그래서 반복 레코드가 만들어지지 않고 머리 레코드 하나를 계속 씁니다. 바인딩은 불변이라서, 첫 반복의 본문이 끝난 뒤 증가식 `i++`가 `i`에 값을 대입하려 하면 TypeError가 납니다. const 바인딩에 대한 대입은 strict mode가 아닌 코드(흔히 sloppy mode라 부르며, 명세 용어는 non-strict code입니다)에서도 항상 TypeError입니다(SetMutableBinding). 증가식이 없고 본문에서 `break`로 나가는 `for` 문이라면 대입이 일어나지 않으므로 오류가 나지 않습니다.
+머리가 `const`이면 반복마다 새로 만들 이름의 목록이 비어 있습니다. 그래서 반복 레코드가 만들어지지 않고 머리 레코드 하나를 계속 씁니다. 바인딩은 불변이라서, 첫 반복의 본문이 끝난 뒤 증가식 `i++`가 `i`에 값을 대입하려 하면 TypeError가 납니다. const 바인딩에 대한 대입은 [strict mode](/concepts/strict-mode)가 아닌 코드(흔히 sloppy mode라 부르며, 명세 용어는 non-strict code입니다)에서도 항상 TypeError입니다(SetMutableBinding). 증가식이 없고 본문에서 `break`로 나가는 `for` 문이라면 대입이 일어나지 않으므로 오류가 나지 않습니다.
 
 ### 초기화식 안의 함수
 

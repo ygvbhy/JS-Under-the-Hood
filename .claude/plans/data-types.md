@@ -348,8 +348,8 @@
 - 남긴 Low: null 문장의 규범적 어감, Boolean 문장 인과, 코드 유닛 나열 표현, var 바인딩 패턴 생략, concept.test 일부 증거력.
 
 ### 후속 작업
-- [ ] spread-destructuring: ES2025 4.4 정의를 인용하면서 현재 초안 6.1로 가는 옛 id를 링크한다(인용 판 불일치).
-- [ ] variable-declaration: "예제 출력도 `<script>` 조건으로 실행해 확인"(실제는 Node vm) 문구와 느슨한 클래식 스크립트 정의("type=module이 아닌 script").
+- [x] spread-destructuring: ES2025 4.4 정의를 인용하면서 현재 초안 6.1로 가는 옛 id를 링크한다(인용 판 불일치). → `strict-links-and-wording-followups.md`에서 처리
+- [x] variable-declaration: "예제 출력도 `<script>` 조건으로 실행해 확인"(실제는 Node vm) 문구와 느슨한 클래식 스크립트 정의("type=module이 아닌 script"). → `strict-links-and-wording-followups.md`에서 처리
 - [ ] 위 Low 지적 정리(선택), typeof-operator·spread-destructuring 본문의 역방향 링크, expressions-statements 단순화의 템플릿 리터럴 언급.
 
 ### 이해 확인

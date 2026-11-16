@@ -32,7 +32,7 @@ export const concept = {
     { label: '호이스팅', slug: 'hoisting' },
     { label: '원시 값과 객체', slug: 'primitives-and-objects' },
   ],
-  related: ['for-let', 'global-object', 'execution-context', 'tdz'],
+  related: ['for-let', 'global-object', 'execution-context', 'tdz', 'strict-mode'],
   examples: [
     {
       id: 'block-var-let',

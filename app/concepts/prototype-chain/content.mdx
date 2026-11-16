@@ -53,7 +53,7 @@ ECMAScript 명세에서 일반 객체(ordinary object)는 `[[Prototype]]`이라�
 
 대입이 항상 자기 프로퍼티를 만드는 것은 아닙니다. 체인에서 처음 만난 프로퍼티가 대입을 막거나 가로챌 수 있습니다.
 
-- 상속된 데이터 프로퍼티가 `writable: false`이면 대입은 실패하고 자기 프로퍼티는 생기지 않습니다. 실패는 sloppy mode에서는 조용히 무시되고(예제 6), strict mode에서는 TypeError입니다.
+- 상속된 데이터 프로퍼티가 `writable: false`이면 대입은 실패하고 자기 프로퍼티는 생기지 않습니다. 실패는 sloppy mode에서는 조용히 무시되고(예제 6), [strict mode](/concepts/strict-mode)에서는 TypeError입니다.
 - 상속된 접근자 프로퍼티에 setter가 있으면 대입은 setter를 호출하고, 자기 프로퍼티는 생기지 않습니다(예제 7).
 - 상속된 접근자 프로퍼티에 getter만 있고 setter가 없으면 대입은 실패합니다. sloppy mode에서는 무시되어 읽으면 getter 값이 그대로이고, strict mode에서는 TypeError입니다.
 

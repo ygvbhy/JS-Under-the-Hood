@@ -30,7 +30,14 @@ export const concept = {
     { label: 'new 연산자', slug: 'new-operator' },
     { label: '실행 컨텍스트', slug: 'execution-context' },
   ],
-  related: ['class-basics', 'prototype-chain', 'new-operator', 'this-binding', 'error-handling'],
+  related: [
+    'class-basics',
+    'prototype-chain',
+    'new-operator',
+    'this-binding',
+    'error-handling',
+    'strict-mode',
+  ],
   examples: [
     {
       id: 'construct-derived',

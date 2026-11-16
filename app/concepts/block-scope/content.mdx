@@ -23,7 +23,7 @@ import { scenarios } from './scenarios'
 
 ### const
 
-`const`는 선언할 때 값을 함께 줘야 합니다. `const c;`는 SyntaxError입니다. `for…in`·`for…of` 문의 머리에 쓰는 `const`는 반복마다 값이 들어가므로 예외입니다(`for…in`은 [for 문의 let](/concepts/for-let)에서 다루고 `for…of`는 별도 개념에서 다룹니다). 선언한 뒤 같은 이름에 다시 대입하면(재할당) TypeError입니다. 이 TypeError는 strict mode가 아니어도 납니다. 명세가 `const` 바인딩을 항상 strict로 다루기 때문입니다(SetMutableBinding). 다만 재할당과, 바인딩의 값인 객체를 변경하는 것은 다른 동작입니다. 재할당은 막히지만 `const`에 담은 객체의 프로퍼티를 바꾸는 것은 막히지 않습니다. 재할당과 변경의 차이는 [원시 값과 객체](/concepts/primitives-and-objects)에서 다뤘습니다.
+`const`는 선언할 때 값을 함께 줘야 합니다. `const c;`는 SyntaxError입니다. `for…in`·`for…of` 문의 머리에 쓰는 `const`는 반복마다 값이 들어가므로 예외입니다(`for…in`은 [for 문의 let](/concepts/for-let)에서 다루고 `for…of`는 별도 개념에서 다룹니다). 선언한 뒤 같은 이름에 다시 대입하면(재할당) TypeError입니다. 이 TypeError는 [strict mode](/concepts/strict-mode)가 아니어도 납니다. 명세가 `const` 바인딩을 항상 strict로 다루기 때문입니다(SetMutableBinding). 다만 재할당과, 바인딩의 값인 객체를 변경하는 것은 다른 동작입니다. 재할당은 막히지만 `const`에 담은 객체의 프로퍼티를 바꾸는 것은 막히지 않습니다. 재할당과 변경의 차이는 [원시 값과 객체](/concepts/primitives-and-objects)에서 다뤘습니다.
 
 ### 암묵적 전역
 
@@ -35,7 +35,7 @@ import { scenarios } from './scenarios'
 
 ### 실행 방식에 따라 달라지는 것
 
-이 페이지는 strict mode가 아닌 클래식 스크립트를 기준으로 하며, 예제의 출력도 클래식 스크립트로 실행해 확인했습니다. ES 모듈은 항상 strict mode이고, Node.js가 CommonJS로 실행하는 파일은 코드를 함수로 감싸 실행하므로 맨 바깥 코드가 그 함수의 스코프에서 실행됩니다. 예제 4, 5, 6의 결과는 실행 방식에 따라 다릅니다.
+이 페이지는 strict mode가 아닌 클래식 스크립트를 기준으로 합니다. 예제의 출력은 Node의 `vm` 모듈에서 모듈이 아닌 스크립트(Script)로 실행한 결과이고, 브라우저의 클래식 스크립트에 해당합니다. ES 모듈은 항상 strict mode이고, Node.js가 CommonJS로 실행하는 파일은 코드를 함수로 감싸 실행하므로 맨 바깥 코드가 그 함수의 스코프에서 실행됩니다. 예제 4, 5, 6의 결과는 실행 방식에 따라 다릅니다.
 
 <table>
   <thead>

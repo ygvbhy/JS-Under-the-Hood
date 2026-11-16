@@ -22,9 +22,9 @@ export const concept = {
   ],
   goals: [
     'matchAll의 결과가 배열이 아니라 이터레이터임을 판별하고, 끝까지 꺼낸 뒤 다시 꺼내면 비어 있는 이유를 [[Done]]으로 설명할 수 있다.',
-    'matchAll이 호출될 때 원래 정규식의 패턴과 flags로 새 정규식을 만들고 lastIndex를 그 새 정규식에 옮긴 뒤 이터레이터만 돌려주므로, 원래 lastIndex가 바뀌지 않고 검색이 next마다 일어나는 것을 예측할 수 있다.',
+    'matchAll이 호출될 때 원래 정규식의 패턴과 flags로 새 정규식을 만들고 lastIndex 값을 그 새 정규식의 lastIndex에 대입한 뒤 이터레이터만 돌려주므로, 원래 lastIndex가 바뀌지 않고 검색이 next마다 일어나는 것을 예측할 수 있다.',
     'next의 갈래([[Done]]이 true일 때, exec가 null일 때, 매치이고 [[Global]]이 false일 때, 매치이고 [[Global]]이 true일 때)와 빈 매치에서 exec와 next가 lastIndex를 각각 어떻게 바꾸는지 설명할 수 있다.',
-    'g가 없는 정규식은 호출만으로 TypeError인 것, 문자열 인수와 인수 생략이 g 정규식이 되는 것, gy가 이어지지 않는 위치에서 멈추는 것, break가 이터레이터를 닫지 않는 것을 예측할 수 있다.',
+    'g가 없는 정규식은 호출만으로 TypeError인 것, 문자열 인수와 인수 생략이 g 정규식이 되는 것, gy가 이어지지 않는 위치에서 멈추는 것, break한 뒤에도 남은 매치를 이어서 꺼낼 수 있는 것을 예측할 수 있다.',
   ],
   prerequisites: [
     { label: '정규 표현식의 g 플래그', slug: 'regexp-lastindex' },
@@ -87,7 +87,7 @@ export const concept = {
   ],
   simplifications: [
     '정규 표현식의 패턴 문법(예제의 [0-9], (?=[0-9]), (?:), 캡처 그룹과 이름 있는 그룹 문법)은 다루지 않습니다. 예제의 패턴은 결과를 확인하는 용도입니다.',
-    "'복제본'은 이 페이지가 쓰는 호칭입니다. 명세의 용어가 아니라, Symbol.matchAll 메서드가 Construct로 원래 정규식의 패턴과 flags를 가진 새 정규식을 만들고 lastIndex만 따로 Set으로 옮긴다는 동작을 가리킵니다. 원래 정규식의 다른 자기 프로퍼티는 옮기지 않습니다. 새 정규식을 만드는 생성자를 고르는 SpeciesConstructor와 RegExp를 상속한 클래스는 다루지 않습니다.",
+    "'복제본'은 이 페이지가 쓰는 호칭입니다. 명세의 용어가 아니라, Symbol.matchAll 메서드가 Construct로 원래 정규식의 패턴과 flags를 가진 새 정규식을 만들고 lastIndex 값만 따로 Set으로 대입한다는 동작을 가리킵니다. 원래 정규식의 다른 자기 프로퍼티는 옮기지 않습니다. 새 정규식을 만드는 생성자를 고르는 SpeciesConstructor와 RegExp를 상속한 클래스는 다루지 않습니다.",
     'matchAll의 첫 인수는 g 플래그가 있는 정규식, g가 없는 정규식, 문자열, 생략한 경우만 다룹니다. 그 밖의 경로는 다루지 않습니다: 정규식이 아니어도 Symbol.matchAll 메서드를 가진 객체는(Symbol.match 값이 참 같은 값이 아니면) g 검사 없이 그 메서드에 맡겨지고, null은 문자열 "null"을 패턴으로 하는 g 정규식이 되며, 그 밖의 값도 문자열로 바뀌어 패턴이 되고, Symbol.match를 undefined가 아닌 거짓 같은 값(false, null, 0 등)으로 바꾼 정규식은 g 검사를 건너뜁니다(undefined이면 정규식으로 판정되어 g 검사를 그대로 거칩니다).',
     'Symbol.matchAll은 well-known 심벌이며, well-known 심벌은 심벌 개념에서 다룹니다. match와 search가 심벌 메서드에 일을 넘기는 방식은 다루지 않습니다.',
     'matchAll이 돌려주는 이터레이터는 %Iterator.prototype%을 상속하므로 ES2025에 추가된 이터레이터 헬퍼(map, toArray 등)도 쓸 수 있지만, 이 페이지는 헬퍼를 다루지 않습니다.',

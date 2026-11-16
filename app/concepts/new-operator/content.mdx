@@ -34,7 +34,7 @@ ECMAScript 명세는 동작을 설명할 때 `[[ ]]`로 감싼 이름을 씁니�
 
 ### new 없이 호출하면
 
-`Book('JS')`처럼 `new` 없이 부르면 `[[Call]]`이 실행되어 새 객체가 만들어지지 않습니다. 이때 `this`는 이 호출 형태(프로퍼티 참조가 아닌 호출)에서 `undefined`로 시작합니다. 이후는 호출된 함수의 코드가 strict mode인지에 따라 갈립니다.
+`Book('JS')`처럼 `new` 없이 부르면 `[[Call]]`이 실행되어 새 객체가 만들어지지 않습니다. 이때 `this`는 이 호출 형태(프로퍼티 참조가 아닌 호출)에서 `undefined`로 시작합니다. 이후는 호출된 함수의 코드가 [strict mode](/concepts/strict-mode)인지에 따라 갈립니다.
 
 - strict mode가 아닌 코드(흔히 sloppy mode라 부르며, 명세 용어는 non-strict code입니다)로 작성된 함수에서는 `this`가 `undefined`이면 전역 객체로 바뀝니다. 그래서 `this.title = title`은 전역 객체에 프로퍼티를 만들고, 호출의 결과는 `return` 값이며 `return`이 없으면 `undefined`입니다(예제 5).
 - strict mode에서는 `this`가 `undefined` 그대로여서 `this.title = title`이 TypeError를 던집니다. 그 줄에서 멈추므로 전역 프로퍼티도 생기지 않습니다(예제 6).

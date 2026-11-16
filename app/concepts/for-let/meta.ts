@@ -30,7 +30,14 @@ export const concept = {
     { label: '블록 스코프', slug: 'block-scope' },
     { label: '실행 컨텍스트', slug: 'execution-context' },
   ],
-  related: ['closure', 'block-scope', 'execution-context', 'iterable-for-of', 'error-handling'],
+  related: [
+    'closure',
+    'block-scope',
+    'execution-context',
+    'iterable-for-of',
+    'error-handling',
+    'strict-mode',
+  ],
   examples: [
     { id: 'var-loop', file: 'var-loop.js', runtime: 'ecmascript', expectedOutput: ['3 3 3'] },
     { id: 'let-loop', file: 'let-loop.js', runtime: 'ecmascript', expectedOutput: ['0 1 2'] },

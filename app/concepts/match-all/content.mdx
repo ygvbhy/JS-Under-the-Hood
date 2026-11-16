@@ -169,7 +169,7 @@ import { scenarios } from './scenarios'
   explanation="g가 없는 정규식은 y만 있어도 호출하는 순간 TypeError입니다. 문자열 인수는 패턴이라 1번과 3번 칸의 숫자에 매치하고, 인수 생략은 모든 위치의 빈 매치입니다. gy는 이어지지 않는 위치에서 멈춰 index 0만 나오고, u 플래그가 없으면 서로게이트 쌍 가운데인 1에서도 빈 매치가 납니다."
 />
 
-### 예제 7: break해도 이터레이터는 닫히지 않는다
+### 예제 7: break한 뒤에도 남은 매치를 꺼낼 수 있다
 
 ```js file=./examples/break-resume.js
 
@@ -191,7 +191,7 @@ import { scenarios } from './scenarios'
 
 ### 예제 1
 
-1번 줄의 `re`는 `lastIndex`가 `0`인 `g` 정규식입니다. 2번 줄의 `matchAll`은 `re`의 패턴과 flags를 가진 복제본을 만들고 `re.lastIndex`(`0`)를 복제본에 옮긴 뒤 이터레이터만 돌려주며, 검색은 하지 않습니다. 3번 줄의 첫 `next`는 복제본에 `exec`를 한 번 불러 `lastIndex` `0`부터 찾고, 1번 칸의 `1`에 매치해 복제본의 `lastIndex`를 `2`로 바꿉니다. 4번 줄의 `r1.value[0]`은 `1`, `index`는 `1`, `done`은 `false`이고, 검색은 복제본에서 일어났으므로 `re.lastIndex`는 `0`이어서 `1 1 false 0`입니다. 만약 `matchAll`이 `re`로 검색했다면 여기서 `re.lastIndex`가 `2`였을 것입니다. 5번 줄의 두 번째 `next`는 복제본의 `lastIndex` `2`부터 찾아 3번 칸의 `22`에 매치하므로 6번 줄은 `22 3 false`입니다. 7번 줄의 세 번째 `next`는 복제본이 `5`(문자열 끝)에서 시작해 매치가 없어 `null`이 되고, `[[Done]]`을 `true`로 바꾸며 `value`가 `undefined`, `done`이 `true`인 결과를 돌려주어 8번 줄은 `undefined true`입니다. 9번 줄의 네 번째 `next`는 `[[Done]]`이 `true`라서 `exec`를 부르지 않고 끝을 돌려주고, 10번 줄은 `r4.done`이 `true`, `re.lastIndex`가 `0`이라 `true 0`입니다.
+1번 줄의 `re`는 `lastIndex`가 `0`인 `g` 정규식입니다. 2번 줄의 `matchAll`은 `re`의 패턴과 flags를 가진 복제본을 만들고 `re.lastIndex` 값(`0`)을 복제본의 `lastIndex`에 대입한 뒤 이터레이터만 돌려주며, 검색은 하지 않습니다. 3번 줄의 첫 `next`는 복제본에 `exec`를 한 번 불러 `lastIndex` `0`부터 찾고, 1번 칸의 `1`에 매치해 복제본의 `lastIndex`를 `2`로 바꿉니다. 4번 줄의 `r1.value[0]`은 `1`, `index`는 `1`, `done`은 `false`이고, 검색은 복제본에서 일어났으므로 `re.lastIndex`는 `0`이어서 `1 1 false 0`입니다. 만약 `matchAll`이 `re`로 검색했다면 여기서 `re.lastIndex`가 `2`였을 것입니다. 5번 줄의 두 번째 `next`는 복제본의 `lastIndex` `2`부터 찾아 3번 칸의 `22`에 매치하므로 6번 줄은 `22 3 false`입니다. 7번 줄의 세 번째 `next`는 복제본이 `5`(문자열 끝)에서 시작해 매치가 없어 `null`이 되고, `[[Done]]`을 `true`로 바꾸며 `value`가 `undefined`, `done`이 `true`인 결과를 돌려주어 8번 줄은 `undefined true`입니다. 9번 줄의 네 번째 `next`는 `[[Done]]`이 `true`라서 `exec`를 부르지 않고 끝을 돌려주고, 10번 줄은 `r4.done`이 `true`, `re.lastIndex`가 `0`이라 `true 0`입니다.
 
 ### 예제 2
 
@@ -215,7 +215,7 @@ import { scenarios } from './scenarios'
 
 ### 예제 7
 
-2번 줄의 `for...of`는 첫 `next`로 매치 `1`을 받아 3번 줄이 `1`을 출력하고, 4번 줄의 `break`로 끝납니다. IteratorClose는 이터레이터의 `return` 메서드를 찾지만 이 이터레이터에는 없어서 아무 일도 하지 않고, 6번 줄의 `typeof it.return`은 `undefined`입니다. 이터레이터는 닫히지 않았으므로 7번 줄의 스프레드가 남은 매치를 이어서 꺼냅니다. 복제본의 `lastIndex`는 첫 매치 뒤의 `2`이고, 거기서부터 찾아 3번 칸의 문자 `2`에 매치하므로 `rest`는 `["2"]`이고, 10번 줄은 `["2"]`를 출력합니다.
+2번 줄의 `for...of`는 첫 `next`로 매치 `1`을 받아 3번 줄이 `1`을 출력하고, 4번 줄의 `break`로 끝납니다. IteratorClose는 이터레이터의 `return` 메서드를 찾지만 이 이터레이터에는 없어서 아무 일도 하지 않고, 6번 줄의 `typeof it.return`은 `undefined`입니다. 이터레이터의 상태는 그대로이므로 7번 줄의 스프레드가 남은 매치를 이어서 꺼냅니다. 복제본의 `lastIndex`는 첫 매치 뒤의 `2`이고, 거기서부터 찾아 3번 칸의 문자 `2`에 매치하므로 `rest`는 `["2"]`이고, 10번 줄은 `["2"]`를 출력합니다.
 
 ### 흔한 오해
 
@@ -227,7 +227,7 @@ import { scenarios } from './scenarios'
 
 <Callout type="misconception" title="matchAll을 부르면 원래 정규식의 lastIndex가 바뀐다">
 
-`g` 정규식의 `exec`는 `lastIndex`를 읽고 바꾸지만 `matchAll`은 원래 정규식으로 검색하지 않습니다. 호출하는 순간 원래 정규식의 패턴과 flags로 복제본을 만들고 `lastIndex`를 그 복제본에 옮길 뿐, 이후 검색은 복제본에서만 일어납니다. 그래서 원래 `lastIndex`는 바뀌지 않고(예제 1, 예제 5), 호출 전에 `lastIndex`를 `2`로 바꿔 두면 복제본이 그 값부터 찾습니다(예제 5).
+`g` 정규식의 `exec`는 `lastIndex`를 읽고 바꾸지만 `matchAll`은 원래 정규식으로 검색하지 않습니다. 호출하는 순간 원래 정규식의 패턴과 flags로 복제본을 만들고 `lastIndex` 값을 그 복제본의 `lastIndex`에 대입할 뿐, 이후 검색은 복제본에서만 일어납니다. 그래서 원래 `lastIndex`는 바뀌지 않고(예제 1, 예제 5), 호출 전에 `lastIndex`를 `2`로 바꿔 두면 복제본이 그 값부터 찾습니다(예제 5).
 
 </Callout>
 

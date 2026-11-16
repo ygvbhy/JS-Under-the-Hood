@@ -230,9 +230,9 @@
 
 ### 후속 작업
 
-- [ ] (선택) regexp-lastindex `content.mdx:55` 근처 '빈 문자열에 매치하면 lastIndex가 원래 값 그대로'가 일반 규칙으로 읽히지 않게 한정(계획 검토 Critic 지적)
-- [ ] (선택) regexp-lastindex 흔한 오해 3의 '정규 표현식을 복제해 쓰므로'를 '패턴과 flags로 새 정규식을 만들어'로
-- [ ] (선택) 남긴 Low 2건(match-all의 '옮긴다' 동사, '닫히지 않는다' 제목)
+- [x] (선택) regexp-lastindex `content.mdx:55` 근처 '빈 문자열에 매치하면 lastIndex가 원래 값 그대로'가 일반 규칙으로 읽히지 않게 한정(계획 검토 Critic 지적) → `strict-links-and-wording-followups.md`에서 처리
+- [x] (선택) regexp-lastindex 흔한 오해 3의 '정규 표현식을 복제해 쓰므로'를 '패턴과 flags로 새 정규식을 만들어'로 → `strict-links-and-wording-followups.md`에서 처리
+- [x] (선택) 남긴 Low 2건(match-all의 '옮긴다' 동사, '닫히지 않는다' 제목) → `strict-links-and-wording-followups.md`에서 처리
 
 ### 이해 확인
 

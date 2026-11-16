@@ -66,7 +66,7 @@ vercel.json, serve.json          # 배포 설정, 로컬 정적 서빙 설정
 
 - 출력 결과를 주장하는 예제는 반드시 `examples/`에 `*.js` 또는 `*.html` 파일로 두고 `meta.examples`에 등록한다. 본문의 코드 블록은 `file=` 문법으로 그 파일을 가져온다(복붙 금지).
 - `console.log`에는 원시 값, 불리언, `JSON.stringify` 결과만 넘긴다. 객체를 직접 출력하지 않는다(호스트마다 출력 형식이 다르다).
-- `runtime: 'ecmascript'` 예제는 Node `vm`에서 스크립트로 실행된다(예제마다 새 컨텍스트, 2초 제한). 기본은 sloppy mode이고, strict mode 동작을 보이려면 파일 첫 줄에 `'use strict';`를 쓴다. 이 지시어 없이 strict/sloppy에 따라 결과가 달라지는 예제는 쓰지 않는다. 타이머·DOM 등 호스트 API는 이 런타임에서 쓰지 않는다. Promise 콜백(microtask)은 평가 직후 같은 제한 시간 안에서 실행되어 출력이 수집된다(`microtaskMode: 'afterEvaluate'`).
+- `runtime: 'ecmascript'` 예제는 Node `vm`에서 스크립트로 실행된다(예제마다 새 컨텍스트, 2초 제한). 기본은 sloppy mode이고, strict mode 동작을 보이려면 파일 첫 줄(함수 하나만 strict로 만들 때는 그 함수 본문 첫 줄)에 `'use strict';`를 쓴다. 지시어 없는 예제의 결과가 sloppy mode에 기대면(파일 첫 줄에 `'use strict';`를 붙였을 때 출력이 달라지거나 오류가 나면) 그 예제가 sloppy mode라는 전제와 strict mode·ES 모듈에서 달라지는 점을 본문이나 `meta.simplifications`에 밝힌다. 타이머·DOM 등 호스트 API는 이 런타임에서 쓰지 않는다. Promise 콜백(microtask)은 평가 직후 같은 제한 시간 안에서 실행되어 출력이 수집된다(`microtaskMode: 'afterEvaluate'`).
 - DOM·이벤트·타이머 같은 브라우저 호스트 동작은 `runtime: 'browser'` 예제로 쓰며, `npm test`가 Playwright Chromium에서 실제로 실행해 `expectedOutput`과 대조한다. 작성 규칙·실패 조건·제약은 [docs/content-guide.md](docs/content-guide.md)의 "브라우저 예제".
 - `app/concepts/*/examples/**`는 Prettier와 ESLint에서 제외한다. 시뮬레이터가 줄 번호(`line`)로 코드를 강조하므로 자동 포맷으로 줄이 바뀌면 안 된다.
 - `node:vm`은 보안 경계가 아니다. 저장소에 포함된 신뢰된 예제만 실행한다.

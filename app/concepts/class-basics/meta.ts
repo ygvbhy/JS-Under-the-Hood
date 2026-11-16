@@ -40,6 +40,7 @@ export const concept = {
     'class-inheritance',
     'arrow-functions',
     'error-handling',
+    'strict-mode',
   ],
   examples: [
     {

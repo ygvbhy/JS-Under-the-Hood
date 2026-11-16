@@ -44,6 +44,7 @@ export const concept = {
     'primitive-methods',
     'error-handling',
     'arrow-functions',
+    'strict-mode',
   ],
   examples: [
     {

@@ -31,7 +31,7 @@ ECMAScript 명세는 동작을 설명할 때 `[[ ]]`로 감싼 이름을 씁니�
 
 ### 막힌 대입과 삭제: sloppy는 무시, strict는 TypeError
 
-막힌 대입이나 `delete`는 오류 없이 실패할 수 있습니다. 명세에서 대입은 `[[Set]]`이 `false`를 돌려주면 실패이고, `delete`는 `[[Delete]]`가 `false`를 돌려주면 실패입니다. 이때 그 코드가 strict mode이면 TypeError를 던지고, 그렇지 않으면 값이 바뀌지 않을 뿐 오류도 나지 않습니다. strict mode가 아닌 코드를 흔히 sloppy mode라 부릅니다(명세에는 이 말이 없고 non-strict mode code라고 씁니다). sloppy mode에서 막힌 대입은 조용히 무시되고, `delete` 식은 `false`를 돌려줍니다. 무시된다는 것은 프로퍼티에 값이 들어가지 않는다는 뜻이며, 대입식의 오른쪽은 그대로 평가됩니다. 예를 들어 <code>{'item.code = next()'}</code>에서 `next()`는 호출됩니다. 예제 2는 sloppy mode, 예제 3은 첫 줄에 `'use strict';`를 둔 strict mode입니다(예제 3은 오류를 확인하려고 `try…catch`도 씁니다). 두 예제의 결과 차이는 모드에서 오므로, 이 페이지는 모드를 파일에 명시해 구분합니다.
+막힌 대입이나 `delete`는 오류 없이 실패할 수 있습니다. 명세에서 대입은 `[[Set]]`이 `false`를 돌려주면 실패이고, `delete`는 `[[Delete]]`가 `false`를 돌려주면 실패입니다. 이때 그 코드가 [strict mode](/concepts/strict-mode)이면 TypeError를 던지고, 그렇지 않으면 값이 바뀌지 않을 뿐 오류도 나지 않습니다. strict mode가 아닌 코드를 흔히 sloppy mode라 부릅니다(명세에는 이 말이 없고 non-strict code라고 씁니다). sloppy mode에서 막힌 대입은 조용히 무시되고, `delete` 식은 `false`를 돌려줍니다. 무시된다는 것은 프로퍼티에 값이 들어가지 않는다는 뜻이며, 대입식의 오른쪽은 그대로 평가됩니다. 예를 들어 <code>{'item.code = next()'}</code>에서 `next()`는 호출됩니다. 예제 2는 sloppy mode, 예제 3은 첫 줄에 `'use strict';`를 둔 strict mode입니다(예제 3은 오류를 확인하려고 `try…catch`도 씁니다). 두 예제의 결과 차이는 모드에서 오므로, 이 페이지는 모드를 파일에 명시해 구분합니다.
 
 같은 규칙이 다른 실패에도 적용됩니다. 확장할 수 없는 객체(아래 `preventExtensions`)에 새 프로퍼티를 추가하는 대입과, `get`만 있고 `set`이 없는 접근자 프로퍼티에 대한 대입도 sloppy mode에서는 무시되고 strict mode에서는 TypeError입니다.
 

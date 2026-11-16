@@ -171,12 +171,12 @@ export const concept = {
       url: 'https://tc39.es/ecma262/#sec-expression-statement',
     },
     {
-      label: 'ECMAScript 명세 — undefined value',
-      url: 'https://tc39.es/ecma262/#sec-undefined-value',
+      label: 'ECMAScript 명세 — The Undefined Type',
+      url: 'https://tc39.es/ecma262/#sec-ecmascript-language-types-undefined-type',
     },
     {
-      label: 'ECMAScript 명세 — null value',
-      url: 'https://tc39.es/ecma262/#sec-null-value',
+      label: 'ECMAScript 명세 — The Null Type',
+      url: 'https://tc39.es/ecma262/#sec-ecmascript-language-types-null-type',
     },
     {
       label: 'MDN — 전개 구문',

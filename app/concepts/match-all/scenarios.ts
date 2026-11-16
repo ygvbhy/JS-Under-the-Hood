@@ -113,7 +113,7 @@ const nextOneByOneSteps: MaStep[] = [
   {
     title: "'a1b22'.matchAll(re): 새 정규 표현식과 이터레이터를 만들고 검색은 하지 않음",
     explanation:
-      "re는 g 플래그가 있어서 matchAll의 g 검사를 통과하고, 일은 re의 Symbol.matchAll 메서드로 넘어갑니다. 이 메서드는 re의 패턴과 flags로 새 정규 표현식(이 페이지는 복제본이라 부름)을 만들고, re의 lastIndex(0)를 그 복제본에 옮긴 뒤, 복제본과 문자열 'a1b22'를 가진 이터레이터를 돌려줍니다. 이 줄에서는 검색이 일어나지 않습니다. 이후 검색은 복제본에서만 일어납니다.",
+      "re는 g 플래그가 있어서 matchAll의 g 검사를 통과하고, 일은 re의 Symbol.matchAll 메서드로 넘어갑니다. 이 메서드는 re의 패턴과 flags로 새 정규 표현식(이 페이지는 복제본이라 부름)을 만들고, re의 lastIndex 값(0)을 그 복제본의 lastIndex에 대입한 뒤, 복제본과 문자열 'a1b22'를 가진 이터레이터를 돌려줍니다. 이 줄에서는 검색이 일어나지 않습니다. 이후 검색은 복제본에서만 일어납니다.",
     line: at(2),
     state: {
       regexes: [orig(RE1, 0), clone(RE1, 0)],

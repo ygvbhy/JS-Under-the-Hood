@@ -343,9 +343,9 @@
 - 남긴 Low: 제목 "맨 앞에 써야만"은 '프롤로그 안 = 맨 앞'의 축약이다(첫 문단에서 풀어 씀).
 
 ### 후속 작업
-- [ ] 다른 페이지(block-scope, new-operator, es-modules 등)의 "모듈은 항상 strict mode" 언급을 새 페이지로 링크한다(§9).
-- [ ] AGENTS.md 예제 규칙 문장 정리(미확정 1 기본안에 따른 후속, §9).
-- [ ] property-attributes의 "non-strict mode code"를 명세 용어 "non-strict code"로 고친다(§9).
+- [x] 다른 페이지(block-scope, new-operator, es-modules 등)의 "모듈은 항상 strict mode" 언급을 새 페이지로 링크한다(§9). → `strict-links-and-wording-followups.md`에서 처리
+- [x] AGENTS.md 예제 규칙 문장 정리(미확정 1 기본안에 따른 후속, §9). → `strict-links-and-wording-followups.md`에서 처리
+- [x] property-attributes의 "non-strict mode code"를 명세 용어 "non-strict code"로 고친다(§9). → `strict-links-and-wording-followups.md`에서 처리
 - [ ] arguments 객체 개념을 만들면 변화 표 5행의 링크를 재검토한다(§9).
 
 ### 이해 확인

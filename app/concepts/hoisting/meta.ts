@@ -29,7 +29,14 @@ export const concept = {
     { label: '함수 호출', slug: 'function-calls' },
     { label: 'typeof 연산자', slug: 'typeof-operator' },
   ],
-  related: ['execution-context', 'global-object', 'tdz', 'scope-chain', 'block-scope'],
+  related: [
+    'execution-context',
+    'global-object',
+    'tdz',
+    'scope-chain',
+    'block-scope',
+    'strict-mode',
+  ],
   examples: [
     {
       id: 'var-before',

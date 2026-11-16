@@ -26,7 +26,7 @@ import { wrapperTable } from './wrapper-table'
 
 ### 원시 값에 대입하면
 
-`str.custom = 1`처럼 원시 값에 프로퍼티를 대입하는 식은 명세의 PutValue가 처리합니다. PutValue도 기준 값에 ToObject를 적용하고 그 객체의 `[[Set]]`을 호출합니다. 이때 값을 받을 대상(receiver)으로 넘기는 것은 래퍼 객체가 아니라 원시 값 자체입니다. `[[Set]]`이 하는 일은 [프로토타입 체인](/concepts/prototype-chain)의 대입 규칙을 따르는데, 찾은 프로퍼티가 쓰기 가능한 데이터 프로퍼티이거나 어디에도 없어서 새로 만들어야 할 때 receiver가 객체가 아니면 false를 돌려줍니다. 그래서 어디에도 프로퍼티가 만들어지지 않고, `String.prototype`에 이미 있는 이름에 대입해도(`str.toUpperCase = 1`) 같은 이유로 실패합니다. 대입이 실패하면 PutValue는 sloppy mode에서는 아무 일도 하지 않고 지나가고, strict mode에서는 TypeError를 던집니다.
+`str.custom = 1`처럼 원시 값에 프로퍼티를 대입하는 식은 명세의 PutValue가 처리합니다. PutValue도 기준 값에 ToObject를 적용하고 그 객체의 `[[Set]]`을 호출합니다. 이때 값을 받을 대상(receiver)으로 넘기는 것은 래퍼 객체가 아니라 원시 값 자체입니다. `[[Set]]`이 하는 일은 [프로토타입 체인](/concepts/prototype-chain)의 대입 규칙을 따르는데, 찾은 프로퍼티가 쓰기 가능한 데이터 프로퍼티이거나 어디에도 없어서 새로 만들어야 할 때 receiver가 객체가 아니면 false를 돌려줍니다. 그래서 어디에도 프로퍼티가 만들어지지 않고, `String.prototype`에 이미 있는 이름에 대입해도(`str.toUpperCase = 1`) 같은 이유로 실패합니다. 대입이 실패하면 PutValue는 sloppy mode에서는 아무 일도 하지 않고 지나가고, [strict mode](/concepts/strict-mode)에서는 TypeError를 던집니다.
 
 흔한 설명은 "임시 래퍼 객체에 프로퍼티를 저장했다가 버린다"입니다. 명세의 정의는 그렇지 않습니다. 대입한 프로퍼티는 래퍼 객체에도, 다른 어디에도 만들어지지 않습니다. 결과(읽으면 `undefined`)는 같아 보여도 이유는 다릅니다.
 
