@@ -16,7 +16,7 @@ export const concept = {
   ],
   prerequisites: [
     { label: '변수와 선언', slug: 'variable-declaration' },
-    { label: '데이터 타입' },
+    { label: '데이터 타입', slug: 'data-types' },
     { label: '함수 호출' },
   ],
   related: ['hoisting', 'tdz'],

@@ -30,7 +30,7 @@ export const concept = {
     'Infinity, -Infinity, NaN이 생기는 연산을 알고 이들도 숫자 타입이라는 것을 설명할 수 있다.',
   ],
   prerequisites: [
-    { label: '데이터 타입' },
+    { label: '데이터 타입', slug: 'data-types' },
     { label: '산술 연산자' },
     { label: '동등 비교', slug: 'equality-operators' },
   ],

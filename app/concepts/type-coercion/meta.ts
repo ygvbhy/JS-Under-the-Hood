@@ -29,7 +29,7 @@ export const concept = {
     '객체가 연산에서 먼저 원시 값으로 바뀐다는 것과 명시적 변환 함수와의 차이(Symbol·BigInt)를 설명할 수 있다.',
   ],
   prerequisites: [
-    { label: '데이터 타입' },
+    { label: '데이터 타입', slug: 'data-types' },
     { label: '연산자' },
     { label: '원시 값과 객체', slug: 'primitives-and-objects' },
     { label: '단축 평가와 truthy/falsy', slug: 'short-circuit-evaluation' },

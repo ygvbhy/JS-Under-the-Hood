@@ -1036,6 +1036,22 @@ describe('프리렌더 (expressions-statements)', () => {
   })
 })
 
+// 기초 보강 로드맵 3번(data-types)의 타입 표와 퀴즈도 프리렌더 HTML에 정적으로 들어 있어야 한다.
+describe('프리렌더 (data-types)', () => {
+  const html = read('concepts/data-types/index.html')
+
+  it('퀴즈 정답이 <details>로 3개 이상 프리렌더된다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(3)
+  })
+
+  it('본문의 타입 표가 <table>로 프리렌더된다', () => {
+    expect(html.match(/<table/g)?.length).toBeGreaterThanOrEqual(2)
+    expect(html).toMatch(/<th[^>]*>\s*타입\s*<\/th>/)
+    expect(html).toMatch(/<th[^>]*>\s*값의 예\s*<\/th>/)
+    expect(html).toMatch(/<th[^>]*>\s*분류\s*<\/th>/)
+  })
+})
+
 describe('프리렌더 (symbol)', () => {
   const html = read('concepts/symbol/index.html')
   const text = htmlToText(html)

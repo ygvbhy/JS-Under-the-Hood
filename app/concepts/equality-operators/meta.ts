@@ -34,7 +34,7 @@ export const concept = {
     '두 객체의 비교가 내용이 아니라 같은 객체인지로 결정된다는 것을 설명할 수 있다.',
   ],
   prerequisites: [
-    { label: '데이터 타입' },
+    { label: '데이터 타입', slug: 'data-types' },
     { label: '연산자' },
     { label: '암묵적 타입 변환', slug: 'type-coercion' },
     { label: '원시 값과 객체', slug: 'primitives-and-objects' },

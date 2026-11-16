@@ -29,7 +29,7 @@ export const concept = {
     '?.가 null이나 undefined를 만나면 체인의 나머지를 평가하지 않고 undefined를 돌려준다는 것을 설명할 수 있다.',
   ],
   prerequisites: [
-    { label: '데이터 타입' },
+    { label: '데이터 타입', slug: 'data-types' },
     { label: '논리 연산자' },
     { label: '함수 호출' },
     { label: '객체 리터럴과 프로퍼티 접근' },

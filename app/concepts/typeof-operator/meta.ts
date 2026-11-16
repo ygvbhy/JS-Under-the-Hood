@@ -29,7 +29,7 @@ export const concept = {
     "typeof가 단항 연산자라서 typeof 1 + 2의 결과가 'number2'인 것을 설명할 수 있다.",
   ],
   prerequisites: [
-    { label: '데이터 타입' },
+    { label: '데이터 타입', slug: 'data-types' },
     { label: '원시 값과 객체', slug: 'primitives-and-objects' },
     { label: '숫자 타입', slug: 'number-type' },
     { label: '함수 선언과 함수 표현식' },
