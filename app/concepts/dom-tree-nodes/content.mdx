@@ -90,7 +90,7 @@ HTML 파서는 규칙에 어긋난 소스도 받아 들이고, 그때 소스에 
 
 > If string is not the empty string, then set node to the result of creating a text node given parent's node document and string.
 
-그리고 이어서 "Replace all with node within parent."를 합니다. 부모의 모든 자식을 방금 만든 텍스트 노드 하나로 바꾼다는 뜻입니다. 이 단계 어디에도 문자열을 HTML로 해석하는 부분은 없으므로 `<i>새 글</i>`을 대입해도 `i` 요소는 생기지 않고, 꺾쇠가 그대로 들어 있는 텍스트 노드 하나가 됩니다. 빈 문자열이면 텍스트 노드를 만들지 않으므로 모든 자식이 사라지고 `hasChildNodes()`는 `false`입니다(예제 6). HTML 문자열을 요소로 해석해 넣는 `innerHTML` 같은 API는 별도 개념입니다.
+그리고 이어서 "Replace all with node within parent."를 합니다. 부모의 모든 자식을 방금 만든 텍스트 노드 하나로 바꾼다는 뜻입니다. 이 단계 어디에도 문자열을 HTML로 해석하는 부분은 없으므로 `<i>새 글</i>`을 대입해도 `i` 요소는 생기지 않고, 꺾쇠가 그대로 들어 있는 텍스트 노드 하나가 됩니다. 빈 문자열이면 텍스트 노드를 만들지 않으므로 모든 자식이 사라지고 `hasChildNodes()`는 `false`입니다(예제 6). HTML 문자열을 요소로 해석해 넣는 `innerHTML` 같은 API는 별도 개념입니다. 문자열을 HTML로 파싱해 넣는 `innerHTML`은 [DOM 조작](/concepts/dom-manipulation)에서 다룹니다.
 
 ### 노드의 상속 구조
 

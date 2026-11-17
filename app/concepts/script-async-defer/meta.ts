@@ -25,7 +25,7 @@ export const concept = {
     '인라인 script의 defer, async와 defer를 함께 쓴 경우, 동적으로 만든 script, innerHTML로 넣은 script가 각각 어떻게 동작하는지 예측할 수 있다.',
   ],
   prerequisites: [{ label: 'HTML 문서의 기본 구조' }],
-  related: ['global-object'],
+  related: ['global-object', 'dom-manipulation'],
   examples: [
     {
       id: 'parser-blocking',

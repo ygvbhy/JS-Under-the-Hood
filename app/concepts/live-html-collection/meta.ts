@@ -27,7 +27,13 @@ export const concept = {
     { label: 'DOM 트리와 노드 종류', slug: 'dom-tree-nodes' },
     { label: '이터러블과 for...of', slug: 'iterable-for-of' },
   ],
-  related: ['dom-tree-nodes', 'iterable-for-of', 'global-object', 'classlist-style'],
+  related: [
+    'dom-tree-nodes',
+    'iterable-for-of',
+    'global-object',
+    'classlist-style',
+    'dom-manipulation',
+  ],
   examples: [
     {
       id: 'live-loop',
@@ -107,7 +113,7 @@ export const concept = {
   ],
   simplifications: [
     '예제의 실행 결과는 Chromium에서 실행한 값입니다. 컬렉션의 live·static 규칙과 각 API가 돌려주는 값은 WHATWG DOM 표준, id의 Window 이름 있는 프로퍼티 노출은 WHATWG HTML 표준을 근거로 합니다.',
-    'append, createElement, removeChild, className 대입은 DOM 조작 API이며, 이 페이지에서는 설명하지 않고 컬렉션이 변하는 모습을 보이는 도구로만 씁니다. Array.from과 화살표 함수도 설명 없이 씁니다. className과 classList는 classList와 style 개념에서 다룹니다.',
+    'append, createElement, removeChild, className 대입은 DOM 조작 API이며, 이 페이지에서는 설명하지 않고 컬렉션이 변하는 모습을 보이는 도구로만 씁니다. Array.from과 화살표 함수도 설명 없이 씁니다. className과 classList는 classList와 style 개념에서 다룹니다. append와 createElement는 DOM 조작 개념에서 다룹니다.',
     '같은 인수로 getElementsByClassName을 다시 부르면 같은 HTMLCollection이 돌아오는지는 표준이 "may"로 열어 둔 동작이라 다루지 않습니다.',
     'namedItem, getElementsByName, matches와 closest, 선택자 문법, 잘못된 선택자가 던지는 SyntaxError는 다루지 않습니다.',
     '섀도 트리는 다루지 않습니다. id의 유일성은 같은 트리 안에서의 규칙으로만 설명합니다.',

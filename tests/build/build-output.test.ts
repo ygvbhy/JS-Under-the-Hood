@@ -1581,6 +1581,29 @@ describe('시뮬레이터 프리렌더 (classlist-style)', () => {
   })
 })
 
+// dom-manipulation: 시뮬레이터 영역, 메서드 비교 표, 퀴즈가 프리렌더 HTML에 정적으로 있어야 한다.
+describe('시뮬레이터 프리렌더 (dom-manipulation)', () => {
+  const html = read('concepts/dom-manipulation/index.html')
+  const text = htmlToText(html)
+
+  it('시뮬레이터 region과 시나리오 선택 라디오가 있다', () => {
+    expect(html).toMatch(/role="region"[^>]*aria-label="DOM 조작 시뮬레이터"/)
+    for (const label of ['예제 1: innerHTML +=', '예제 3: 이미 있는 노드 넣기']) {
+      expect(text).toContain(label)
+    }
+    expect(html.match(/type="radio"/g)?.length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('메서드 비교 표가 <table>로 프리렌더된다', () => {
+    expect(html).toMatch(/role="region"[^>]*aria-label="DOM 조작 API 비교 표"/)
+    expect(html.match(/<table/g)?.length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('퀴즈 정답이 <details>로 7개 이상 프리렌더된다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(7)
+  })
+})
+
 // 학습 순서 이전/다음: 관련 개념 링크와 섞이지 않도록 nav 영역만 잘라 검사한다.
 describe('학습 순서 pager', () => {
   const ordered = sortByOrder(concepts)

@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<div id="box"></div>
+<div id="plain"></div>
+<script>
+var box = document.getElementById('box');
+var plain = document.getElementById('plain');
+var html = '<button onclick="console.log(10)">go</button><img src="" onerror="console.log(20)">';
+box.innerHTML = html;
+console.log(box.children.length);
+box.querySelector('button').click();
+plain.textContent = html;
+console.log(plain.children.length, plain.textContent === html);
+</script>
+</body>
+</html>

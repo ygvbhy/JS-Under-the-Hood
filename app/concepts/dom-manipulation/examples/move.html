@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<ul id="todo"><li id="a">A</li><li id="b">B</li></ul>
+<ul id="done"></ul>
+<script>
+var todo = document.getElementById('todo');
+var done = document.getElementById('done');
+var a = document.getElementById('a');
+var returned = done.appendChild(a);
+console.log(todo.children.length, done.children.length, a.parentNode.id, returned === a);
+done.appendChild(a);
+console.log(done.children.length);
+var b = document.getElementById('b');
+var c = document.createElement('li');
+console.log(c.isConnected, c.parentNode === null);
+todo.appendChild(c);
+console.log(todo.lastElementChild === c, c.isConnected);
+todo.insertBefore(c, b);
+console.log(todo.children.length, todo.firstElementChild === c);
+</script>
+</body>
+</html>

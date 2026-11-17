@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<ul id="list"><li id="item">A <b>B</b></li></ul>
+<script>
+var list = document.getElementById('list');
+var item = document.getElementById('item');
+var calls = 0;
+item.addEventListener('click', function () {
+  calls++;
+});
+var shallow = item.cloneNode();
+var deep = item.cloneNode(true);
+console.log(shallow.childNodes.length, deep.childNodes.length, deep.id, deep === item);
+console.log(deep.isConnected, deep.parentNode === null, list.children.length);
+item.click();
+console.log(calls);
+deep.click();
+console.log(calls);
+item.remove();
+console.log(item.isConnected, item.parentNode === null, item.textContent, list.children.length);
+item.click();
+console.log(calls);
+list.append(item);
+console.log(item.isConnected, list.firstElementChild === item);
+</script>
+</body>
+</html>

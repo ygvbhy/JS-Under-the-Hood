@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<ul id="list"><li id="first">A</li></ul>
+<script>
+var list = document.getElementById('list');
+var first = document.getElementById('first');
+list.insertAdjacentHTML('beforeend', '<li>B</li>');
+console.log(list.children.length, list.firstElementChild === first, first.isConnected);
+first.insertAdjacentHTML('beforebegin', '<li>0</li>');
+first.insertAdjacentHTML('afterend', '<li>A2</li>');
+first.insertAdjacentHTML('afterbegin', '<b>x</b>');
+console.log(list.innerHTML);
+var loose = document.createElement('ul');
+loose.insertAdjacentHTML('beforeend', '<li>C</li>');
+console.log(loose.children.length, loose.isConnected);
+try {
+  loose.insertAdjacentHTML('afterend', '<li>D</li>');
+} catch (e) {
+  console.log(e.name);
+}
+</script>
+</body>
+</html>

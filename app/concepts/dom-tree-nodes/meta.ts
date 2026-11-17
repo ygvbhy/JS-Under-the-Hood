@@ -32,6 +32,7 @@ export const concept = {
     'prototype-chain',
     'live-html-collection',
     'html-attribute-dom-property',
+    'dom-manipulation',
   ],
   examples: [
     {
@@ -125,7 +126,7 @@ export const concept = {
     'getElementById, querySelectorAll, getAttributeNode는 요소 취득과 어트리뷰트를 다루는 API이며, 이 페이지에서는 설명하지 않고 결과를 보이는 도구로만 씁니다.',
     "childNodes가 돌려주는 NodeList와 children이 돌려주는 HTMLCollection이 살아 있는 컬렉션이라는 점은 'HTMLCollection은 살아 있다' 개념에서 다루며, 이 페이지는 개수와 내용만 비교합니다.",
     '어트리뷰트와 프로퍼티의 관계는 HTML 어트리뷰트와 DOM 프로퍼티 개념에서 다룹니다. 이 페이지에서 어트리뷰트 노드는 트리의 자식이 아님을 보이는 데만 씁니다.',
-    'innerHTML, insertAdjacentHTML, createElement 같은 DOM 조작과 Shadow DOM, DocumentFragment는 다루지 않습니다.',
+    'innerHTML, insertAdjacentHTML, createElement, DocumentFragment 같은 DOM 조작은 DOM 조작 개념에서 다룹니다. Shadow DOM은 다루지 않습니다.',
     'document의 프로토타입 체인은 Chromium이 표준과 달리 HTMLDocument를 따로 두므로 상속 구조 예제에서 뺐습니다.',
     '예제의 console은 ECMAScript 언어가 아니라 호스트가 제공하는 API입니다.',
   ],

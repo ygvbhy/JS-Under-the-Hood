@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<div id="box"></div>
+<table id="table"></table>
+<p id="text"></p>
+<script>
+var box = document.getElementById('box');
+box.innerHTML = '<tr><td>1</td></tr>';
+console.log(JSON.stringify(box.innerHTML), box.children.length);
+var table = document.getElementById('table');
+table.innerHTML = '<tr><td>1</td></tr>';
+console.log(table.innerHTML, table.firstChild.nodeName);
+box.innerHTML = '<B CLASS=on>x<br/><i>y';
+console.log(box.innerHTML);
+var text = document.getElementById('text');
+text.textContent = '<b>1 & 2</b>';
+console.log(text.innerHTML, text.children.length);
+</script>
+</body>
+</html>

@@ -43,6 +43,8 @@ import {
   ARGUMENTS_OBJECT_SIMULATOR_NAME,
   CLASSLIST_STYLE_PATH,
   CLASSLIST_STYLE_SIMULATOR_NAME,
+  DOM_MANIPULATION_PATH,
+  DOM_MANIPULATION_SIMULATOR_NAME,
   GLOBAL_OBJECT_PATH,
   IIFE_MODULE_PATTERN_PATH,
   CLASS_BASICS_PATH,
@@ -1472,6 +1474,29 @@ for (const colorScheme of ['light', 'dark'] as const) {
         '예제 2: style과 style 어트리뷰트',
         '예제 5: classList와 class 어트리뷰트',
       ]) {
+        await region.getByRole('radio', { name: scenario, exact: true }).check()
+        const next = region.getByRole('button', { name: '다음' })
+        while (await next.isEnabled()) {
+          await next.click()
+          await expectNoSeriousViolations(page)
+        }
+        await expect(next).toBeDisabled()
+      }
+    })
+
+    test('개념 페이지: DOM 조작', async ({ page }) => {
+      await page.goto(DOM_MANIPULATION_PATH)
+      await waitForHydration(page)
+      await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
+      await expectNoSeriousViolations(page)
+    })
+
+    test('개념 페이지: DOM 조작 시뮬레이터를 진행한 뒤', async ({ page }) => {
+      test.slow() // 시나리오의 모든 단계에서 axe를 돌린다
+      await page.goto(DOM_MANIPULATION_PATH)
+      await waitForHydration(page)
+      const region = page.getByRole('region', { name: DOM_MANIPULATION_SIMULATOR_NAME })
+      for (const scenario of ['예제 1: innerHTML +=', '예제 3: 이미 있는 노드 넣기']) {
         await region.getByRole('radio', { name: scenario, exact: true }).check()
         const next = region.getByRole('button', { name: '다음' })
         while (await next.isEnabled()) {

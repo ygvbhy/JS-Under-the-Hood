@@ -1,0 +1,391 @@
+import { Simulator } from './Simulator'
+import { scenarios } from './scenarios'
+
+## 동작 원리
+
+목록 항목 `first`를 변수에 얻어 둔 뒤 `list.innerHTML += '<li>B</li>'`를 실행하면 `first`는 어떻게 될까요? 문자열을 뒤에 덧붙였을 뿐인데 `first`는 더 이상 문서에 없고, `list`의 첫 자식은 `first`와 모양만 같은 다른 노드입니다. `innerHTML` 대입은 요소의 자식을 모두 제거한 뒤 문자열을 파싱해 만든 새 노드를 넣는 동작이고, `+=`는 `innerHTML`을 읽어 문자열을 이어 붙인 값을 다시 대입하기 때문입니다. 이 페이지는 문자열을 파싱해 새 노드를 만드는 API(`innerHTML`, `insertAdjacentHTML`)와 이미 있는 노드를 넣는 API(`appendChild`, `append`, `insertBefore`)가 트리를 어떻게 바꾸는지를 WHATWG DOM·HTML 표준과 Chromium 실행 결과로 확인합니다. DOM API는 ECMAScript가 아니라 호스트(브라우저)가 제공하고, 예제의 출력은 모두 테스트가 Chromium에서 실제로 열어 `console.log` 출력을 모은 값입니다. 다른 브라우저는 확인하지 않았습니다. 노드와 트리는 [DOM 트리와 노드 종류](/concepts/dom-tree-nodes)에서, `children` 같은 컬렉션은 [HTMLCollection은 살아 있다](/concepts/live-html-collection)에서 본 것을 전제합니다. 이 페이지에서 "문서에 있다"는 노드의 `isConnected`가 `true`라는 뜻입니다. 표준은 노드의 그림자 포함 루트(shadow-including root)가 문서일 때 그 노드를 연결되어 있다(connected)고 정합니다.
+
+### innerHTML 대입은 자식 전체를 바꾼다
+
+HTML 표준은 `innerHTML` 대입을 이렇게 설명합니다.
+
+> Replaces the contents of the element with nodes parsed from the given string.
+
+setter의 단계 중 이 페이지가 따라가는 부분은 "filter and set HTML"입니다. Trusted Types 검사는 이 페이지에서 다루지 않습니다. 표준은 이렇게 적습니다.
+
+> Let fragment be the result of parsing HTML for insertion given target, html, options, and mode.
+
+> If fragment is non-null, then replace all with fragment within target.
+
+문자열을 파싱해 만든 프래그먼트(fragment)로 대상 요소의 모든 자식을 바꿉니다. fragment가 null인 경우는 파싱 실패가 아니라 표준의 Safe 모드에서 문맥이 `script` 요소일 때이고, `innerHTML` 대입(Legacy 모드)에는 해당하지 않습니다. DOM 표준의 "replace all"은 이렇게 정의됩니다.
+
+> Remove all parent’s children, in tree order, with suppressObservers set to true.
+
+> If node is non-null, then insert node into parent before null with suppressObservers set to true.
+
+기존 자식을 모두 제거하고, 그다음에 새 노드를 넣는다는 뜻입니다. 새 노드는 문자열에서 새로 만든 노드이므로 제거된 노드와는 다른 노드입니다. 모양과 `id` 어트리뷰트가 같아도 마찬가지입니다.
+
+`list.innerHTML += '<li>B</li>'`에는 이 단계 앞에 읽기가 있습니다. `innerHTML`을 읽으면 현재 자식을 직렬화한 문자열이 나오고, 거기에 `<li>B</li>`를 이어 붙인 문자열 전체가 대입됩니다. 그래서 이미 있던 `li`도 그 문자열에서 다시 파싱되어 새 노드로 만들어지고, 먼저 얻어 둔 `first`는 자식 목록에서 제거됩니다. 제거된 노드는 사라지는 것이 아닙니다. 변수가 가리키고 있으므로 `first.textContent`는 여전히 `A`입니다. 다만 부모가 없고 문서에 없을 뿐입니다(예제 1).
+
+### insertAdjacentHTML은 파싱한 노드를 끼워 넣는다
+
+`insertAdjacentHTML(position, string)`도 문자열을 파싱하지만 기존 자식을 제거하지 않습니다. `position`은 네 가지입니다. `beforebegin`은 요소 바로 앞, `afterbegin`은 요소 안의 맨 앞, `beforeend`는 요소 안의 맨 뒤, `afterend`는 요소 바로 뒤입니다. 표준은 위치에 따라 파싱의 문맥(context)을 정하고, 파싱한 프래그먼트를 그 위치에 넣습니다. `beforeend`는 이렇게 적습니다.
+
+> Append fragment to this.
+
+단계 어디에도 `innerHTML`의 replace all에 해당하는 제거가 없으므로 요소가 이미 가진 자식은 그대로이고, 그 자식에 얻어 둔 변수도 계속 문서에 있는 노드를 가리킵니다(예제 2의 첫 줄).
+
+`beforebegin`과 `afterend`는 요소의 앞뒤, 곧 부모의 자식 목록에 넣습니다. 그래서 문맥이 부모입니다. 표준은 이렇게 적습니다.
+
+> If context is null or a Document, throw a "NoModificationAllowedError" DOMException.
+
+부모가 없거나 부모가 `Document`이면 예외입니다. 부모가 없는 요소라도 `beforeend`는 요소 자신이 문맥이라 실행됩니다(예제 2의 셋째 줄). `afterbegin`도 문맥이 요소 자신이라는 점은 같지만 부모가 없는 요소에서의 실행은 예제로 보이지 않았습니다. 위치 문자열이 네 가지가 아니면 `SyntaxError`입니다. 이것은 표준 문장으로만 서술하며 예제로 실행하지 않았습니다.
+
+### 노드는 트리의 한 자리에만 있다
+
+이미 트리에 있는 노드를 `appendChild`로 다른 부모에 넣으면 원래 부모에는 남지 않습니다. `appendChild`는 노드를 부모의 맨 끝에 넣는 "append"이고, 이것은 "pre-insert"를 거쳐 DOM 표준의 "insert"를 합니다. `append`와 `insertBefore`도 같은 insert로 이어집니다. insert는 넣을 노드마다 이 단계를 실행합니다.
+
+> Adopt node into parent’s node document.
+
+그리고 "adopt"는 노드의 기존 문서를 기억해 둔 다음 이렇게 합니다.
+
+> If node’s parent is non-null, then remove node.
+
+넣을 노드에 부모가 있으면 그 부모에서 제거한 뒤에 새 자리에 넣는다는 뜻입니다. 노드의 부모는 하나뿐이므로 노드는 트리의 한 자리에만 있을 수 있습니다. 예제 3에서 `todo`의 `a`를 `done`에 넣으면 `todo`의 자식이 줄고 `done`의 자식이 늘며, `a.parentNode`가 `done`이 됩니다. 이 페이지는 이 결과를 "옮겨진다"고 부르지만, 원인은 복제가 아니라 adopt의 remove 뒤에 하는 insert입니다. 같은 노드를 다시 `appendChild`해도 자식은 늘지 않습니다(예제 3의 둘째 줄).
+
+`document.createElement('li')`로 만든 노드는 부모가 없고 문서에도 없습니다. 문서에 연결된 부모에 넣어야 `isConnected`가 `true`가 됩니다. 연결되지 않은 부모에 넣으면 부모는 생기지만 여전히 `false`입니다(예제 2의 `loose`에 넣은 `li`, 예제 4에서 프래그먼트에 넣은 `b`). 부모의 자식을 그 부모의 `insertBefore(node, reference)`로 다시 넣으면 같은 부모 안에서 자리만 바뀝니다(예제 3의 마지막 줄). 다른 위치에 같은 요소를 하나 더 두려면 아래 `cloneNode`로 복제본을 만들어야 합니다.
+
+DOM 표준에는 이름이 move인 다른 연산인 "To move a node"와 `moveBefore()`도 있습니다. `appendChild`, `append`, `insertBefore`는 그 move가 아니라 위의 adopt와 insert입니다.
+
+### DocumentFragment는 자식만 넣고 비워진다
+
+`DocumentFragment`는 자식 노드들을 모아 둘 수 있는 노드입니다. 프래그먼트 자신은 다른 노드의 자식으로 들어가지 않습니다. `document.createDocumentFragment()`로 만듭니다. 프래그먼트를 `append` 같은 삽입 메서드로 넣을 때 insert는 프래그먼트 자신이 아니라 프래그먼트의 자식들을 넣습니다. 표준은 이렇게 적습니다.
+
+> Let nodes be node’s children, if node is a DocumentFragment node; otherwise « node ».
+
+그리고 넣기 전에 프래그먼트에서 자식을 먼저 뺍니다.
+
+> Remove its children with suppressObservers set to true.
+
+그래서 한 번 넣고 나면 프래그먼트는 비어 있고, 자식이었던 노드들의 부모는 새 부모입니다. 비어 있는 프래그먼트를 다시 넣어도 넣을 노드가 0개라 트리는 바뀌지 않습니다. 프래그먼트 자신은 어디에도 들어가지 않아 `isConnected`가 `false`입니다(예제 4).
+
+### innerHTML은 요소에 따라 다르게 파싱하고, 읽으면 직렬화한 문자열이다
+
+`innerHTML` 대입의 파싱은 문서 전체를 파싱하는 것이 아니라 대상 요소를 문맥으로 하는 프래그먼트 파싱입니다. 표준의 HTML fragment parsing algorithm은 문맥 요소(context element)를 받아 파서의 삽입 모드(insertion mode)를 그 요소에 맞게 정합니다. 같은 문자열이라도 문맥에 따라 트리가 달라질 수 있습니다. 예제 5의 입력 `<tr><td>1</td></tr>`이 그 예입니다.
+
+- `div` 문맥은 "in body" 삽입 모드로 파싱합니다. 이 모드에서 `td`와 `tr` 같은 시작 태그를 만나면 표준은 이렇게 처리합니다. "Parse error. Ignore the token." 그래서 요소는 만들어지지 않고 글자 `1`만 남습니다.
+- `table` 문맥은 "in table" 삽입 모드로 파싱합니다. 이 모드에서 `tr` 시작 태그를 만나면 표준은 `tbody` 시작 태그를 먼저 만들어 넣고(Insert an HTML element for a "tbody" start tag token with no attributes) 같은 토큰을 다시 처리합니다. 그래서 `table`의 첫 자식이 `tbody`가 됩니다.
+
+읽기는 반대 방향입니다. `innerHTML` getter는 대입한 원문을 기억해 돌려주는 것이 아니라, 현재 자식 노드를 HTML 문자열로 직렬화(serialize)한 결과를 돌려줍니다. 그래서 읽은 문자열은 트리의 현재 모양을 따릅니다. 직렬화는 요소의 이름을 그대로 씁니다. 이름이 소문자로 바뀌는 것은 읽을 때가 아니라 파싱할 때이고, 표준은 직렬화 단계에 주석으로 이렇게 덧붙입니다.
+
+> For HTML elements created by the HTML parser or createElement(), tagname will be lowercase.
+
+대문자로 적은 `<B CLASS=on>`은 `b` 요소와 `class` 어트리뷰트가 되어 `<b class="on">`으로 직렬화됩니다. 어트리뷰트 값은 큰따옴표로 감싸고, `br` 같은 요소는 끝 태그 없이 쓰고, 닫지 않은 `i`와 `b`는 직렬화가 요소마다 끝 태그를 쓰므로 닫힌 형태로 나옵니다. 텍스트 노드의 데이터는 `&`, `<`, `>`를 `&amp;`, `&lt;`, `&gt;`로 바꿔 씁니다(U+00A0도 `&nbsp;`가 되고, `script`나 `style` 같은 요소의 자식 텍스트는 바꾸지 않고 그대로 씁니다. 이 두 경우는 표준 문장으로만 서술하며 예제로 실행하지 않았습니다). 그래서 `textContent`로 넣은 `<b>1 & 2</b>`는 요소가 아니라 글자인데, 읽으면 이스케이프된 문자열이 됩니다. `textContent` 대입이 HTML을 해석하지 않는다는 것은 [DOM 트리와 노드 종류](/concepts/dom-tree-nodes)에서 본 것입니다. 표준은 직렬화한 문자열을 다시 파싱하면 원래 트리와 다른 구조가 나올 수 있다고도 적습니다.
+
+### cloneNode와 remove
+
+`node.cloneNode()`는 노드의 복제본을 새 노드로 만들어 돌려줍니다. 복제본은 부모가 없고 문서에도 없습니다. 표준의 "clone a single node"는 요소를 새로 만들고 원본의 어트리뷰트를 하나씩 복제해 붙입니다. 그래서 `id`도 복제본에 있습니다. 자손까지 복제하려면 인수로 `true`를 줍니다. 표준은 이 매개변수를 `subtree`라고 부르고 기본값이 `false`입니다. 인수가 없으면 자식이 없는 복제본이 나옵니다(예제 6의 첫 줄).
+
+`addEventListener`로 등록한 리스너는 복제본에서 실행되지 않습니다. 예제 6에서 원본을 `click()`하면 호출 횟수가 1이 되지만, 복제본을 `click()`해도 1 그대로입니다. 이 결과는 Chromium에서 실행한 값입니다. 이벤트는 [이벤트 전파와 위임](/concepts/event-propagation-delegation)에서 다루고, 여기서는 결과를 보이는 도구로만 씁니다.
+
+`remove()`는 요소를 부모의 자식 목록에서 제거합니다. 표준의 단계는 "If this’s parent is null, then return." 뒤에 "Remove this."입니다. 제거된 요소는 사라지지 않고 변수로 계속 쓸 수 있으며, 리스너도 그대로이고 다시 넣을 수도 있습니다(예제 6의 뒷부분).
+
+### 문자열로 넣은 마크업의 코드
+
+HTML 표준은 `innerHTML` 절에 이렇게 적고, `insertAdjacentHTML()` 절에도 같은 취지의 문장이 있습니다.
+
+> By default, these properties' setters perform no sanitization to remove potentially-dangerous elements and attributes like script or event handler content attributes.
+
+기본적으로 위험할 수 있는 요소와 어트리뷰트를 걸러 내지 않는다는 뜻이고, 이벤트 핸들러 어트리뷰트(`onclick` 같은)가 그 예로 적혀 있습니다. 같은 절의 파싱 단계는 `script`에 대해 이렇게 적습니다.
+
+> Scripts in the returned fragment will only execute once they are inserted into a document, and only if runScripts is true.
+
+`innerHTML`의 파싱은 `runScripts` 옵션을 켜지 않으므로(기본값 `false`) 기본 설정에서는 `script` 요소가 실행되지 않습니다. 이 동작은 [script의 async와 defer](/concepts/script-async-defer)에서 예제로 봤습니다. 그러나 `script`가 아니면 코드가 실행되지 않는다는 뜻이 아닙니다. 예제 7은 문자열 안의 `onclick` 어트리뷰트가 `click()`을 하면 실행되는 것과, `img`의 `onerror` 어트리뷰트가 실행되는 것을 보입니다. 빈 `src`의 `img`에서는 `error` 이벤트가 발생하는데, 표준의 "update the image data"는 그 이벤트를 요소 태스크로 발생시킵니다. 그래서 `onerror`의 출력은 지금 실행 중인 스크립트가 끝난 뒤에 나옵니다. 같은 문자열을 `textContent`에 대입하면 글자일 뿐이라 아무것도 실행되지 않습니다. MDN은 사용자가 준 내용이 글자여야 한다면 `textContent`를 쓰라고 안내합니다.
+
+### 메서드 비교
+
+<div className="my-6 overflow-x-auto" tabIndex={0} role="region" aria-label="DOM 조작 API 비교 표">
+  <table className="w-full border-collapse text-left">
+    <thead>
+      <tr>
+        <th className="border-border border px-3 py-2">API</th>
+        <th className="border-border border px-3 py-2">문자열을 HTML로 파싱하나</th>
+        <th className="border-border border px-3 py-2">요소의 기존 자식</th>
+        <th className="border-border border px-3 py-2">트리에 들어가는 것</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>innerHTML</code> 대입
+        </td>
+        <td className="border-border border px-3 py-2">파싱한다(대상 요소가 문맥)</td>
+        <td className="border-border border px-3 py-2">모두 제거한다</td>
+        <td className="border-border border px-3 py-2">파싱해 새로 만든 노드들</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>insertAdjacentHTML</code>
+        </td>
+        <td className="border-border border px-3 py-2">파싱한다(위치에 따라 요소나 부모가 문맥)</td>
+        <td className="border-border border px-3 py-2">그대로 둔다</td>
+        <td className="border-border border px-3 py-2">파싱해 새로 만든 노드들</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>textContent</code> 대입
+        </td>
+        <td className="border-border border px-3 py-2">파싱하지 않는다(글자 그대로)</td>
+        <td className="border-border border px-3 py-2">모두 제거한다</td>
+        <td className="border-border border px-3 py-2">텍스트 노드 하나(빈 문자열이면 없음)</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>appendChild</code>, <code>append</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          파싱하지 않는다(<code>append</code>의 문자열 인수는 텍스트 노드가 된다)
+        </td>
+        <td className="border-border border px-3 py-2">그대로 두고 맨 뒤에 넣는다</td>
+        <td className="border-border border px-3 py-2">
+          넘긴 노드(이미 부모가 있으면 거기서 제거한 뒤), 프래그먼트면 그 자식들
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>insertBefore</code>
+        </td>
+        <td className="border-border border px-3 py-2">파싱하지 않는다</td>
+        <td className="border-border border px-3 py-2">그대로 두고 기준 자식 앞에 넣는다</td>
+        <td className="border-border border px-3 py-2">
+          넘긴 노드(이미 부모가 있으면 거기서 제거한 뒤)
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>cloneNode</code>
+        </td>
+        <td className="border-border border px-3 py-2">파싱하지 않는다</td>
+        <td className="border-border border px-3 py-2">원본은 그대로</td>
+        <td className="border-border border px-3 py-2">트리에 넣지 않는 복제본(부모 없음)</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>remove</code>
+        </td>
+        <td className="border-border border px-3 py-2">파싱하지 않는다</td>
+        <td className="border-border border px-3 py-2">요소 자신이 부모에서 빠진다</td>
+        <td className="border-border border px-3 py-2">없음</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+`append`의 문자열 인수는 표준 문장으로만 서술하며 예제로 실행하지 않았습니다. 나머지 칸은 위 절의 표준 문장과 예제 1~7의 출력이 근거입니다.
+
+## 예제
+
+예제의 `console.log`는 값을 출력하는 호스트 API이며 ECMAScript 언어의 일부가 아닙니다. 모든 예제는 테스트가 Chromium에서 실제로 열어 얻은 출력이고, 여러 줄 출력은 퀴즈에서 ' / '로 이어 적었습니다. 예제 2는 예외 이름을 출력하려고 `try`와 `catch`를 쓰며, 오류 처리는 [try/catch/finally](/concepts/error-handling)에서 다룹니다. 예제 6과 7은 `addEventListener`, `click()`, `onclick`, `onerror`를 결과를 보이는 도구로만 씁니다.
+
+### 예제 1: innerHTML +=
+
+`li#first`를 얻어 둔 뒤 `list.innerHTML += '<li>B</li>'`를 실행하고, 얻어 둔 노드와 `list`의 첫 자식을 비교합니다.
+
+```html file=./examples/inner-html-replace.html
+
+```
+
+<PredictQuiz
+  question="예제 1의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'true true / 2 true true / A true / first true',
+    'true true / 2 false false / A false / first false',
+    'true true / 2 false false / A true / first true',
+    'true true / 2 false false / A true / first false',
+  ]}
+  answer={3}
+  explanation={
+    '대입이 자식을 모두 제거하므로 얻어 둔 first는 list의 첫 자식이 아니고 문서에도 없습니다(false false). 제거된 노드는 변수로 계속 쓸 수 있어 textContent는 A이고 부모는 null입니다(A true). 새로 파싱한 li는 id가 first여도 다른 노드라 getElementById의 결과가 first 변수와 다릅니다.'
+  }
+/>
+
+### 예제 2: insertAdjacentHTML
+
+`insertAdjacentHTML`의 위치 넷을 쓰고, 문서에 연결되지 않은 `ul`에서 `beforeend`와 `afterend`를 비교합니다.
+
+```html file=./examples/insert-adjacent.html
+
+```
+
+<PredictQuiz
+  question="예제 2의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '1 false false / <li>0</li><li id="first"><b>x</b>A</li><li>A2</li><li>B</li> / 1 false / NoModificationAllowedError',
+    '2 true true / <li id="first"><li>0</li><b>x</b>A</li><li>A2</li><li>B</li> / 1 false / NoModificationAllowedError',
+    '2 true true / <li>0</li><li id="first"><b>x</b>A</li><li>A2</li><li>B</li> / 1 false / NoModificationAllowedError',
+    '2 true true / <li>0</li><li id="first"><b>x</b>A</li><li>A2</li><li>B</li> / 0 false / NoModificationAllowedError',
+  ]}
+  answer={2}
+  explanation={
+    'beforeend는 list의 자식을 그대로 두고 뒤에 li를 더해 자식이 2개이고 first는 그대로 문서에 있습니다. beforebegin은 first 앞, afterbegin은 first 안의 맨 앞, afterend는 first 뒤에 들어갑니다. 부모가 없는 loose에서 beforeend는 성공해 자식이 1개이고 문서에 연결되지 않았지만, afterend는 문맥이 될 부모가 없어 NoModificationAllowedError입니다.'
+  }
+/>
+
+### 예제 3: 이미 있는 노드 넣기
+
+`todo`의 `li#a`를 `done`에 넣고, 같은 노드를 다시 넣고, 새로 만든 `li`를 `appendChild`와 `insertBefore`로 넣습니다.
+
+```html file=./examples/move.html
+
+```
+
+<PredictQuiz
+  question="예제 3의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '2 1 todo false / 2 / false true / true true / 3 true',
+    '1 1 done true / 2 / false true / true true / 2 true',
+    '1 1 done true / 1 / true false / true true / 2 true',
+    '1 1 done true / 1 / false true / true true / 2 true',
+  ]}
+  answer={3}
+  explanation={
+    'appendChild는 a를 todo에서 제거한 뒤 done에 넣으므로 todo와 done의 자식이 각각 1개이고 a의 부모는 done이며 반환값은 a입니다. 같은 노드를 다시 넣어도 한 번 제거되고 다시 들어가므로 done의 자식은 1개 그대로입니다. createElement로 만든 노드는 부모가 없고 문서에 없으며, 넣으면 연결됩니다. insertBefore(c, b)는 이미 todo에 있는 c의 자리를 b 앞으로 바꿉니다.'
+  }
+/>
+
+아래 시뮬레이터는 예제 1의 `innerHTML +=` 줄이 읽기, 제거, 삽입의 세 단계로 나뉘는 것과 예제 3에서 노드가 한 부모에서 다른 부모로 가는 것을 단계별로 보입니다. 문서에 연결된 부모 아래의 자식과 어느 부모의 자식도 아닌 노드를 글자로 구분해 보입니다.
+
+<Simulator scenarios={scenarios} />
+
+### 예제 4: DocumentFragment
+
+프래그먼트에 `li` 둘을 모은 뒤 `list`에 넣고, 같은 프래그먼트를 한 번 더 넣습니다.
+
+```html file=./examples/fragment.html
+
+```
+
+<PredictQuiz
+  question="예제 4의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '2 true false / 2 3 false false / 5 false',
+    '2 true true / 0 3 true true / 3 false',
+    '2 true false / 0 3 true true / 3 false',
+    '2 true false / 0 3 true true / 3 true',
+  ]}
+  answer={2}
+  explanation={
+    '프래그먼트에 넣은 b와 c의 부모는 프래그먼트이고 문서에 없습니다. list에 넣으면 프래그먼트가 아니라 그 자식들이 들어가고 프래그먼트는 비므로 프래그먼트의 자식은 0개, list의 자식은 3개이며 b의 부모는 list입니다. 빈 프래그먼트를 다시 넣어도 넣을 노드가 없어 3개 그대로이고, 프래그먼트 자신은 문서에 연결되지 않습니다.'
+  }
+/>
+
+### 예제 5: 문맥 파싱과 읽기
+
+같은 문자열을 `div`와 `table`에 `innerHTML`로 넣어 보고, 대문자와 닫히지 않은 태그를 넣은 뒤 `innerHTML`을 읽습니다. 마지막에는 `textContent`로 넣은 태그 문자열을 `innerHTML`로 읽습니다.
+
+```html file=./examples/parse-context.html
+
+```
+
+<PredictQuiz
+  question="예제 5의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '"<tr><td>1</td></tr>" 1 / <tr><td>1</td></tr> TR / <B CLASS=on>x<br/><i>y / <b>1 & 2</b> 1',
+    '"1" 0 / <tbody><tr><td>1</td></tr></tbody> TBODY / <B CLASS=on>x<br/><i>y</i></B> / &lt;b&gt;1 &amp; 2&lt;/b&gt; 0',
+    '"1" 0 / <tr><td>1</td></tr> TR / <b class="on">x<br><i>y</i></b> / &lt;b&gt;1 &amp; 2&lt;/b&gt; 0',
+    '"1" 0 / <tbody><tr><td>1</td></tr></tbody> TBODY / <b class="on">x<br><i>y</i></b> / &lt;b&gt;1 &amp; 2&lt;/b&gt; 0',
+  ]}
+  answer={3}
+  explanation={
+    'div 문맥에서는 tr과 td 시작 태그가 무시되어 글자 1만 남고, table 문맥에서는 파서가 tbody를 만들어 넣습니다. innerHTML을 읽으면 원문이 아니라 트리를 직렬화한 문자열이 나옵니다. 요소와 어트리뷰트 이름은 파싱할 때 소문자가 되었고, 직렬화는 어트리뷰트 값을 큰따옴표로 감싸고 br은 끝 태그가 없고 닫지 않은 i와 b는 닫힌 형태입니다. textContent로 넣은 태그 문자열은 글자이므로 요소가 없고, 읽으면 이스케이프된 문자열입니다.'
+  }
+/>
+
+### 예제 6: cloneNode와 remove
+
+`li`를 얕게, 깊게 복제하고, 원본에 `addEventListener`로 등록한 리스너의 호출 횟수를 센 뒤 `remove`하고 다시 넣습니다.
+
+```html file=./examples/clone-remove.html
+
+```
+
+<PredictQuiz
+  question="예제 6의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '0 2 item false / false true 1 / 1 / 2 / false true A B 0 / 3 / true true',
+    '2 2 item false / false true 1 / 1 / 1 / false true A B 0 / 2 / true true',
+    '0 2 item false / false true 1 / 1 / 1 / false true A B 0 / 1 / true true',
+    '0 2 item false / false true 1 / 1 / 1 / false true A B 0 / 2 / true true',
+  ]}
+  answer={3}
+  explanation={
+    'cloneNode()는 자손을 복제하지 않아 자식이 0개이고, cloneNode(true)는 텍스트와 b의 2개입니다. 어트리뷰트는 복제되어 id가 item이고, 복제본은 부모가 없고 문서에 없습니다. 원본에 addEventListener로 등록한 리스너는 복제본을 click해도 실행되지 않아 호출 횟수가 1 그대로입니다. remove한 원본은 부모가 없고 문서에 없지만 텍스트와 리스너는 남아 있어 click하면 횟수가 2가 되고, 다시 넣으면 문서에 연결됩니다.'
+  }
+/>
+
+### 예제 7: 문자열로 넣은 마크업의 코드
+
+버튼과 `img`가 든 문자열을 `innerHTML`로 넣고 버튼을 `click()`합니다. 다른 요소에는 같은 문자열을 `textContent`로 넣습니다.
+
+```html file=./examples/code-in-html.html
+
+```
+
+<PredictQuiz
+  question="예제 7의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={['2 / 0 true', '2 / 10 / 0 true', '20 / 2 / 10 / 0 true', '2 / 10 / 0 true / 20']}
+  answer={3}
+  explanation={
+    'innerHTML로 넣은 문자열의 button과 img는 요소가 되어 자식이 2개입니다. button의 onclick 어트리뷰트는 click하면 실행되어 10이 나옵니다. 같은 문자열을 textContent로 넣은 plain은 글자만 있어 자식이 0개입니다. 빈 src의 img는 error 이벤트가 요소 태스크로 발생하므로 onerror의 20은 스크립트가 끝난 뒤 맨 마지막에 나옵니다.'
+  }
+/>
+
+## 결과와 이유
+
+### 예제 1
+
+11번 줄 `true true`는 `first`가 `list`의 첫 자식이고 문서에 연결되어 있다는 뜻입니다. 12번 줄 `list.innerHTML += '<li>B</li>'`가 `innerHTML`을 읽어 `<li id="first">A</li>`를 얻고 `<li>B</li>`를 이어 붙인 문자열을 대입합니다. 대입은 `list`의 자식을 모두 제거하고, 파싱한 새 `li` 둘을 넣습니다. 그래서 13번 줄 `2 false false`는 자식이 2개이고, 첫 자식이 `first`와 다른 노드이며, `first`가 문서에 없다는 뜻입니다. 14번 줄 `A true`에서 제거된 `first`는 텍스트가 그대로이고 부모가 `null`입니다. 15번 줄 `first false`는 새 첫 자식의 `id`가 `first`로 같지만 `document.getElementById('first')`가 찾는 것이 변수 `first`의 노드가 아니라는 뜻입니다. 같은 `id`를 가진 다른 노드이기 때문입니다.
+
+### 예제 2
+
+12번 줄 `2 true true`는 `beforeend`로 `li`를 넣었어도 기존 자식 `first`가 그대로 첫 자식이고 문서에 있다는 뜻입니다. 13~15번 줄은 `first`의 앞, 뒤, 안의 맨 앞에 넣습니다. 16번 줄이 찍는 `list.innerHTML`을 앞에서부터 읽으면 `beforebegin`의 `<li>0</li>`, `afterbegin`의 `<b>x</b>`가 든 `first`, `afterend`의 `<li>A2</li>`, 처음 `beforeend`로 넣은 `<li>B</li>`입니다. 17~19번 줄은 문서에 연결되지 않은 `ul`에 `beforeend`로 `li`를 넣어 자식이 1개이고 `isConnected`가 `false`인 것을 보입니다. 21번 줄의 `afterend`는 `loose`의 부모가 `null`이라 `NoModificationAllowedError`가 되고 23번 줄이 그 이름을 찍습니다. 부모가 없는 요소에서도 `beforeend`는 되고 `afterend`는 안 되는 것이 위 표준 문장의 조건입니다.
+
+### 예제 3
+
+13번 줄이 `a`를 `todo`에서 `done`으로 넣으면 `appendChild`가 부모가 있던 `a`를 제거한 뒤 `done`에 넣습니다. 14번 줄 `1 1 done true`는 `todo`의 자식이 `b` 하나로 줄고, `done`의 자식이 `a` 하나이고, `a.parentNode.id`가 `done`이며, 반환값이 `a`라는 뜻입니다. 15번 줄이 같은 노드를 한 번 더 넣어도 제거 뒤 다시 넣으므로 16번 줄은 `1`입니다. 19번 줄 `false true`는 `createElement`로 만든 `c`가 문서에 없고 부모가 `null`이라는 뜻이고, 21번 줄 `true true`는 `todo`에 넣은 뒤 마지막 자식이 되고 문서에 연결되었다는 뜻입니다. 22번 줄 `insertBefore(c, b)`는 이미 `todo`에 있는 `c`를 `b` 앞으로 옮기므로 23번 줄 `2 true`는 자식이 여전히 2개이고 첫 자식이 `c`라는 뜻입니다.
+
+### 예제 4
+
+14번 줄 `2 true false`는 프래그먼트가 `b`와 `c`를 자식으로 가지고, `b`의 부모가 프래그먼트이며, 아직 문서에 없다는 뜻입니다. 15번 줄이 프래그먼트를 넣으면 프래그먼트의 자식들이 `list`로 들어갑니다. 16번 줄 `0 3 true true`는 프래그먼트가 비었고, `list`의 자식이 처음의 `A`를 포함해 3개이며, `b`의 부모가 `list`이고, 마지막 자식이 `c`라는 뜻입니다. 17번 줄에서 비어 있는 프래그먼트를 다시 넣어도 넣을 노드가 없어 18번 줄 `3 false`처럼 `list`는 3개 그대로이고, 프래그먼트 자신은 문서에 연결되지 않았습니다.
+
+### 예제 5
+
+12번 줄이 `div`에 `<tr><td>1</td></tr>`를 넣으면 `tr`과 `td` 시작 태그가 무시되어 13번 줄 `"1" 0`처럼 `innerHTML`이 글자 `1`이고 자식 요소가 0개입니다. 15번 줄이 같은 문자열을 `table`에 넣으면 파서가 `tbody`를 먼저 만들므로 16번 줄은 `<tbody><tr><td>1</td></tr></tbody> TBODY`입니다. 17번 줄의 `<B CLASS=on>x<br/><i>y`는 대문자 이름과 닫히지 않은 태그를 담고 있는데, 18번 줄이 읽은 값은 직렬화한 `<b class="on">x<br><i>y</i></b>`입니다. 이름은 파싱할 때 소문자가 되었고, `<br/>`의 슬래시는 남지 않으며, 끝 태그는 직렬화가 요소마다 씁니다. 20번 줄이 `textContent`로 넣은 `<b>1 & 2</b>`는 글자이므로 21번 줄 `&lt;b&gt;1 &amp; 2&lt;/b&gt; 0`처럼 요소는 0개이고 `innerHTML`은 이스케이프된 문자열입니다.
+
+### 예제 6
+
+15번 줄 `cloneNode()`는 자식이 없는 복제본이라 17번 줄 첫 값이 `0`이고, 16번 줄 `cloneNode(true)`는 텍스트 `A `와 `b` 둘을 가져 둘째 값이 `2`입니다. `deep.id`는 어트리뷰트가 복제되어 `item`이고, `deep === item`은 `false`입니다. 18번 줄 `false true 1`은 복제본이 문서에 없고 부모가 `null`이며 `list`의 자식이 원본 하나뿐이라는 뜻입니다. 19번 줄이 원본을 `click()`하면 12~14번 줄의 리스너가 호출되어 20번 줄이 `1`을 찍습니다. 21번 줄의 `deep.click()`은 그 리스너를 실행하지 않아 22번 줄도 `1`입니다. 23번 줄 `item.remove()` 뒤 24번 줄 `false true A B 0`은 원본이 문서에 없고 부모가 `null`이며, 텍스트 `A B`는 그대로이고, `list`의 자식이 0개라는 뜻입니다. 25번 줄의 `click()`은 제거된 원본에서도 리스너를 실행해 26번 줄이 `2`를 찍습니다. 27번 줄이 다시 넣으면 28번 줄 `true true`처럼 문서에 연결되고 `list`의 첫 자식입니다.
+
+### 예제 7
+
+13번 줄이 넣은 문자열의 `button`과 `img`는 요소가 되므로 14번 줄은 `2`입니다. 15번 줄 `click()`은 `button`의 `onclick` 어트리뷰트에 적힌 `console.log(10)`을 실행해 `10`을 찍습니다. 문자열로 넣은 마크업의 이벤트 핸들러 어트리뷰트는 동작합니다. 16번 줄이 같은 문자열을 `textContent`로 넣은 `plain`은 요소가 없고 `textContent`가 문자열과 같으므로 17번 줄이 `0 true`를 찍습니다. `20`이 가장 마지막인 것은 `img`의 `src`가 빈 문자열이라 `error` 이벤트가 요소 태스크로 발생해, 지금 실행 중인 스크립트가 끝난 뒤에 `onerror`가 실행되기 때문입니다. 이 예제는 문서에 있는 요소에 넣은 경우만 보이며, `error` 이벤트가 문서에 넣어서 발생한다고 주장하는 것은 아닙니다.
+
+### 흔한 오해
+
+<Callout type="misconception" title="innerHTML +=는 뒤에 덧붙이기만 한다">
+
+`+=`는 읽은 문자열에 이어 붙인 값을 다시 대입하므로 기존 자식도 모두 제거되고 새로 파싱한 노드로 바뀝니다. 먼저 얻어 둔 노드는 문서에서 빠지고(예제 1) 같은 `id`의 새 노드는 다른 노드입니다. 기존 자식에 `addEventListener`로 리스너를 등록해 두었다면 그 리스너는 문서에서 빠진 예전 노드에 등록된 것이고, 문서에 있는 것은 새 노드입니다. 기존 자식을 그대로 두고 덧붙이려면 `insertAdjacentHTML('beforeend', …)`를 씁니다(예제 2).
+
+</Callout>
+
+<Callout type="misconception" title="appendChild는 노드를 복사해 넣는다">
+
+`appendChild`는 노드를 복사하지 않습니다. 이미 부모가 있는 노드를 넣으면 adopt의 remove 단계가 원래 부모에서 제거하고 새 자리에 넣어, 노드는 한 자리에만 있습니다(예제 3). 같은 요소를 두 곳에 두려면 `cloneNode`로 복제본을 만들어 넣어야 하고, 원본에 `addEventListener`로 등록한 리스너는 복제본에서 실행되지 않습니다(예제 6).
+
+</Callout>
+
+<Callout type="misconception" title="innerHTML로 넣은 문자열의 코드는 실행되지 않는다">
+
+`script` 요소는 `innerHTML`로 넣어도 기본 설정에서는 실행되지 않지만, 문자열 안의 이벤트 핸들러 어트리뷰트는 동작합니다(예제 7). 믿을 수 없는 문자열은 `textContent`로 넣어 글자로만 다룹니다.
+
+</Callout>

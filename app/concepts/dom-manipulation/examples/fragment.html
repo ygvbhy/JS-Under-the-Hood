@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<ul id="list"><li>A</li></ul>
+<script>
+var list = document.getElementById('list');
+var frag = document.createDocumentFragment();
+var b = document.createElement('li');
+var c = document.createElement('li');
+frag.append(b, c);
+console.log(frag.childNodes.length, b.parentNode === frag, b.isConnected);
+list.append(frag);
+console.log(frag.childNodes.length, list.children.length, b.parentNode === list, list.lastElementChild === c);
+list.append(frag);
+console.log(list.children.length, frag.isConnected);
+</script>
+</body>
+</html>

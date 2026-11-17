@@ -41,6 +41,8 @@ import {
   ARGUMENTS_OBJECT_SIMULATOR_NAME,
   CLASSLIST_STYLE_PATH,
   CLASSLIST_STYLE_SIMULATOR_NAME,
+  DOM_MANIPULATION_PATH,
+  DOM_MANIPULATION_SIMULATOR_NAME,
   GLOBAL_OBJECT_PATH,
   IIFE_MODULE_PATTERN_PATH,
   CLASS_BASICS_PATH,
@@ -783,6 +785,33 @@ test('classList와 style 개념 페이지: 시뮬레이터를 끝까지 진행�
     '예제 2: style과 style 어트리뷰트',
     '예제 5: classList와 class 어트리뷰트',
   ]) {
+    await region.getByRole('radio', { name: scenario, exact: true }).check()
+    const next = region.getByRole('button', { name: '다음' })
+    while (await next.isEnabled()) {
+      await next.click()
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - window.innerWidth,
+      )
+      expect(overflow).toBeLessThanOrEqual(0)
+    }
+  }
+})
+
+test(`${DOM_MANIPULATION_PATH}: DOM 조작 가로 스크롤이 없다`, async ({ page }) => {
+  await page.goto(DOM_MANIPULATION_PATH)
+  await waitForHydration(page)
+  const { scrollWidth, innerWidth } = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    innerWidth: window.innerWidth,
+  }))
+  expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
+})
+
+test('DOM 조작 개념 페이지: 시뮬레이터를 끝까지 진행해도 가로 스크롤이 없다', async ({ page }) => {
+  await page.goto(DOM_MANIPULATION_PATH)
+  await waitForHydration(page)
+  const region = page.getByRole('region', { name: DOM_MANIPULATION_SIMULATOR_NAME })
+  for (const scenario of ['예제 1: innerHTML +=', '예제 3: 이미 있는 노드 넣기']) {
     await region.getByRole('radio', { name: scenario, exact: true }).check()
     const next = region.getByRole('button', { name: '다음' })
     while (await next.isEnabled()) {
@@ -1614,7 +1643,7 @@ test('Promise 정적 메서드 개념 페이지: 두 시나리오를 끝까지 �
 test('홈 학습 순서 보기: 가로 스크롤이 없다', async ({ page }) => {
   await page.goto('/?view=order')
   await waitForHydration(page)
-  await expect(page.getByRole('article')).toHaveCount(65)
+  await expect(page.getByRole('article')).toHaveCount(66)
   const { scrollWidth, innerWidth } = await page.evaluate(() => ({
     scrollWidth: document.documentElement.scrollWidth,
     innerWidth: window.innerWidth,
