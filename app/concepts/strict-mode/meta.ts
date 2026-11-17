@@ -120,5 +120,5 @@ export const concept = {
       url: 'https://developer.mozilla.org/ko/docs/Web/JavaScript/Reference/Strict_mode',
     },
   ],
-  reviewedAt: null,
+  reviewedAt: '2026-11-16',
 } satisfies ConceptMeta

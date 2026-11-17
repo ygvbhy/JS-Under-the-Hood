@@ -315,6 +315,8 @@
 - 2026-11-16 (사용자 콘텐츠 검토 1차): let 서술 한정(선언문 실행 뒤 `let x;`는 undefined, 실행 전 읽기는 ReferenceError, const 초기값 없음은 SyntaxError), 명세 비규범 개요 4.3 인용·참고 자료 추가, 동적 타입 문장 수식 정리, 브라우저 전역 `name` 사례를 브라우저 예제(`examples/global-name.html`, runtime browser)로 본문에 싣고 단순화 문구 정리, typeof '대표적으로'(document.all), 도입부 undefined·null 구분, 예제 해설 '줄'→'출력', 클래식 스크립트 정의(type 없음 또는 JavaScript MIME 타입) — 작업 1·2·3
 
 - 2026-11-16 (사용자 콘텐츠 검토 2차): 브라우저 전역 접근자 문장을 '새 프로퍼티를 만들지 않음 + name처럼 세터가 있으면 세터를 거침'으로 한정(top·document는 세터 없는 접근자, Chromium 디스크립터로 확인), 단순화의 'var 선언의 초기값 예외'를 본문 표현으로, 단순화 범위에 세터 없는 프로퍼티(예: top) 명시 — 작업 1·2
+- 2026-11-17 (사용자 콘텐츠 검토 3차, 완료 이후): 도입부 undefined 표현을 "값을 할당하지 않은 변수가 갖는 값"으로 바꿈(본문의 한 방향 서술과 충돌), "안의 코드 유닛 나열" → "만들어진 값의 코드 유닛 나열"(`'${n}'`과 템플릿은 소스가 같아도 값이 다름 — 실행 확인), 선언 문법은 충분한 근거가 아니고 결정적 근거는 SetMutableBinding임을 밝힘, 퀴즈 정답 위치를 3·2·4번째로 흩음. null 인용구 출처 지적은 반영하지 않음(현재 초안은 4.4가 없고 6.1.2에 그 문구가 있다 — 사실 절 근거). `double` 변수명은 Shiki가 키워드로 칠하지 않아 유지.
+
 ## 구현 진행
 
 - baseline (2026-11-16, `0e7a7df`): lint 0 / format:check 통과 / typecheck 통과 / npm test 163 files·5111 tests 통과 / test:build 488 tests 통과
@@ -333,6 +335,7 @@
 - 사용자 콘텐츠 검토 1차 반영(2026-11-16): 6건 모두 반영(메인 에이전트 직접 수정, 텍스트·예제·테스트). 브라우저 예제 `global-name.html`(Chromium 출력 `string true`) 추가, concept.test 3개 추가(let 선언 뒤 undefined·실행 시점 기준·const SyntaxError). 명세 4장 개요는 "non-normative overview"라서 본문에 비규범 설명으로 밝힘. 검증: lint·format·typecheck 통과, npm test 5156, test:build 495, 새 페이지 e2e 재실행.
 - 사용자 콘텐츠 검토 2차 반영(2026-11-16): 2건 반영(메인 직접 수정). 검증 재실행 통과.
 - [x] 6. 로드맵 문서·전체 검증 — 로드맵 3번 행·진행 기록 갱신(상태 완료, finalize 단계). 전체 정적 검증·navigation/a11y/concept e2e·새 페이지 e2e 통과, dev 서버 화면 확인(pager 3 / 62, 새 문단·예제 표시, 콘솔 오류 없음). 375px·키보드 수동 확인은 하지 않았고 e2e(모바일·다크 axe·가로 스크롤)로 대신함.
+- 사용자 콘텐츠 검토 3차 반영(2026-11-17): 3건 반영·1건 미반영·선택 1건 반영(메인 직접 수정, `content.mdx`만). lint 0 / format:check / typecheck / npm test 168 files·5266 / test:build 512 / e2e `-g "data-types|데이터 타입"` 6 통과. 커밋 전.
 
 ## 구현 결과
 

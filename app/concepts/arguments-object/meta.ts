@@ -99,5 +99,5 @@ export const concept = {
       url: 'https://developer.mozilla.org/ko/docs/Web/JavaScript/Reference/Functions/arguments',
     },
   ],
-  reviewedAt: null,
+  reviewedAt: '2026-11-17',
 } satisfies ConceptMeta
