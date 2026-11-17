@@ -42,6 +42,7 @@ export const concept = {
     'error-handling',
     'execution-context',
     'expressions-statements',
+    'arguments-object',
   ],
   examples: [
     {
@@ -76,7 +77,7 @@ export const concept = {
     '모듈은 항상 strict이고 클래스의 모든 부분도 strict입니다. 모듈은 ES 모듈 개념에서, 클래스는 클래스 개념에서 다루며 이 페이지의 예제에는 쓰지 않습니다. 일반 함수 호출의 this가 strict mode에서 바뀌는 것은 this 개념에서 다룹니다.',
     '이 페이지의 예제는 모듈이 아닌 스크립트(Script)로 실행한 결과입니다(Node의 vm 모듈로 실행). 브라우저라면 type 속성이 없거나 빈 문자열이거나 JavaScript MIME 타입인 script 요소로 실행되는 클래식 스크립트에 해당합니다. 지시어가 없는 코드의 결과(오류 없이 끝나는 대입 등)는 모듈(type="module"인 script 요소, Node의 .mjs 파일 등)로 실행하면 달라집니다.',
     'eval 코드는 다루지 않습니다. 직접 eval은 strict 코드 안에서 부르면 strict이고(Function 생성자로 만든 함수와 반대), 이 내용은 전역 객체 개념에서 다룹니다. eval 코드의 변수 환경도 다루지 않습니다.',
-    '명세 부록 C가 모아 둔 strict mode의 차이 전체를 다루지 않습니다. arguments.callee, 8진수 이스케이프 시퀀스, 08과 09 같은 리터럴, 블록 안의 함수 선언(부록 B)은 제외합니다. strict 함수의 환경 레코드 구성은 실행 컨텍스트 개념에서, 매개변수 목록이 단순하지 않은 함수의 지시어가 SyntaxError인 것과 strict 함수의 arguments가 매개변수와 연결되지 않는 것은 매개변수 기본값 개념에서 다룹니다.',
+    '명세 부록 C가 모아 둔 strict mode의 차이 전체를 다루지 않습니다. 8진수 이스케이프 시퀀스, 08과 09 같은 리터럴, 블록 안의 함수 선언(부록 B)은 제외합니다. strict 함수의 환경 레코드 구성은 실행 컨텍스트 개념에서, 매개변수 목록이 단순하지 않은 함수의 지시어가 SyntaxError인 것은 매개변수 기본값 개념에서, strict 함수의 arguments.callee를 읽으면 TypeError인 것과 strict 함수의 arguments가 매개변수와 연결되지 않는 것은 arguments 객체 개념에서 다룹니다.',
     '화살표 함수, 메서드, 제너레이터는 strict 코드 안에 쓰이면 strict이고 자기 본문의 지시어로도 strict가 되는 같은 규칙을 따르므로 따로 다루지 않습니다. 식 하나만 쓰는 화살표 함수 본문은 문이 아니라 식이어서 프롤로그를 가질 수 없습니다. 화살표 함수, 메서드, 매개변수 목록이 단순하지 않은 함수에서 매개변수 이름 중복이 sloppy mode에서도 SyntaxError인 것은 화살표 함수와 메서드 축약 개념에서 다룹니다.',
     "지시어 프롤로그 안의 'use strict'가 아닌 문자열 식 문(예: 'note';)에 구현이 고유한 의미를 줄 수 있고, 의미가 없으면 경고를 내도록 명세가 권합니다. 이 페이지는 그런 문을 평범한 식 문으로만 다룹니다.",
     '지시어 뒤에 세미콜론을 생략해도 되는 세미콜론 자동 삽입의 세부 규칙은 다루지 않습니다.',

@@ -1,0 +1,351 @@
+import { Simulator } from './Simulator'
+import { scenarios } from './scenarios'
+
+## 동작 원리
+
+함수 안에서 매개변수를 바꿨는데 `arguments[0]`을 읽으면 바뀐 값이 나오는 이유는 무엇일까요? sloppy mode이고 매개변수 목록이 단순한 함수에서는 명세가 `arguments`를 arguments 이그조틱 객체(arguments exotic object)로 만들기 때문입니다. 이 객체는 넘긴 인수가 있는 매개변수에 대응하는 인덱스 프로퍼티를 읽을 때(`[[Get]]`) 매개변수 바인딩의 값을 돌려주고, 쓸 때(`[[Set]]`) 매개변수 바인딩에도 씁니다. 그래서 한쪽을 바꾸면 다른 쪽에서도 바뀐 값이 읽힙니다. [strict mode](/concepts/strict-mode) 함수이거나 매개변수 목록이 단순하지 않으면 평범한 객체가 만들어지고 이 동작이 없습니다.
+
+이 페이지의 예제는 Node의 `vm` 모듈에서 모듈이 아닌 스크립트(Script)로 실행한 결과입니다. 지시어가 없으므로 sloppy mode입니다. strict mode에서는 결과가 달라지며, 모듈은 항상 strict라서 같은 함수를 모듈에서 실행해도 달라집니다.
+
+### 두 종류의 arguments
+
+화살표 함수가 아닌 함수를 호출하면 명세의 FunctionDeclarationInstantiation이 `arguments` 객체를 만듭니다(화살표 함수에는 자기 `arguments`가 없습니다. [화살표 함수와 메서드 축약](/concepts/arrow-functions) 참고). 어떤 객체를 만들지는 두 조건으로 정해집니다.
+
+- 함수가 strict mode 코드이거나 매개변수 목록이 단순하지 않으면 CreateUnmappedArgumentsObject가 평범한 객체를 만듭니다(매핑되지 않은 객체).
+- 그렇지 않으면 CreateMappedArgumentsObject가 arguments 이그조틱 객체를 만듭니다(매핑된 객체).
+
+매개변수 목록이 단순하다는 것은 명세의 IsSimpleParameterList가 참이라는 뜻으로, 기본값·rest 파라미터·디스트럭처링 패턴이 없이 이름만 나열한 목록입니다. 아래 표는 같은 동작을 다섯 가지 목록으로 실행한 결과입니다. 코드는 매개변수 `a`를 `2`로 바꾼 뒤 `arguments[0]`을 읽어 `x`에 담고, `arguments[0]`에 `9`를 쓴 뒤 `[x, a]`를 돌려줍니다. 앞의 결과 칸이 `x`, 뒤의 결과 칸이 마지막의 `a`입니다.
+
+<Wide>
+  <div
+    className="my-6 overflow-x-auto"
+    tabIndex={0}
+    role="region"
+    aria-label="arguments의 종류별 연결 표(좁은 화면에서는 가로로 스크롤할 수 있습니다)"
+  >
+    <table className="w-full border-collapse text-left [&_code]:whitespace-nowrap">
+      <thead>
+        <tr>
+          <th className="border-border border px-3 py-2">매개변수 목록</th>
+          <th className="border-border border px-3 py-2">코드</th>
+          <th className="border-border border px-3 py-2">매개변수를 바꾼 뒤 arguments[0]</th>
+          <th className="border-border border px-3 py-2">arguments[0]을 바꾼 뒤 매개변수</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            단순한 목록, sloppy mode
+          </th>
+          <td className="border-border border px-3 py-2">
+            <code>
+              {
+                '(function (a) { a = 2; var x = arguments[0]; arguments[0] = 9; return [x, a]; })(1)'
+              }
+            </code>
+          </td>
+          <td className="border-border border px-3 py-2">
+            <code>{'2'}</code>
+          </td>
+          <td className="border-border border px-3 py-2">
+            <code>{'9'}</code>
+          </td>
+        </tr>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            단순한 목록, strict mode 함수
+          </th>
+          <td className="border-border border px-3 py-2">
+            <code>
+              {
+                '(function (a) { "use strict"; a = 2; var x = arguments[0]; arguments[0] = 9; return [x, a]; })(1)'
+              }
+            </code>
+          </td>
+          <td className="border-border border px-3 py-2">
+            <code>{'1'}</code>
+          </td>
+          <td className="border-border border px-3 py-2">
+            <code>{'2'}</code>
+          </td>
+        </tr>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            기본값이 있는 목록
+          </th>
+          <td className="border-border border px-3 py-2">
+            <code>
+              {
+                '(function (a = 1) { a = 2; var x = arguments[0]; arguments[0] = 9; return [x, a]; })(1)'
+              }
+            </code>
+          </td>
+          <td className="border-border border px-3 py-2">
+            <code>{'1'}</code>
+          </td>
+          <td className="border-border border px-3 py-2">
+            <code>{'2'}</code>
+          </td>
+        </tr>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            rest 파라미터가 있는 목록
+          </th>
+          <td className="border-border border px-3 py-2">
+            <code>
+              {
+                '(function (a, ...r) { a = 2; var x = arguments[0]; arguments[0] = 9; return [x, a]; })(1)'
+              }
+            </code>
+          </td>
+          <td className="border-border border px-3 py-2">
+            <code>{'1'}</code>
+          </td>
+          <td className="border-border border px-3 py-2">
+            <code>{'2'}</code>
+          </td>
+        </tr>
+        <tr>
+          <th scope="row" className="border-border border px-3 py-2">
+            디스트럭처링 패턴이 있는 목록
+          </th>
+          <td className="border-border border px-3 py-2">
+            <code>
+              {
+                '(function (a, { b }) { a = 2; var x = arguments[0]; arguments[0] = 9; return [x, a]; })(1, {})'
+              }
+            </code>
+          </td>
+          <td className="border-border border px-3 py-2">
+            <code>{'1'}</code>
+          </td>
+          <td className="border-border border px-3 py-2">
+            <code>{'2'}</code>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</Wide>
+
+첫 행만 두 방향 모두 연결되어 `2`와 `9`가 나옵니다. 나머지 네 행은 매핑되지 않은 객체라서 `arguments[0]`은 호출 때 들어온 값 `1`을 그대로 읽고, `arguments[0] = 9`는 매개변수 `a`를 바꾸지 않아 `a`는 `2`로 남습니다. 기본값, rest 파라미터, 디스트럭처링 패턴은 이 페이지보다 뒤에서 다루는 문법이라 이 표에서만 씁니다. 각각 [매개변수 기본값](/concepts/default-parameters), [화살표 함수와 메서드 축약](/concepts/arrow-functions), [스프레드와 디스트럭처링](/concepts/spread-destructuring)에서 다룹니다.
+
+### 연결은 어떻게 동작하나
+
+매핑된 객체에서 연결되는 것은 모든 인덱스 프로퍼티가 아니라, 인덱스가 호출 때 넘긴 인수의 개수보다 작고 매개변수의 개수보다도 작은 프로퍼티입니다. 기준은 지금의 `arguments.length`가 아니라 호출 때의 인수 개수입니다. 그래서 두 범위 밖은 연결되지 않습니다.
+
+- 넘기지 않은 인수: `function f(a, b)`를 `f(1)`로 부르면 `b`에 대응하는 인덱스 `1`은 연결되지 않습니다. 이 객체에는 인덱스 `1` 프로퍼티가 아예 없습니다(예제 2).
+- 매개변수보다 많이 넘긴 인수: `function f(a)`를 `f(1, 5)`로 부르면 인덱스 `1`의 프로퍼티는 있지만 대응하는 매개변수가 없어 평범한 프로퍼티입니다.
+
+연결된 인덱스에서 두 동작은 이렇습니다. 읽을 때는 프로퍼티에 저장된 값이 아니라 그 시점의 매개변수 바인딩의 값을 돌려줍니다. 쓸 때는 매개변수 바인딩에 값을 쓰고, 프로퍼티에도 씁니다. 그래서 매개변수를 재할당하면 `arguments[0]`을 읽을 때 재할당한 값이 나오고(매개변수에서 arguments 쪽으로), `arguments[0]`에 값을 쓰면 매개변수를 읽을 때 그 값이 나옵니다(arguments에서 매개변수 쪽으로). 두 방향 모두 매개변수 바인딩이 아니라 arguments 객체의 내부 메서드(읽기는 `[[Get]]`, 쓰기는 `[[Set]]`)에서 나옵니다(예제 1).
+
+명세는 이 대응을 ParameterMap이라는 장치로 설명합니다. 이 장치는 설명을 위한 서술이고, 엔진이 실제로 이런 객체를 만들어야 하는 것은 아닙니다. 이 페이지는 읽을 때와 쓸 때의 관찰 가능한 동작으로만 설명합니다.
+
+### 연결이 끊기는 경우
+
+이 객체는 `[[Delete]]`와 `[[DefineOwnProperty]]`도 따로 정의하며, 아래 동작은 거기서 나옵니다. 연결된 인덱스 프로퍼티도 다음 조작을 하면 대응이 없어집니다. 그 뒤에는 `arguments[0]`이 평범한 프로퍼티처럼 동작합니다.
+
+- `delete arguments[0]`으로 프로퍼티를 지웁니다. 지운 뒤에 `arguments[0] = 9`로 다시 만들어도 매개변수와 연결되지 않습니다.
+- `Object.defineProperty`로 접근자 프로퍼티로 바꿉니다.
+- `Object.defineProperty(arguments, '0', { writable: false })`로 쓰기를 막습니다. 값 없이 `writable: false`만 주면 그 시점의 매개변수 값이 프로퍼티의 값으로 남고, 이후 매개변수를 바꿔도 `arguments[0]`은 그 값입니다(예제 3). 프로퍼티 어트리뷰트는 [프로퍼티 어트리뷰트와 접근자](/concepts/property-attributes)에서 다룹니다.
+
+`value`만 다시 정의하면 연결은 끊기지 않고, 새 값이 매개변수에도 쓰입니다.
+
+### callee
+
+`arguments.callee`는 두 객체가 다릅니다. 매핑된 객체에서는 함수 자신을 값으로 갖는 데이터 프로퍼티라서 `arguments.callee === f`가 `true`입니다. 매핑되지 않은 객체에서는 읽으면 TypeError를 던지는 접근자 프로퍼티입니다. strict 함수뿐 아니라 매개변수 목록이 단순하지 않은 sloppy 함수의 `arguments`도 매핑되지 않은 객체이므로 `callee`를 읽으면 TypeError입니다(예제 5는 strict 함수만 보입니다).
+
+### arguments가 만들어지지 않는 경우
+
+FunctionDeclarationInstantiation은 다음 경우에 `arguments` 객체를 만들지 않습니다. 화살표 함수는 [화살표 함수와 메서드 축약](/concepts/arrow-functions)에서 다룹니다.
+
+- 매개변수 이름이 `arguments`일 때: 이름 `arguments`는 넘긴 인수 값에 바인딩됩니다.
+- 매개변수 목록에 식이 없고 본문 맨 바깥의 함수 선언 이름이 `arguments`일 때: 이름 `arguments`는 그 함수를 값으로 갖는 바인딩입니다. 식이 없다는 것은 기본값 초기화식이나 계산된 프로퍼티 키가 없다는 뜻으로, 단순한 목록과는 다른 조건입니다(패턴만 있는 목록은 단순하지 않지만 식은 없습니다).
+
+매개변수 목록에 식이 없고 본문 맨 바깥에서 `let`·`const` 선언의 이름이 `arguments`인 경우에도 arguments 객체를 만들지 않습니다. 예제 6은 앞의 둘을 실행으로 보이며, 거기서 확인되는 것은 그 이름이 arguments 객체가 아니라는 점입니다. 객체를 만들지 않는다는 것은 명세 알고리즘이 정한 내용입니다.
+
+## 예제
+
+여섯 예제의 출력을 먼저 예측해 보세요. 여섯 예제 모두 지시어가 없는 sloppy mode 스크립트입니다. 예제의 `console.log`는 값을 출력하는 호스트 API이며 ECMAScript 언어의 일부가 아닙니다. 여러 줄 출력은 퀴즈에서 슬래시로 이어 적었습니다.
+
+### 예제 1: 양방향
+
+`twoWay`는 매개변수 `a`를 재할당하고 `arguments[0]`을 읽어 둔 뒤, `arguments[0]`에 값을 쓰고 `a`를 읽습니다.
+
+```js file=./examples/two-way.js
+
+```
+
+<PredictQuiz
+  question="예제 1의 출력은 무엇일까요?"
+  choices={['1 1', '2 2', '2 9', '1 9']}
+  answer={2}
+  explanation="a를 2로 재할당한 뒤 arguments[0]을 읽으면 매개변수 바인딩의 값 2가 나오고, arguments[0]에 9를 쓰면 매개변수 바인딩에도 9가 쓰여 a가 9입니다. arguments가 호출 때 값의 사본이라면 1 1이, 연결이 매개변수에서 arguments로만 이어진다면 2 2가, 반대 방향으로만 이어진다면 1 9가 나왔을 것입니다."
+/>
+
+### 예제 2: 넘기지 않은 인수
+
+`notPassed`는 매개변수가 둘인데 인수 하나로 부릅니다. 두 매개변수를 모두 재할당한 뒤 `arguments`의 `length`, 인덱스 `0`과 `1`의 값, 인덱스 `1`이 있는지를 한 줄로 출력합니다. 이어서 `arguments[1]`에 값을 쓰고 둘째 매개변수 `b`를 출력합니다.
+
+```js file=./examples/not-passed.js
+
+```
+
+<PredictQuiz
+  question="예제 2의 출력은 무엇일까요? (여러 줄은 슬래시로 이어 적었습니다.)"
+  choices={[
+    '1 3 5 true / 7',
+    '1 3 undefined false / 5',
+    '1 1 undefined false / 5',
+    '1 3 undefined false / 7',
+  ]}
+  answer={1}
+  explanation="인수를 하나만 넘겼으므로 arguments.length는 1이고 인덱스 0만 연결됩니다. a를 3으로 바꾸면 arguments[0]에서 3이 읽히지만, 넘기지 않은 b에 대응하는 인덱스 1은 프로퍼티가 없어 undefined이고 1 in arguments는 false입니다. arguments[1]에 쓴 7은 매개변수 b와 연결되지 않아 b는 재할당한 5 그대로입니다. 언제나 연결된다면 arguments[1]이 5이고 마지막 줄이 7이었을 것입니다."
+/>
+
+### 예제 3: 연결이 끊기는 조작
+
+`afterDelete`는 재할당 뒤에 `arguments[0]`을 읽어 둔 다음 `delete arguments[0]`으로 지우고 다시 값을 씁니다. `afterReadonly`는 재할당 뒤에 `arguments[0]`의 `writable`을 `false`로 바꾸고, 매개변수를 다시 재할당합니다.
+
+```js file=./examples/unlink.js
+
+```
+
+<PredictQuiz
+  question="예제 3의 출력은 무엇일까요? (여러 줄은 슬래시로 이어 적었습니다.)"
+  choices={['2 9 9 / 3 3', '2 2 9 / 3 3', '1 2 9 / 3 1', '2 2 9 / 3 2']}
+  answer={3}
+  explanation="afterDelete에서 지우기 전에는 연결되어 있어 a를 2로 바꾼 값이 arguments[0]에서 2로 읽힙니다. 지운 뒤 arguments[0]에 쓴 9는 평범한 프로퍼티에 쓰일 뿐이라 a는 2 그대로이고, 출력은 2 2 9입니다. afterReadonly에서는 writable을 false로 바꾸는 시점에 연결이 끊기면서 그때의 매개변수 값 2가 프로퍼티의 값으로 남습니다. 이후 a를 3으로 바꿔도 arguments[0]은 2라서 3 2입니다. 언제나 연결된다면 둘째 줄이 3 3이었을 것이고, 처음부터 사본이라면 첫 줄이 1 2 9였을 것입니다."
+/>
+
+시뮬레이터로 예제 1과 예제 3을 한 단계씩 실행하며, 매개변수 바인딩과 arguments 객체의 연결이 어떻게 바뀌는지 확인해 보세요.
+
+<Simulator scenarios={scenarios} />
+
+### 예제 4: 같은 본문, 다른 mode
+
+`loose`와 `tight`는 본문이 같고, `tight`만 본문 첫 줄에 `'use strict';`가 있습니다. 각각 재할당과 `arguments[0]` 쓰기를 한 뒤 읽은 값을 출력합니다.
+
+```js file=./examples/unmapped.js
+
+```
+
+<PredictQuiz
+  question="예제 4의 출력은 무엇일까요? (여러 줄은 슬래시로 이어 적었습니다.)"
+  choices={['2 9 / 2 9', '1 2 / 1 2', '2 9 / 1 2', '1 2 / 2 9']}
+  answer={2}
+  explanation="loose는 sloppy mode이고 매개변수 목록이 단순해서 매핑된 객체를 만들고, 두 방향이 모두 연결되어 2 9입니다. tight는 strict mode 함수라서 매핑되지 않은 평범한 객체를 만듭니다. arguments[0]은 호출 때 들어온 1을 그대로 읽고, arguments[0]에 쓴 9는 a를 바꾸지 않아 a는 2로 남아 1 2입니다. 본문이 같아도 strict 여부가 객체의 종류를 정합니다."
+/>
+
+### 예제 5: callee
+
+`loose`는 `arguments.callee`가 자기 자신인지 비교합니다. `tight`는 strict 함수이고, `arguments.callee`를 읽다가 오류가 나면 오류의 이름을 돌려줍니다. `try`와 `catch`는 오류를 보이려는 용도로만 썼고, 오류 처리는 [try/catch/finally](/concepts/error-handling)에서 다룹니다.
+
+```js file=./examples/callee.js
+
+```
+
+<PredictQuiz
+  question="예제 5의 출력은 무엇일까요? (여러 줄은 슬래시로 이어 적었습니다.)"
+  choices={['true / true', 'true / false', 'TypeError / TypeError', 'true / TypeError']}
+  answer={3}
+  explanation="loose의 arguments는 매핑된 객체라서 callee가 함수 자신을 값으로 갖는 데이터 프로퍼티이고 비교 결과가 true입니다. tight의 arguments는 매핑되지 않은 객체라서 callee를 읽는 것만으로 TypeError가 던져지고, catch가 오류 이름을 돌려줍니다. strict 여부와 관계없이 callee가 함수 자신이라면 둘째 줄도 true였을 것입니다."
+/>
+
+### 예제 6: arguments가 아닌 arguments
+
+`paramName`은 매개변수 이름이 `arguments`이고, `declared`는 본문에 이름이 `arguments`인 함수 선언이 있습니다. 둘 다 `typeof arguments`를 돌려줍니다.
+
+```js file=./examples/no-arguments-object.js
+
+```
+
+<PredictQuiz
+  question="예제 6의 출력은 무엇일까요? (여러 줄은 슬래시로 이어 적었습니다.)"
+  choices={['object / function', 'number / object', 'object / object', 'number / function']}
+  answer={3}
+  explanation="paramName에서 이름 arguments는 넘긴 인수 1에 바인딩된 매개변수라서 typeof가 number입니다. declared에서는 본문의 함수 선언 arguments가 그 이름이어서 function입니다. 두 경우 모두 이름 arguments는 arguments 객체가 아닙니다. 이름 arguments가 항상 arguments 객체를 가리킨다면 둘 다 object였을 것입니다."
+/>
+
+## 결과와 이유
+
+<div className="my-6 overflow-x-auto" tabIndex={0} role="region" aria-label="예제 결과 표">
+  <table className="w-full border-collapse text-left">
+    <thead>
+      <tr>
+        <th className="border-border border px-3 py-2">예제</th>
+        <th className="border-border border px-3 py-2">결과</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td className="border-border border px-3 py-2">예제 1: 양방향</td>
+        <td className="border-border border px-3 py-2">
+          <code>2 9</code>
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">예제 2: 넘기지 않은 인수</td>
+        <td className="border-border border px-3 py-2">
+          <code>1 3 undefined false / 5</code>
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">예제 3: 연결이 끊기는 조작</td>
+        <td className="border-border border px-3 py-2">
+          <code>2 2 9 / 3 2</code>
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">예제 4: 같은 본문, 다른 mode</td>
+        <td className="border-border border px-3 py-2">
+          <code>2 9 / 1 2</code>
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">예제 5: callee</td>
+        <td className="border-border border px-3 py-2">
+          <code>true / TypeError</code>
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">예제 6: arguments가 아닌 arguments</td>
+        <td className="border-border border px-3 py-2">
+          <code>number / function</code>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+예제 1에서 `a = 2`는 매개변수 바인딩의 값을 바꾸고, `arguments[0]`을 읽는 `[[Get]]`은 그 바인딩의 값을 돌려주므로 `fromParam`이 `2`입니다. `arguments[0] = 9`를 처리하는 `[[Set]]`은 매개변수 바인딩에도 `9`를 쓰므로 `a`가 `9`입니다. 두 방향이 모두 보이는 출력 `2 9`는 호출 때의 값 `1`이 그대로 남는 모델(`1 1`), 매개변수에서 arguments로만 이어지는 모델(`2 2`), 반대 방향으로만 이어지는 모델(`1 9`)과 모두 다릅니다.
+
+예제 2에서 `notPassed(1)`은 인수를 하나만 넘깁니다. 매핑은 호출 때의 인수 개수보다 작은 인덱스에만 생기므로 인덱스 `0`만 `a`와 연결되어 `a = 3`이 `arguments[0]`에서 `3`으로 읽힙니다. 인덱스 `1`은 이 객체에 없어서 `arguments[1]`은 `undefined`, `1 in arguments`는 `false`이고, `arguments.length`는 호출 때의 인수 개수 `1`입니다. `arguments[1] = 7`은 매핑되지 않은 새 프로퍼티를 만들 뿐이라 `b`는 재할당한 `5`입니다.
+
+예제 3의 `afterDelete`는 지우기 전에 읽은 `before`가 `2`라서 그 시점에는 연결되어 있었음을 보이고, 지운 뒤에 쓴 `9`는 `a`를 바꾸지 않아 `a`는 `2`, `arguments[0]`은 `9`입니다. `afterReadonly`는 `writable: false`로 바꾸는 시점에 연결이 끊기면서 그때의 매개변수 값 `2`가 프로퍼티의 값으로 남아, 이후 `a = 3`을 해도 `arguments[0]`은 `2`입니다. 끊기기 전의 연결을 먼저 보였기 때문에 이 출력은 호출 때의 값이 그대로 남는 모델이나 언제나 연결되는 모델과 다릅니다.
+
+예제 4의 두 함수는 본문이 같고 strict 여부만 다릅니다. 이 차이만으로 `arguments`의 종류가 바뀝니다. `tight`의 `arguments[0]`은 호출 때 들어온 값을 읽는 평범한 프로퍼티입니다.
+
+예제 5에서 `loose`의 `arguments.callee`는 함수 자신을 값으로 갖는 데이터 프로퍼티라서 `true`이고, `tight`는 읽는 순간 TypeError가 던져집니다. 쓰기 동작은 이 페이지에서 다루지 않습니다.
+
+예제 6에서 `paramName(1)`의 `arguments`는 매개변수 이름이고 `1`에 바인딩되어 `number`입니다. `declared`의 `arguments`는 본문의 함수 선언 이름이라 `function`입니다. 두 함수를 strict mode로 쓰면 이 이름들은 SyntaxError입니다. 그래서 이 결과도 sloppy mode 스크립트로 실행한 값입니다.
+
+<Callout type="misconception" title="arguments는 넘긴 값의 사본이다">
+  매핑된 객체의 연결된 인덱스 프로퍼티는 읽을 때 그 시점의 매개변수 바인딩의 값을 돌려줍니다.
+  사본이라면 예제 1에서 매개변수를 재할당한 뒤에도 <code>{'arguments[0]'}</code>이{' '}
+  <code>{'1'}</code>이어야 하지만 <code>{'2'}</code>가 나옵니다. 호출 때 값이 그대로 남는 것은
+  매핑되지 않은 객체(예제 4의 <code>{'tight'}</code>)입니다.
+</Callout>
+
+<Callout type="misconception" title="매개변수와 arguments는 언제나 연결되어 있다">
+  연결은 sloppy mode이고 매개변수 목록이 단순한 함수의, 넘긴 인수가 있는 매개변수에 대응하는
+  인덱스에만 있습니다. 넘기지 않은 인수(예제 2), strict 함수(예제 4), 기본값·rest 파라미터·패턴이
+  있는 함수(조건 표)에는 없고, <code>{'delete'}</code>나 <code>{'writable: false'}</code> 같은
+  조작으로 끊기기도 합니다(예제 3).
+</Callout>
+
+<Callout type="misconception" title="strict mode에서는 arguments를 쓸 수 없다">
+  strict mode에서도 <code>{'arguments'}</code>는 만들어지고 <code>{'length'}</code>와 인덱스
+  프로퍼티를 읽을 수 있습니다. 달라지는 것은 매개변수와 연결되지 않는다는 것, 그리고{' '}
+  <code>{'callee'}</code>를 읽으면 TypeError라는 것입니다(예제 4와 5).
+</Callout>

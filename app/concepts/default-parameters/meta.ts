@@ -31,7 +31,7 @@ export const concept = {
     { label: '클로저', slug: 'closure' },
     { label: '화살표 함수', slug: 'arrow-functions' },
   ],
-  related: ['spread-destructuring', 'generator', 'for-let'],
+  related: ['spread-destructuring', 'generator', 'for-let', 'arguments-object'],
   examples: [
     {
       id: 'fresh-each-call',

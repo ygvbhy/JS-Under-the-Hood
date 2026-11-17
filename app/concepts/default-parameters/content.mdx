@@ -39,7 +39,7 @@ import { scenarios } from './scenarios'
 
 ### arguments와의 연결
 
-화살표 함수가 아닌 함수가 sloppy mode이고 매개변수 목록이 단순하면, 매핑된 `arguments`를 만들어 넘긴 인수에 대응하는 매개변수의 재할당이 `arguments[i]`에 보입니다. 기본값, rest 파라미터, 패턴이 하나라도 있어 목록이 단순하지 않거나(명세의 IsSimpleParameterList가 `false`) strict mode이면 매핑되지 않은 `arguments`가 만들어져 둘이 끊깁니다. 예제 10에서 기본값이 없는 `plain(0)`은 `arguments[0]`이 `2`가 되고, 기본값이 있는 `withDefault(0)`은 `0` 그대로입니다. 예제 파일에는 `'use strict'`가 없어 sloppy mode이고, strict mode에서는 `plain(0)`도 `0`입니다. `arguments.length`는 넘긴 인수의 개수이며 기본값은 영향을 주지 않습니다. 자세한 `arguments`의 성질은 [화살표 함수](/concepts/arrow-functions)의 `arguments` 설명을 보세요.
+화살표 함수가 아닌 함수가 sloppy mode이고 매개변수 목록이 단순하면, 매핑된 `arguments`를 만들어 넘긴 인수에 대응하는 매개변수의 재할당이 `arguments[i]`에 보입니다. 기본값, rest 파라미터, 패턴이 하나라도 있어 목록이 단순하지 않거나(명세의 IsSimpleParameterList가 `false`) strict mode이면 매핑되지 않은 `arguments`가 만들어져 둘이 끊깁니다. 예제 10에서 기본값이 없는 `plain(0)`은 `arguments[0]`이 `2`가 되고, 기본값이 있는 `withDefault(0)`은 `0` 그대로입니다. 예제 파일에는 `'use strict'`가 없어 sloppy mode이고, strict mode에서는 `plain(0)`도 `0`입니다. `arguments.length`는 넘긴 인수의 개수이며 기본값은 영향을 주지 않습니다. 자세한 `arguments`의 성질은 [화살표 함수](/concepts/arrow-functions)의 `arguments` 설명을 보세요. 매개변수와의 연결은 [arguments 객체](/concepts/arguments-object)에서 다룹니다.
 
 ### 함수 안의 'use strict'는 금지
 

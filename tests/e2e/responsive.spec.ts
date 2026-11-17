@@ -37,6 +37,8 @@ import {
   FOR_LET_SIMULATOR_NAME,
   DEFAULT_PARAMETERS_PATH,
   DEFAULT_PARAMETERS_SIMULATOR_NAME,
+  ARGUMENTS_OBJECT_PATH,
+  ARGUMENTS_OBJECT_SIMULATOR_NAME,
   GLOBAL_OBJECT_PATH,
   IIFE_MODULE_PATTERN_PATH,
   CLASS_BASICS_PATH,
@@ -718,6 +720,35 @@ test('매개변수 기본값 개념 페이지: 시뮬레이터를 끝까지 진�
   await waitForHydration(page)
   const region = page.getByRole('region', { name: DEFAULT_PARAMETERS_SIMULATOR_NAME })
   for (const scenario of ['기본값 안의 함수와 본문 var', '같은 이름의 var']) {
+    await region.getByRole('radio', { name: scenario, exact: true }).check()
+    const next = region.getByRole('button', { name: '다음' })
+    while (await next.isEnabled()) {
+      await next.click()
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - window.innerWidth,
+      )
+      expect(overflow).toBeLessThanOrEqual(0)
+    }
+  }
+})
+
+test(`${ARGUMENTS_OBJECT_PATH}: arguments 객체 가로 스크롤이 없다`, async ({ page }) => {
+  await page.goto(ARGUMENTS_OBJECT_PATH)
+  await waitForHydration(page)
+  const { scrollWidth, innerWidth } = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    innerWidth: window.innerWidth,
+  }))
+  expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
+})
+
+test('arguments 객체 개념 페이지: 시뮬레이터를 끝까지 진행해도 가로 스크롤이 없다', async ({
+  page,
+}) => {
+  await page.goto(ARGUMENTS_OBJECT_PATH)
+  await waitForHydration(page)
+  const region = page.getByRole('region', { name: ARGUMENTS_OBJECT_SIMULATOR_NAME })
+  for (const scenario of ['예제 1: 양방향', '예제 3: 연결이 끊기는 조작']) {
     await region.getByRole('radio', { name: scenario, exact: true }).check()
     const next = region.getByRole('button', { name: '다음' })
     while (await next.isEnabled()) {
@@ -1549,7 +1580,7 @@ test('Promise 정적 메서드 개념 페이지: 두 시나리오를 끝까지 �
 test('홈 학습 순서 보기: 가로 스크롤이 없다', async ({ page }) => {
   await page.goto('/?view=order')
   await waitForHydration(page)
-  await expect(page.getByRole('article')).toHaveCount(63)
+  await expect(page.getByRole('article')).toHaveCount(64)
   const { scrollWidth, innerWidth } = await page.evaluate(() => ({
     scrollWidth: document.documentElement.scrollWidth,
     innerWidth: window.innerWidth,

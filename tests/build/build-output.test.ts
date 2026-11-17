@@ -1527,6 +1527,35 @@ describe('시뮬레이터 프리렌더 (property-order)', () => {
   })
 })
 
+// arguments-object: 시뮬레이터의 첫 단계, 조건 표, 퀴즈가 프리렌더 HTML에 정적으로 있어야 한다.
+describe('시뮬레이터 프리렌더 (arguments-object)', () => {
+  const html = read('concepts/arguments-object/index.html')
+  const text = htmlToText(html)
+
+  it('단계 1(실행 전) 텍스트가 HTML에 있다', () => {
+    expect(text).toContain('단계 1: 실행 전')
+  })
+
+  it('시뮬레이터 region과 시나리오 선택 라디오가 있다', () => {
+    expect(html).toMatch(/role="region"[^>]*aria-label="arguments 객체 시뮬레이터"/)
+    for (const label of ['예제 1: 양방향', '예제 3: 연결이 끊기는 조작']) {
+      expect(text).toContain(label)
+    }
+    expect(html.match(/type="radio"/g)?.length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('조건 표 머리 칸이 <table>로 프리렌더된다', () => {
+    expect(html).toMatch(/<th[^>]*>\s*매개변수 목록\s*<\/th>/)
+    expect(html).toMatch(/<th[^>]*>\s*코드\s*<\/th>/)
+    expect(html).toMatch(/<th[^>]*>\s*매개변수를 바꾼 뒤 arguments\[0\]\s*<\/th>/)
+    expect(html).toMatch(/<th[^>]*>\s*arguments\[0\]을 바꾼 뒤 매개변수\s*<\/th>/)
+  })
+
+  it('퀴즈 정답이 <details>로 6개 이상 프리렌더된다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(6)
+  })
+})
+
 // 학습 순서 이전/다음: 관련 개념 링크와 섞이지 않도록 nav 영역만 잘라 검사한다.
 describe('학습 순서 pager', () => {
   const ordered = sortByOrder(concepts)

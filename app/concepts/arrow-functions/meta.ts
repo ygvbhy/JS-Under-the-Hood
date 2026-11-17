@@ -44,6 +44,7 @@ export const concept = {
     'iterable-for-of',
     'spread-destructuring',
     'error-handling',
+    'arguments-object',
   ],
   examples: [
     {
@@ -91,7 +92,7 @@ export const concept = {
   ],
   simplifications: [
     '매개변수 기본값은 매개변수 기본값 개념에서 다룹니다.',
-    'sloppy mode에서 arguments[0]과 매개변수가 연동되는 것(mapped arguments)과 arguments.callee는 다루지 않습니다. 예제 3·4의 arguments는 sloppy mode의 단순한 매개변수 목록이라 명세상 mapped 객체(CreateMappedArgumentsObject)이지만, 배열이 아니고 [[Prototype]]이 Object.prototype인 점은 unmapped 객체와 같습니다.',
+    'sloppy mode에서 arguments[0]과 매개변수가 연동되는 것(mapped arguments)과 arguments.callee는 arguments 객체 개념에서 다룹니다. 예제 3·4의 arguments는 sloppy mode의 단순한 매개변수 목록이라 명세상 mapped 객체(CreateMappedArgumentsObject)이지만, 배열이 아니고 [[Prototype]]이 Object.prototype인 점은 unmapped 객체와 같습니다.',
     'arguments를 진짜 배열로 바꾸는 방법 중 배열 메서드를 빌려 쓰기는 배열로 바꾸는 용도로는 이 사이트에서 아직 다루지 않은 별도 개념으로만 언급하고, 이터러블과 스프레드는 이터러블과 for...of 개념, 스프레드와 디스트럭처링 개념에서 다룹니다.',
     '제너레이터와 async 화살표 함수, getter와 setter 축약은 다루지 않습니다. 제너레이터 메서드(*m() {})와 async 제너레이터 메서드는 메서드 축약이지만 prototype 프로퍼티가 있으므로, 이 페이지에서 메서드 축약에 prototype이 없다고 한 것은 그 둘을 뺀 메서드에 대한 설명입니다.',
     '비교표의 "일반 함수" 칸은 sloppy 스크립트의 function 식 기준이고, "메서드 축약" 칸은 제너레이터가 아닌 메서드 기준입니다.',
