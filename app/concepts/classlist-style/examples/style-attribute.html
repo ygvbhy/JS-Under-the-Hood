@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<p id="box" style="font-size:20px">글자</p>
+<script>
+const box = document.getElementById('box');
+console.log(box.getAttribute('style'), box.style.length);
+box.style.color = 'blue';
+console.log(box.getAttribute('style'), box.style.length);
+box.setAttribute('style', 'margin-top: 4px');
+console.log(JSON.stringify(box.style.color), box.style.marginTop, box.style.length);
+box.removeAttribute('style');
+console.log(JSON.stringify(box.style.marginTop), box.style.length);
+</script>
+</body>
+</html>

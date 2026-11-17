@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<p id="tag" class="note">글자</p>
+<script>
+const tag = document.getElementById('tag');
+const list = tag.classList;
+list.add('on');
+console.log(tag.className, tag.getAttribute('class'));
+tag.className = 'a b c';
+console.log(list.length, list[0], list.contains('note'));
+console.log(list === tag.classList);
+</script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<p id="box">글자</p>
+<script>
+const box = document.getElementById('box');
+box.style.backgroundColor = 'yellow';
+console.log(box.style['background-color'], box.style.getPropertyValue('background-color'));
+box.style.width = '10px';
+box.style.width = 10;
+console.log(box.style.width);
+box.style.width = 'wide';
+console.log(box.style.width);
+box.style.opacity = 0.5;
+console.log(box.style.opacity, typeof box.style.opacity);
+box.style.width = '';
+console.log(JSON.stringify(box.style.width), box.getAttribute('style'));
+</script>
+</body>
+</html>

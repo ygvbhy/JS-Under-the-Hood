@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<style>
+p { color: black; }
+.on { color: green; }
+</style>
+</head>
+<body>
+<p id="tag">글자</p>
+<script>
+const tag = document.getElementById('tag');
+console.log(JSON.stringify(tag.style.color), getComputedStyle(tag).color);
+tag.classList.add('on');
+console.log(JSON.stringify(tag.style.color), getComputedStyle(tag).color);
+tag.style.color = 'blue';
+console.log(tag.style.color, getComputedStyle(tag).color);
+tag.classList.remove('on');
+tag.classList.add('on');
+console.log(tag.className, tag.style.color, getComputedStyle(tag).color);
+</script>
+</body>
+</html>

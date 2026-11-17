@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<p id="tag" class="a b a">글자</p>
+<script>
+const tag = document.getElementById('tag');
+const list = tag.classList;
+console.log(list.length, tag.className);
+list.add('a');
+console.log(list.length, tag.className);
+console.log(list.toggle('b'), tag.className);
+console.log(list.toggle('b'), tag.className);
+try {
+  list.add('c', 'd e');
+} catch (e) {
+  console.log(e.name, list.contains('c'), tag.className);
+}
+list.remove('a', 'b');
+console.log(tag.hasAttribute('class'), JSON.stringify(tag.getAttribute('class')));
+</script>
+</body>
+</html>
