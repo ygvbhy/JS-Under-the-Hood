@@ -31,6 +31,7 @@ export const concept = {
     { label: '실행 컨텍스트', slug: 'execution-context' },
   ],
   related: [
+    'class-accessors',
     'class-basics',
     'prototype-chain',
     'new-operator',
@@ -104,7 +105,7 @@ export const concept = {
     '시뮬레이터의 단계는 명세의 [[Construct]]와 SuperCall이 정한 순서를 묶어 그린 교육용 단위입니다. 엔진 내부 구현이 아닙니다.',
     '`extends null`은 클래스의 prototype 체인만 보이고, 그 클래스로 인스턴스를 만들 때의 동작(TypeError)은 다루지 않습니다.',
     '`Array`·`Error` 같은 내장 객체 상속, `Symbol.species`, mixin, `Reflect.construct`는 다루지 않습니다.',
-    '객체 리터럴 메서드의 `super`(`__proto__`와 함께 쓰는 경우), `super.x = 1` 같은 프로퍼티 대입, 화살표 함수 안의 `super`와 `this`, private 필드의 상속, 접근자 오버라이드는 다루지 않습니다.',
+    '객체 리터럴 메서드의 `super`(`__proto__`와 함께 쓰는 경우), 부모 쪽에서 setter가 있는 접근자를 찾지 못할 때의 `super.x = 1` 같은 프로퍼티 대입, 화살표 함수 안의 `super`와 `this`, private 필드의 상속은 다루지 않습니다. 접근자 오버라이드와 부모의 setter를 부르는 `super.x = 1`은 클래스의 getter와 setter 개념에서 다룹니다.',
     '예제의 console은 ECMAScript 언어가 아니라 호스트가 제공하는 API입니다.',
     '이 페이지의 예제는 스크립트로 실행한 결과를 기준으로 합니다.',
     'extends의 조건 중 "prototype 프로퍼티가 객체나 null"은 본문에서 설명만 하고 예제로 보이지 않습니다. 예를 들어 생성자 함수를 bind로 묶은 함수는 여전히 생성자이지만 prototype 프로퍼티가 없어서 extends하면 TypeError입니다.',

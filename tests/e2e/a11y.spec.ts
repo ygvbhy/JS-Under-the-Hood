@@ -50,6 +50,7 @@ import {
   CLASS_BASICS_PATH,
   CLASS_INHERITANCE_PATH,
   CLASS_INHERITANCE_SIMULATOR_NAME,
+  CLASS_ACCESSORS_PATH,
   ARROW_FUNCTIONS_PATH,
   ARRAY_INDEX_LENGTH_PATH,
   ARRAY_INDEX_LENGTH_SIMULATOR_NAME,
@@ -851,6 +852,13 @@ for (const colorScheme of ['light', 'dark'] as const) {
 
     test('개념 페이지: 문자열 replace와 split', async ({ page }) => {
       await page.goto(STRING_REPLACE_SPLIT_PATH)
+      await waitForHydration(page)
+      await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
+      await expectNoSeriousViolations(page)
+    })
+
+    test('개념 페이지: 클래스의 getter와 setter', async ({ page }) => {
+      await page.goto(CLASS_ACCESSORS_PATH)
       await waitForHydration(page)
       await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
       await expectNoSeriousViolations(page)

@@ -1004,6 +1004,21 @@ describe('프리렌더 (string-replace-split)', () => {
   })
 })
 
+// 클래스의 getter와 setter 페이지의 정리 표와 퀴즈도 프리렌더 HTML에 정적으로 들어 있어야 한다.
+describe('프리렌더 (class-accessors)', () => {
+  const html = read('concepts/class-accessors/index.html')
+
+  it('퀴즈 정답이 <details>로 9개 이상 프리렌더된다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(9)
+  })
+
+  it('정리 표가 <table>로 프리렌더된다', () => {
+    expect(html).toContain('<table')
+    expect(html).toMatch(/<th[^>]*>\s*상황\s*<\/th>/)
+    expect(html).toMatch(/<th[^>]*>\s*일어나는 일\s*<\/th>/)
+  })
+})
+
 // 기초 보강 로드맵 1번(variable-declaration)의 표와 퀴즈도 프리렌더 HTML에 정적으로 들어 있어야 한다.
 describe('프리렌더 (variable-declaration)', () => {
   const html = read('concepts/variable-declaration/index.html')
