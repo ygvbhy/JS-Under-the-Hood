@@ -1,0 +1,486 @@
+## 동작 원리
+
+깊은 복사를 해 준다는 `structuredClone`인데 왜 클래스 인스턴스의 메서드는 사라지고, 어떤 값은 오류를 낼까요? `structuredClone(value)`는 ECMAScript가 아니라 HTML 표준이 정한 호스트 API입니다. 값을 realm(전역 객체와 내장 객체를 묶은 실행 환경 한 벌)에 묶이지 않는 기록으로 직렬화한 뒤(StructuredSerializeInternal), 그 기록에서 새 값을 만듭니다(StructuredDeserialize). 일반 객체는 자기 열거 가능 문자열 키의 값만 기록하고(EnumerableOwnProperties와 `[[Get]]`), 역직렬화는 그 기록으로 `Object.prototype`을 프로토타입으로 하는 새 객체를 만듭니다. 그래서 프로토타입(클래스)과 그 위의 메서드·접근자는 기록되지 않습니다. 이 페이지에서 일반 객체는 직렬화가 Date·Map·배열 같은 종류로 알아보지 않아 마지막 단계에서 처리하는 객체를 말하며, 명세의 ordinary object와 같은 뜻이 아닙니다(명세에서는 Date와 Map도 ordinary object입니다). 함수, 심벌, 직렬화할 수 없는([Serializable]이 아닌) 플랫폼 객체(예: DOM 노드), 그리고 Date·Map·배열 같은 앞선 종류에 해당하지 않으면서 다른 내부 슬롯을 가진 객체(예: WeakMap, Promise)나 Proxy 같은 이그조틱 객체는 DataCloneError라는 이름의 DOMException을 던지고 결과는 만들어지지 않습니다. 직렬화와 역직렬화는 각각 memory 맵에 이미 처리한 객체를 적어 두므로, 순환과 공유 참조의 모양은 결과 안에서 유지됩니다. [JSON](/concepts/json)의 "깊은 복사로 쓸 때 잃는 것"에서 본 `JSON.parse(JSON.stringify(x))`와 견주면서 예제 여덟 개와 값별 비교표로 확인합니다. 프로퍼티 어트리뷰트와 접근자는 [프로퍼티 어트리뷰트와 접근자](/concepts/property-attributes), 클래스의 getter는 [클래스의 getter와 setter](/concepts/class-accessors), Map과 Set은 [Set과 Map](/concepts/set-map)에서 본 것을 전제합니다.
+
+예제의 출력은 `http://example.test`에서 연 문서를 Playwright Chromium에서 실제로 실행한 결과입니다. `structuredClone`과 `console.log`는 ECMAScript 언어가 아니라 호스트(브라우저)가 제공하는 API입니다. 이 페이지는 표준이 정한 것과 Chromium에서 확인한 결과를 문장에서 나누어 씁니다. 표준이 정한 동작은 HTML 표준의 알고리즘 단계에서 읽은 것이고, 실행 결과는 예제로 확인한 값입니다.
+
+### 보존되는 타입과 새로 만들어지는 결과
+
+직렬화는 값의 종류마다 기록을 만듭니다. 심벌이 아닌 원시 값은 그 값이 기록되고, Date는 시각 값(`[[DateValue]]`), Map과 Set은 엔트리를 기록합니다. 일반 객체는 자기 열거 가능 문자열 키마다 값을 읽어 기록하므로, 값이 `undefined`인 프로퍼티도 키가 남습니다. 역직렬화는 이 기록으로 값을 새로 만듭니다. 예제 1에서 결과의 `c.d`는 `Date`이고(`instanceof Date`가 `true`) 시각 값은 `0`이지만 원본의 `d`와는 다른 객체입니다(`c.d === original.d`가 `false`). 결과의 Map은 `Map`이고 엔트리 `'k'`가 남아 있으며, 결과의 Set도 그대로 `1`을 가집니다. `'u' in c`가 `true`이고 `NaN`과 BigInt도 그대로입니다. 결과의 Map에 `set`을 해도 원본 Map의 `size`는 `1`입니다. 결과는 역직렬화가 새로 만든 값이라 원본과 다른 객체입니다. 이 페이지에서 "깊은 복사"나 "결과"는 직렬화와 역직렬화가 만든 값이 원본과 다른 객체라는 사실을 부르는 말입니다. JSON 방식에서는 Date가 문자열, Map이 `{}`, `NaN`이 `null`이 되고 `undefined`인 프로퍼티는 빠지는데, 값별 비교표에서 같은 확인 식으로 견줍니다. `-0`이 보존되는 것도 표의 행으로 보입니다.
+
+### 공유 참조와 순환
+
+직렬화는 객체를 처음 기록할 때 memory 맵에 넣고, 같은 객체를 다시 만나면 새로 기록하지 않고 앞서 만든 기록을 가리킵니다. 역직렬화도 자기 memory 맵에 만든 값을 넣어 두므로, 같은 기록을 가리키는 두 자리는 같은 새 객체가 됩니다. 예제 2의 `shared`는 `left`와 `right`가 같은 객체 `o`입니다. 결과에서도 `c.left === c.right`가 `true`이고, 그 객체는 원본 `o`가 아니라 새로 만들어진 것이라 `c.left === o`는 `false`입니다. 자기 자신을 가리키는 `a.self = a`도 마찬가지로 `c2.self === c2`가 `true`이고 `c2 === a`는 `false`입니다. JSON 방식은 같은 객체를 두 번 직렬화해 둘로 갈라지고, 순환은 TypeError입니다([JSON](/concepts/json)).
+
+### 복제할 수 없는 값은 DataCloneError
+
+직렬화는 값의 종류를 차례로 검사하다가 기록할 수 없는 값을 만나면 DataCloneError DOMException을 던집니다. 심벌, 호출할 수 있는 객체(함수), 직렬화할 수 없는([Serializable]이 아닌) 플랫폼 객체가 그렇습니다. DOM 노드([DOM 트리와 노드](/concepts/dom-tree-nodes)) `document.body`가 플랫폼 객체의 예입니다. 또 Date·Map·배열 같은 앞선 종류에 해당하지 않으면서 `[[Prototype]]`·`[[Extensible]]`·`[[PrivateElements]]` 말고 다른 내부 슬롯을 가진 객체(WeakMap, Promise 등)와 이그조틱 객체(Proxy 등)도 마찬가지입니다. [Serializable]인 플랫폼 객체는 표준이 따로 정한 단계로 직렬화되므로 이 검사에서 DataCloneError가 나지 않습니다(이 페이지는 다루지 않습니다). 플랫폼 객체라고 모두 오류가 나는 것은 아닙니다.
+
+예제 3의 첫 줄은 함수를 값으로 가진 프로퍼티(`greet() {}`), 심벌 값, `document.body`가 모두 DataCloneError임을 보입니다. 오류는 값의 일부에서만 나도 호출 전체가 던져지고 결과는 만들어지지 않습니다. JSON 방식이 함수·심벌 값 프로퍼티를 조용히 빼는 것과 다릅니다. 둘째 줄은 던져진 값이 `DOMException`의 인스턴스임을 보입니다. 오류 처리는 `try...catch`로 하며 [try/catch/finally](/concepts/error-handling)에서 다룹니다. DOMException 자체는 이 페이지에서 다루지 않습니다.
+
+### 클래스 인스턴스는 일반 모양으로 돌아온다
+
+내장 객체를 상속하지 않은 클래스(예제 4의 `Point`)의 인스턴스는 호출할 수 있는 객체도 플랫폼 객체도 아니고 특별한 내부 슬롯도 없는 일반 객체로 처리됩니다. 그러니 기록되는 것은 자기 열거 가능 문자열 키뿐이고, 역직렬화는 `Object.prototype`을 프로토타입으로 하는 새 객체를 만듭니다. 메서드와 접근자는 인스턴스가 아니라 클래스의 `prototype`에 있는 프로퍼티(자기 프로퍼티가 아닌 것)라서 기록되지 않습니다. 함수를 만나지 않으므로 DataCloneError도 나지 않습니다. 예제 3에서 함수를 값으로 가진 자기 프로퍼티가 오류였던 것과 대비됩니다. 반대로 화살표 함수를 값으로 가진 필드(`f = () => {}`)처럼 함수가 자기 프로퍼티이면 예제 3의 규칙을 적용해 DataCloneError입니다. Map·Array·Date·Error 같은 내장 객체를 상속한 클래스의 인스턴스는 그 내부 슬롯(Array는 배열 이그조틱 객체라는 점) 때문에 앞선 종류로 처리되어 내장 타입으로 돌아옵니다(예제 6의 `NamedTypeError`가 그 예이며, 서브클래스 세부는 다루지 않습니다). 예제 4의 결과는 `c instanceof Point`가 `false`이고 프로토타입은 `Object.prototype`입니다(19번 줄). 자기 필드 `x`와 `y`만 남아 JSON이 `{"x":1,"y":2}`이고, `move`는 `typeof`가 `undefined`, 접근자 `sum`도 읽으면 `undefined`입니다(21번 줄). 클래스의 get·set이 `prototype`에 정의된다는 것은 [클래스의 getter와 setter](/concepts/class-accessors)에서 본 규칙입니다.
+
+private 필드 `#secret`은 프로퍼티가 아닙니다. 명세는 private 필드를 객체의 `[[PrivateElements]]`에 두는 것으로 설명합니다. 표준은 이 슬롯을 "다른 내부 슬롯" 검사에서 빼지만 기록하는 것은 자기 열거 가능 문자열 키뿐이라, private 필드는 결과로 옮겨지지 않습니다. 22번 줄에서 `Point.read(p)`는 `1`이지만 `Point.read(c)`는 `o.#secret`이 TypeError라 이름 `TypeError`를 돌려줍니다. private 요소를 프로토타입 체인으로 찾지 않고 그 객체 자신이 가진 것만 읽는다는 것은 [클래스의 getter와 setter](/concepts/class-accessors)에서 본 규칙입니다.
+
+### 프로퍼티 어트리뷰트
+
+직렬화는 `EnumerableOwnProperties`로 키 목록을 먼저 얻은 뒤, 키마다 아직 자기 프로퍼티인지 확인하고(`HasOwnProperty`) `[[Get]]`으로 값을 읽습니다. 그래서 열거 불가 프로퍼티와 심벌 키 프로퍼티는 키 목록에 없어 빠지고, 자기 접근자 프로퍼티는 getter를 호출해 얻은 값이 기록됩니다. 역직렬화는 각 값을 CreateDataProperty로 정의하므로 일반 객체의 결과 프로퍼티는 모두 쓰기·열거·설정이 가능한 데이터 프로퍼티입니다. 예제 5에서 열거 불가 `hidden`은 결과에 없고(`'hidden' in c`가 `false`) 심벌 키는 하나도 없습니다(`0`). 접근자 `acc`의 결과 디스크립터는 `value`가 `7`인 데이터 프로퍼티(`writable`·`enumerable`·`configurable`이 모두 `true`)이고 getter는 한 번(`calls`가 `1`) 불렸습니다. `Object.freeze`한 객체의 결과는 얼려 있지 않아(`Object.isFrozen`이 `false`) 프로퍼티 `a`의 `writable`이 `true`입니다. 디스크립터는 [프로퍼티 어트리뷰트와 접근자](/concepts/property-attributes)에서 본 것입니다.
+
+### Error 객체
+
+플랫폼 객체가 아니면서 `[[ErrorData]]` 슬롯을 가진 값은 직렬화가 별도 종류로 알아봅니다. DOMException 같은 플랫폼 객체는 이 규칙이 아니라 자기 직렬화 단계를 따르며 이 페이지는 다루지 않습니다. 표준의 Error 기록은 `name`, `message`, `stack`만 담고, 자기 프로퍼티를 하나씩 기록하는 단계가 없습니다. 그래서 `new TypeError('bad')`에 붙인 `code` 같은 추가 프로퍼티를 기록하라는 단계도 없고, Chromium에서도 `code`는 남지 않았습니다. `name`은 `? Get(value, "name")`으로 읽어, Error·EvalError·RangeError·ReferenceError·SyntaxError·TypeError·URIError 중 하나이면 그 이름을 쓰고 아니면 `"Error"`로 정합니다. 역직렬화는 그 이름에 맞는 프로토타입으로 새 객체를 만듭니다. 결과 객체의 종류는 원본의 클래스가 아니라 `name` 값이 정합니다. 표준은 `message`를 원본의 자기 데이터 프로퍼티일 때만 기록하도록 정하고, `stack`은 구현 정의 문자열로 둡니다. 표준은 아직 명세되지 않은 부가 데이터를 사용자 에이전트가 붙이도록 하는데(should), Chromium에서는 `cause`가 결과에 남는 것을 확인했습니다. 예제에는 넣지 않았고 다른 브라우저는 확인하지 않았습니다.
+
+예제 6은 세 경우를 보입니다. (가) `TypeError`에 `code`를 붙인 것은 결과가 `TypeError`이고 `message`는 `'bad'`이며 `code`는 없습니다(4번 줄). (나) `TypeError`를 상속했지만 `name`을 `'NamedTypeError'`로 바꾼 클래스의 인스턴스는 `name`이 허용 목록에 없어서 결과가 `TypeError`가 아니라 `Error`입니다(13번 줄). (다) 클래스는 `Error`인데 `name`만 `'TypeError'`로 바꾼 객체는 결과가 `TypeError`입니다(18번 줄). 클래스가 아니라 `name`의 값이 정한다는 증거는 (나)와 (다)가 서로 반대 방향으로 갈라지는 것입니다.
+
+### RegExp와 배열
+
+RegExp의 기록은 `[[RegExpMatcher]]`, `[[OriginalSource]]`, `[[OriginalFlags]]`뿐이라 `lastIndex`는 표준상 기록되지 않습니다. 예제 7에서 `lastIndex`를 `2`로 올려 둔 `/a/g`의 결과는 `flags`가 `g`이고 `lastIndex`는 Chromium에서 `0`입니다([정규 표현식의 g 플래그](/concepts/regexp-lastindex)). 배열은 길이와 자기 열거 가능 문자열 키의 프로퍼티를 기록합니다. 그래서 구멍은 구멍으로 남고(`1 in arr2`가 `false`) `length`는 `3`이며, 인덱스가 아닌 추가 프로퍼티 `extra`도 남습니다. 이 페이지가 다루는 종류 중 자기 프로퍼티를 하나씩 기록하는 것은 배열과 일반 객체뿐이라, Map·Set·Date·RegExp에 붙인 추가 프로퍼티는 Error의 `code`처럼 기록되지 않습니다(Chromium에서도 남지 않았습니다). JSON 방식은 구멍을 `null`로 바꿉니다.
+
+### getter가 던진 오류
+
+직렬화가 키마다 값을 읽는 `[[Get]]`의 호출은 `?` 표기입니다. 그래서 getter가 던진 오류는 DataCloneError로 바뀌지 않고 그대로 전파됩니다. 다만 직렬화는 EnumerableOwnProperties가 돌려준 키 순서대로 값을 처리하므로, 그 getter보다 키 순서에서 앞에 복제할 수 없는 값이 있으면 getter에 닿기 전에 DataCloneError가 먼저 납니다. 정수 키는 정의 순서와 관계없이 먼저 온다는 것은 [프로퍼티 순서](/concepts/property-order)의 규칙입니다.
+
+예제 8의 두 객체는 getter `g`와 메서드 `f`가 같고 순서만 다릅니다. (가) `g`가 앞이고 `f`가 뒤인 객체는 `g`의 RangeError가 그대로 전파되어 `name`이 `RangeError`이고 DOMException이 아닙니다(`false`). (나) `f`가 앞이고 `g`가 뒤인 객체는 `f`에서 DataCloneError가 먼저 납니다. 같은 두 값이 순서만 바뀌어 결과가 갈리는 것이 키 순서대로 처리한다는 증거입니다.
+
+### 값별 비교표
+
+아래 표는 값 `x`마다 `JSON.parse(JSON.stringify(x))`와 `structuredClone(x)`의 결과 `r`에 같은 확인 식을 적용해 견준 것입니다. 칸에는 확인 식의 결과(불리언·문자열)나 던져진 오류의 이름만 적었습니다. 값은 `compare-table.js`의 `rows`에서 만들며, 행의 첫 칸은 그 값을 부르는 이름입니다. 이 표의 모든 칸은 같은 코드를 Chromium에서 실행한 출력과 행 단위로 대조해 두었습니다.
+
+```js file=./examples/compare-table.js
+
+```
+
+<div
+  className="focus-visible:outline-accent my-6 overflow-x-auto focus-visible:outline-2"
+  tabIndex={0}
+  role="region"
+  aria-label="값마다 JSON.parse(JSON.stringify(x))와 structuredClone(x)의 결과를 같은 확인 식으로 비교한 표(좁은 화면에서는 가로로 스크롤할 수 있습니다)"
+>
+  <table className="w-full border-collapse text-left [&_code]:whitespace-nowrap">
+    <thead>
+      <tr>
+        <th className="border-border border px-3 py-2">값</th>
+        <th className="border-border border px-3 py-2">확인 식</th>
+        <th className="border-border border px-3 py-2">JSON.parse(JSON.stringify(x))</th>
+        <th className="border-border border px-3 py-2">structuredClone(x)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td className="border-border border px-3 py-2">Date</td>
+        <td className="border-border border px-3 py-2">
+          <code>{'r instanceof Date'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'false'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'true'}</code>
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">Map</td>
+        <td className="border-border border px-3 py-2">
+          <code>{'r instanceof Map'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'false'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'true'}</code>
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">값이 undefined인 프로퍼티</td>
+        <td className="border-border border px-3 py-2">
+          <code>{'"v" in r'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'false'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'true'}</code>
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">NaN</td>
+        <td className="border-border border px-3 py-2">
+          <code>{'Number.isNaN(r.v)'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'false'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'true'}</code>
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">-0</td>
+        <td className="border-border border px-3 py-2">
+          <code>{'Object.is(r.v, -0)'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'false'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'true'}</code>
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">BigInt</td>
+        <td className="border-border border px-3 py-2">
+          <code>{'typeof r.v'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'TypeError'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'bigint'}</code>
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">공유 참조</td>
+        <td className="border-border border px-3 py-2">
+          <code>{'r.a === r.b'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'false'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'true'}</code>
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">순환 참조</td>
+        <td className="border-border border px-3 py-2">
+          <code>{'r.self === r'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'TypeError'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'true'}</code>
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">함수 값 프로퍼티</td>
+        <td className="border-border border px-3 py-2">
+          <code>{'"f" in r'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'false'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'DataCloneError'}</code>
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">클래스 인스턴스</td>
+        <td className="border-border border px-3 py-2">
+          <code>{'r instanceof P'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'false'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'false'}</code>
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">배열 구멍</td>
+        <td className="border-border border px-3 py-2">
+          <code>{'1 in r'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'true'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'false'}</code>
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">RegExp</td>
+        <td className="border-border border px-3 py-2">
+          <code>{'r instanceof RegExp'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'false'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'true'}</code>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+표의 JSON 열은 값이 먼저 문자열이 된 다음 `JSON.parse`가 새로 만든 값에 확인 식을 적용한 것입니다. Date는 문자열이 되고, Map은 `{}`가 되며, `NaN`은 `null`이 되고, `-0`은 `0`이 됩니다. BigInt와 순환 참조는 `JSON.stringify`가 TypeError를 던지고, 배열의 구멍은 `null`이 되어 `1 in r`이 `true`입니다. `structuredClone` 열은 Date·Map·RegExp가 그 종류로 남고, `undefined`인 프로퍼티·`NaN`·`-0`·BigInt·공유 참조·순환이 유지되며, 구멍은 구멍으로 남습니다. 함수 값 프로퍼티는 JSON이 빼고 `structuredClone`이 DataCloneError를 던지는 행이고, 클래스 인스턴스는 두 방식 모두 `P`의 인스턴스가 아닙니다. 값이 어떻게 기록되는지를 설명하는 것은 위의 절이고, 이 표는 같은 확인 식으로 두 방식의 결과를 나란히 놓은 것입니다.
+
+## 예제
+
+예제의 출력은 `http://example.test`에서 연 문서를 Chromium에서 실행한 결과입니다. 오류는 `try...catch`로 잡아 `e.name`을 출력합니다. 여러 줄 출력은 퀴즈에서 ' / '로 이어 적었습니다.
+
+### 예제 1: 보존되는 타입
+
+```js file=./examples/keeps-types.js
+
+```
+
+<PredictQuiz
+  question="예제 1의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'true true 0 / true 1 true / true true bigint / 2',
+    'true false 0 / true 1 true / true true bigint / 2',
+    'true false 0 / true 1 true / false false undefined / 1',
+    'true false 0 / true 1 true / true true bigint / 1',
+  ]}
+  answer={3}
+  explanation="역직렬화는 Date와 Map과 Set을 새로 만들어 종류가 그대로이고, 값이 undefined인 프로퍼티·NaN·BigInt도 기록되어 남습니다. 결과의 Date는 원본과 다른 객체라 === 비교가 false이고, 결과의 Map에 set을 해도 원본 Map의 size는 1입니다. 원본과 같은 Date와 Map을 가리킨다면 두 번째 줄과 마지막 줄이 달라집니다."
+/>
+
+### 예제 2: 공유 참조와 순환
+
+```js file=./examples/shared-and-cycle.js
+
+```
+
+<PredictQuiz
+  question="예제 2의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'false false / true false',
+    'true true / true true',
+    'true false / true false',
+    'true false / false false',
+  ]}
+  answer={2}
+  explanation="memory 맵 덕분에 같은 객체를 두 번 만나도 기록은 하나이고, 역직렬화도 그 기록에서 새 객체 하나를 만들어 두 자리에 쓰므로 c.left === c.right가 true입니다. 그 객체는 새로 만든 것이라 원본 o가 아니고(false), 순환도 결과가 자기 자신을 가리키지만(true) 원본 a와는 다른 객체입니다(false)."
+/>
+
+### 예제 3: 복제할 수 없는 값
+
+```js file=./examples/data-clone-error.js
+
+```
+
+<PredictQuiz
+  question="예제 3의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'no error no error no error / false',
+    'TypeError TypeError TypeError / false',
+    'DataCloneError DataCloneError DataCloneError / true',
+    'no error DataCloneError DataCloneError / true',
+  ]}
+  answer={2}
+  explanation="함수를 값으로 가진 자기 프로퍼티, 심벌 값, 직렬화할 수 없는 플랫폼 객체인 document.body는 모두 직렬화가 기록할 수 없어 DataCloneError를 던지고, 결과는 만들어지지 않습니다. JSON처럼 빼고 넘어가지 않습니다. 던져진 값은 TypeError가 아니라 DOMException의 인스턴스입니다."
+/>
+
+### 예제 4: 클래스 인스턴스
+
+```js file=./examples/class-instance.js
+
+```
+
+<PredictQuiz
+  question="예제 4의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'true false / {"x":1,"y":2} / function 3 / 1 1',
+    'false true / {"x":1,"y":2} / undefined undefined / 1 1',
+    'DataCloneError',
+    'false true / {"x":1,"y":2} / undefined undefined / 1 TypeError',
+  ]}
+  answer={3}
+  explanation="기록되는 것은 자기 열거 가능 문자열 키뿐이라 필드 x와 y만 남고, 역직렬화는 Object.prototype을 프로토타입으로 새 객체를 만들어 instanceof가 false입니다. 메서드 move와 접근자 sum은 prototype에 있어 기록되지 않지만 함수를 만나지 않으므로 오류도 없습니다. private 필드 #secret은 프로퍼티가 아니라 옮겨지지 않아, 결과에서 읽으면 TypeError입니다."
+/>
+
+### 예제 5: 프로퍼티 어트리뷰트
+
+```js file=./examples/attributes.js
+
+```
+
+<PredictQuiz
+  question="예제 5의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'true 1 / {"enumerable":true,"configurable":false} 0 / true false',
+    'false 0 / {"value":7,"writable":true,"enumerable":true,"configurable":true} 1 / true false',
+    'false 0 / {"value":7,"writable":true,"enumerable":true,"configurable":true} 1 / false true',
+    'false 0 / {"value":7,"writable":true,"enumerable":true,"configurable":true} 2 / false true',
+  ]}
+  answer={2}
+  explanation="EnumerableOwnProperties의 키 목록에 열거 불가 프로퍼티와 심벌 키가 없으므로 결과에도 없습니다. 접근자는 getter를 한 번 불러 얻은 값 7이 기록되고, 역직렬화가 CreateDataProperty로 정의해 결과 프로퍼티는 쓰기·열거·설정이 모두 가능한 데이터 프로퍼티입니다. 얼린 객체의 결과는 얼려 있지 않고 프로퍼티 a는 쓰기 가능합니다."
+/>
+
+### 예제 6: Error 객체
+
+```js file=./examples/error-object.js
+
+```
+
+<PredictQuiz
+  question="예제 6의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'true bad true / false Error / true TypeError',
+    'true bad false / true TypeError / true TypeError',
+    'true bad false / false Error / true TypeError',
+    'true bad false / false NamedTypeError / false Error',
+  ]}
+  answer={2}
+  explanation="표준의 Error 기록에는 name과 message와 stack만 있어 code를 기록하는 단계가 없고, Chromium에서도 code는 남지 않았습니다. 결과가 어떤 Error가 되는지는 클래스가 아니라 name 값이 정합니다. name을 NamedTypeError로 바꾼 TypeError 서브클래스는 허용 목록에 없는 이름이라 Error가 되고, name만 TypeError로 바꾼 Error는 TypeError가 됩니다."
+/>
+
+### 예제 7: RegExp와 배열
+
+```js file=./examples/regexp-array.js
+
+```
+
+<PredictQuiz
+  question="예제 7의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'g 2 / false 3 x',
+    'g 0 / true 3 undefined',
+    'g 0 / false 3 x',
+    'g 0 / false 3 undefined',
+  ]}
+  answer={2}
+  explanation="RegExp 기록은 matcher와 source와 flags뿐이라 lastIndex는 표준상 기록되지 않고, Chromium에서 결과의 lastIndex는 0입니다. 배열은 길이와 자기 열거 가능 문자열 키를 기록하므로 구멍은 구멍으로 남고(1 in arr2가 false) 인덱스가 아닌 추가 프로퍼티 extra도 남습니다."
+/>
+
+### 예제 8: getter가 던진 오류
+
+```js file=./examples/getter-throws.js
+
+```
+
+<PredictQuiz
+  question="예제 8의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'DataCloneError true / DataCloneError',
+    'RangeError false / RangeError',
+    'RangeError false / DataCloneError',
+    'no error / no error',
+  ]}
+  answer={2}
+  explanation="직렬화가 키마다 값을 읽는 단계는 ? 표기라 getter가 던진 RangeError는 DataCloneError로 바뀌지 않고 그대로 전파됩니다. 두 객체는 getter와 f가 같고 순서만 다른데, getter가 앞이면 RangeError가, f가 앞이면 getter에 닿기 전에 f에서 DataCloneError가 납니다. 결과가 순서로 갈리는 것이 키 순서대로 처리한다는 증거입니다."
+/>
+
+## 결과와 이유
+
+<div className="my-6 overflow-x-auto" tabIndex={0} role="region" aria-label="예제 결과 표">
+  <table className="w-full border-collapse text-left">
+    <thead>
+      <tr>
+        <th className="border-border border px-3 py-2">예제</th>
+        <th className="border-border border px-3 py-2">결과</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td className="border-border border px-3 py-2">예제 1: 보존되는 타입</td>
+        <td className="border-border border px-3 py-2">
+          <code>{'true false 0 / true 1 true / true true bigint / 1'}</code>
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">예제 2: 공유 참조와 순환</td>
+        <td className="border-border border px-3 py-2">
+          <code>{'true false / true false'}</code>
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">예제 3: 복제할 수 없는 값</td>
+        <td className="border-border border px-3 py-2">
+          <code>{'DataCloneError DataCloneError DataCloneError / true'}</code>
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">예제 4: 클래스 인스턴스</td>
+        <td className="border-border border px-3 py-2">
+          <code>{'false true / {"x":1,"y":2} / undefined undefined / 1 TypeError'}</code>
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">예제 5: 프로퍼티 어트리뷰트</td>
+        <td className="border-border border px-3 py-2">
+          <code>
+            {
+              'false 0 / {"value":7,"writable":true,"enumerable":true,"configurable":true} 1 / false true'
+            }
+          </code>
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">예제 6: Error 객체</td>
+        <td className="border-border border px-3 py-2">
+          <code>{'true bad false / false Error / true TypeError'}</code>
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">예제 7: RegExp와 배열</td>
+        <td className="border-border border px-3 py-2">
+          <code>{'g 0 / false 3 x'}</code>
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">예제 8: getter가 던진 오류</td>
+        <td className="border-border border px-3 py-2">
+          <code>{'RangeError false / DataCloneError'}</code>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+### 예제 1
+
+10번 줄에서 결과의 `c.d`는 Date이고(`true`) 원본의 `d`와 다른 객체이며(`false`) 시각 값은 `0`입니다. 11번 줄은 Map의 엔트리와 Set의 값이 남았음을, 12번 줄은 값이 `undefined`인 프로퍼티 `u`의 키, `NaN`, BigInt가 남았음을 보입니다. 13번 줄에서 결과의 Map만 바꿔도 14번 줄에서 원본 Map의 `size`는 `1`입니다.
+
+### 예제 2
+
+4번 줄은 결과의 `left`와 `right`가 같은 객체이지만(`true`) 원본 `o`는 아님(`false`)을 보입니다. 8번 줄은 순환이 결과 안에서도 자기 자신을 가리키지만(`true`) 원본 `a`와는 다른 객체임(`false`)을 보입니다.
+
+### 예제 3
+
+9번 줄의 세 값은 이름이 모두 `DataCloneError`입니다. `{ name: 'x', greet() {} }`는 메서드 `greet`이 함수라서, 심벌 값 `Symbol('s')`는 심벌이라서, `document.body`는 직렬화할 수 없는 플랫폼 객체라서 던집니다. 13번 줄은 이 오류가 `DOMException`의 인스턴스임을 보입니다. 예제 4의 메서드는 자기 프로퍼티가 아니라 prototype에 있어서 같은 오류가 나지 않습니다.
+
+### 예제 4
+
+19번 줄은 결과의 프로토타입이 `Object.prototype`이라 `instanceof Point`가 `false`임을 보입니다. 20번 줄은 자기 열거 가능 키 `x`와 `y`만 남았음을, 21번 줄은 prototype의 메서드 `move`와 접근자 `sum`이 결과에 없음을 보입니다. 22번 줄은 원본의 `#secret`이 `1`이고 결과에서는 읽으면 `TypeError`임을 보입니다.
+
+### 예제 5
+
+13번 줄은 열거 불가 프로퍼티와 심벌 키가 결과에 없음을, 14번 줄은 접근자가 getter를 한 번 부른 값 `7`의 데이터 프로퍼티가 되었음을 보입니다. 17번 줄은 얼린 객체의 결과가 얼려 있지 않고 프로퍼티가 쓰기 가능함을 보입니다.
+
+### 예제 6
+
+4번 줄에서 `TypeError`로 남고 `message`가 `'bad'`이지만 `code`는 없습니다. 13번 줄의 `NamedTypeError`는 `name`이 허용 목록에 없어 `Error`로 돌아옵니다. 18번 줄의 `Error`는 `name`이 `'TypeError'`라서 `TypeError`가 됩니다.
+
+### 예제 7
+
+4번 줄은 `lastIndex`를 `2`로 올려 두었어도 결과가 `g` 플래그의 RegExp이고 `lastIndex`는 Chromium에서 `0`임을 보입니다. 8번 줄은 배열의 구멍이 구멍으로 남고 `length`는 `3`이며 추가 프로퍼티 `extra`가 남았음을 보입니다.
+
+### 예제 8
+
+17번 줄은 (가) getter `g`가 앞인 객체(10~15번 줄)에서 getter가 던진 RangeError가 그대로 전파되어 DOMException이 아님을 보입니다. 19번 줄은 (나) 같은 `g`와 `f`를 `f`가 앞이 되게 놓은 객체(20~25번 줄)에서 `f`에서 DataCloneError가 먼저 남을 보입니다. 두 객체는 키 순서만 다릅니다.
+
+### 흔한 오해
+
+<Callout type="misconception" title="structuredClone은 무엇이든 복제한다">
+
+함수, 심벌, 직렬화할 수 없는 플랫폼 객체(예: DOM 노드), Date·Map처럼 기록 방법이 정해진 종류가 아니면서 다른 내부 슬롯을 가진 객체(Promise·WeakMap), Proxy는 DataCloneError입니다. 값의 일부에서만 나도 호출 전체가 던져지고 결과는 만들어지지 않습니다(예제 3).
+
+</Callout>
+
+<Callout type="misconception" title="클래스 인스턴스도 그대로 복제된다">
+
+기록되는 것은 자기 열거 가능 문자열 키뿐이고 역직렬화는 `Object.prototype`을 프로토타입으로 하는 새 객체를 만듭니다. 클래스와 prototype의 메서드·접근자, private 필드는 결과에 없습니다(예제 4). Error도 클래스(프로토타입)는 기록되지 않고, 결과의 종류는 기록된 `name` 값으로 정해집니다(예제 6).
+
+</Callout>
+
+<Callout type="misconception" title="복제할 수 없는 값은 JSON처럼 빠진다">
+
+`JSON.stringify`는 함수·심벌 값 프로퍼티를 조용히 빼지만 `structuredClone`은 전체가 DataCloneError로 실패합니다(예제 3). 반대로 `undefined`인 프로퍼티, `NaN`, `-0`, BigInt, Date, Map, 순환과 공유 참조는 JSON에서 잃거나 오류가 나지만 `structuredClone`에서는 남습니다(값별 비교표).
+
+</Callout>

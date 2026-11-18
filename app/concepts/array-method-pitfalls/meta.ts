@@ -42,6 +42,8 @@ export const concept = {
     'spread-destructuring',
     'iterable-for-of',
     'error-handling',
+    'json',
+    'structured-clone',
   ],
   examples: [
     {
@@ -99,7 +101,7 @@ export const concept = {
     'Symbol.species와 ArraySpeciesCreate에 따른 하위 클래스의 동작, 배열 메서드를 유사 배열에 빌려 쓰는 경우, 콜백 안에서 배열을 바꾸는 경우는 다루지 않습니다.',
     '구멍 설명은 Array.prototype과 Object.prototype에 인덱스 프로퍼티가 없는 보통의 경우를 전제합니다. 명세의 HasProperty와 Get은 프로토타입 체인까지 보므로, 그곳에 같은 인덱스가 있으면 구멍에서도 콜백이 불리고 그 값을 읽습니다.',
     'localeCompare·Intl.Collator에 의한 언어별 정렬과 유니코드 정규화는 다루지 않습니다. 기본 sort의 문자열 비교는 코드 유닛 순서입니다.',
-    '스프레드는 스프레드와 디스트럭처링 개념, Array.from과 이터러블은 이터러블과 for...of 개념에서 다루는 주제라 예제에 쓰지 않으며, 깊은 복사와 structuredClone도 다루지 않습니다.',
+    '스프레드는 스프레드와 디스트럭처링 개념, Array.from과 이터러블은 이터러블과 for...of 개념에서 다루는 주제라 예제에 쓰지 않습니다. 깊은 복사는 JSON 개념과 structuredClone 개념에서 다룹니다.',
     'toSorted·toReversed·toSpliced·with는 『모던 자바스크립트 Deep Dive』 출간 이후에 추가된 메서드입니다. 예제는 이 메서드를 지원하는 환경(Node 24 기준)에서 실행한 결과입니다.',
     "예제 5의 people.map((p) => p.name).join('')은 이름을 이어 붙여 정렬 결과를 한 줄로 보이는 용도로만 쓰며, 이 페이지의 설명 대상이 아닙니다.",
     '예제의 console은 ECMAScript 언어가 아니라 호스트가 제공하는 API입니다.',

@@ -78,6 +78,7 @@ import {
   EVENT_LOOP_PATH,
   EVENT_LOOP_SIMULATOR_NAME,
   JSON_PATH,
+  STRUCTURED_CLONE_PATH,
   FETCH_PATH,
   MICROTASK_QUEUE_PATH,
   PROMISE_STATIC_METHODS_PATH,
@@ -1070,6 +1071,13 @@ for (const colorScheme of ['light', 'dark'] as const) {
 
     test('개념 페이지: JSON', async ({ page }) => {
       await page.goto(JSON_PATH)
+      await waitForHydration(page)
+      await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
+      await expectNoSeriousViolations(page)
+    })
+
+    test('개념 페이지: structuredClone', async ({ page }) => {
+      await page.goto(STRUCTURED_CLONE_PATH)
       await waitForHydration(page)
       await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
       await expectNoSeriousViolations(page)

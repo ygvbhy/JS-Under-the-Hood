@@ -71,7 +71,7 @@ reviver가 호출 가능하면 `JSON.parse`는 결과를 빈 문자열 키로 �
 - 같은 객체를 가리키던 두 프로퍼티는 서로 다른 객체가 됩니다. `stringify`의 `[[Stack]]`은 지금 직렬화하고 있는 객체만 검사하므로, 같은 객체를 두 번 만나는 것은 순환이 아닙니다. 그래서 두 번 모두 직렬화되고, `JSON.parse`는 텍스트에 객체 표기(`{...}`)가 나올 때마다 새 객체를 만듭니다. 원본에서 `left === right`가 `true`였어도 사본에서는 `false`이고, 사본의 `left`를 변경해도 `right`는 그대로입니다.
 - 순환 참조는 객체가 아직 직렬화 중이라 `[[Stack]]`에 들어 있는 채로 다시 만나기 때문에 TypeError입니다.
 
-여기서 "사본"은 결과를 부르는 말입니다. 엔진이 값을 복사하는 동작이 있는 것이 아니라, 직렬화와 파싱 절차가 만든 결과가 원본과 다른 객체일 뿐입니다([원시 값과 객체](/concepts/primitives-and-objects)). `structuredClone`은 HTML 표준이 정한 호스트 API라 이 페이지에서는 다루지 않습니다.
+여기서 "사본"은 결과를 부르는 말입니다. 엔진이 값을 복사하는 동작이 있는 것이 아니라, 직렬화와 파싱 절차가 만든 결과가 원본과 다른 객체일 뿐입니다([원시 값과 객체](/concepts/primitives-and-objects)). `structuredClone`은 HTML 표준이 정한 호스트 API이며 [structuredClone](/concepts/structured-clone)에서 다룹니다.
 
 ### 값별 결과표로 정리
 

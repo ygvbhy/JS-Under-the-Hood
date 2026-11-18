@@ -1329,6 +1329,22 @@ describe('프리렌더 (json)', () => {
   })
 })
 
+// 추가 게시글(structured-clone): 값별 비교표와 퀴즈가 프리렌더 HTML에 정적으로 있어야 한다.
+describe('프리렌더 (structured-clone)', () => {
+  const html = read('concepts/structured-clone/index.html')
+
+  it('값별 비교표가 <table>로 프리렌더되고 region과 aria-label이 있다', () => {
+    expect(html).toContain('<table')
+    expect(html).toMatch(/<th[^>]*>\s*확인 식\s*<\/th>/)
+    expect(html).toMatch(/<th[^>]*>\s*structuredClone\(x\)[^<]*<\/th>/)
+    expect(html).toMatch(/role="region"[^>]*aria-label="|aria-label="[^"]*"[^>]*role="region"/)
+  })
+
+  it('퀴즈 정답이 <details>로 8개 이상 프리렌더된다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(8)
+  })
+})
+
 // 추가 게시글(fetch): 상황별 결과표, 가짜 서버 경로 표, 퀴즈가 프리렌더 HTML에 정적으로 있어야 한다.
 describe('프리렌더 (fetch)', () => {
   const html = read('concepts/fetch/index.html')
