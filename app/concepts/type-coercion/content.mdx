@@ -81,7 +81,7 @@ import { conversionTable } from './conversion-table'
 모든 값이 모든 타입으로 바뀌지는 않습니다. 바꿀 수 없는 경우 TypeError가 발생합니다. 오류가 나면 실행이 멈추므로 이 동작은 예제로 보이지 않고 설명으로만 다룹니다. 오류 메시지는 호스트마다 다르므로 여기서는 오류의 종류만 말합니다.
 
 - **Symbol**: `Symbol('id')`처럼 고유한 값을 만드는 원시 값 타입입니다. 문자열이나 숫자로는 암묵적으로 바꿀 수 없습니다. `Symbol('id') + ''`, `${Symbol('id')}`를 쓴 템플릿 리터럴, `+Symbol('id')`는 모두 TypeError입니다. 불리언으로는 바뀝니다. Symbol은 truthy라서 `!Symbol('id')`는 `false`입니다.
-- **BigInt**: `10n`처럼 숫자 뒤에 `n`을 붙인 정수 타입입니다. BigInt와 숫자(number)를 산술 연산자로 섞으면 TypeError입니다(`1n + 1`). `'10' - 1n`도 `-`가 `'10'`을 숫자 10으로 바꾼 뒤 BigInt와 섞게 되므로 TypeError입니다. 단항 `+`도 BigInt에는 쓸 수 없습니다(`+10n`). 반면 BigInt를 문자열과 `+`로 연결하는 것(`10n + ''`은 `"10"`)과 숫자와 `>`로 비교하는 것(`1n > 0`은 `true`)은 오류가 아닙니다.
+- **BigInt**: `10n`처럼 숫자 뒤에 `n`을 붙인 정수 타입입니다. BigInt와 숫자(number)를 산술 연산자로 섞으면 TypeError입니다(`1n + 1`). `'10' - 1n`도 `-`가 `'10'`을 숫자 10으로 바꾼 뒤 BigInt와 섞게 되므로 TypeError입니다. 단항 `+`도 BigInt에는 쓸 수 없습니다(`+10n`). 반면 BigInt를 문자열과 `+`로 연결하는 것(`10n + ''`은 `"10"`)과 숫자와 `>`로 비교하는 것(`1n > 0`은 `true`)은 오류가 아닙니다. BigInt와 숫자를 섞어 계산하거나 비교할 때의 규칙은 [BigInt](/concepts/bigint)에서 다룹니다.
 
 ### 명시적 변환
 

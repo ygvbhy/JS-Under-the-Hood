@@ -1,0 +1,609 @@
+`1n < 1.5`와 `1n == 1`은 오류 없이 `true`인데, `1n + 1`은 왜 TypeError일까요? 이항 산술·비트 연산자는 명세의 ApplyStringOrNumericBinaryOperator가 처리합니다. `+`에서 한쪽이 문자열이면 먼저 문자열 연결을 하고, 그 밖에는 두 피연산자를 ToNumeric으로 바꾼 뒤 둘의 타입이 다르면 TypeError를 던집니다. 한쪽을 다른 타입으로 바꾸는 단계가 없습니다. 비교는 다른 알고리즘입니다. `<`·`>`·`<=`·`>=`(IsLessThan)와 `==`(IsLooselyEqual)는 BigInt와 Number를 수학적 값, 곧 반올림하지 않은 정확한 수로 비교하므로 던지지 않습니다. 이 페이지는 이 규칙이 단항 연산자, 증감, 문자열과의 비교, 변환 함수, 나눗셈과 나머지, 비트 연산, `sort`에서 어떻게 나타나는지 예제 열 개로 살펴봅니다. [숫자의 함정](/concepts/number-pitfalls)의 BigInt 절에서 본 섞은 덧셈의 TypeError와 나눗셈의 0 쪽 버림, [암묵적 타입 변환](/concepts/type-coercion)의 ToNumber와 문자열 변환, [동등 비교](/concepts/equality-operators)의 `==`를 전제합니다.
+
+## 동작 원리
+
+### 섞은 산술은 던지고 문자열 연결은 던지지 않는다
+
+`1n + 1`의 TypeError는 [숫자의 함정](/concepts/number-pitfalls) 예제 9에서 이미 보았습니다. 이 페이지는 같은 규칙이 Number가 아닌 값에도 적용되는지를 봅니다. ToNumeric은 BigInt는 그대로 두고 그 밖의 값은 ToNumber로 Number를 만듭니다. 그래서 예제 1의 9번 줄에서 `1n * true`는 `true`가 Number `1`이 되어 BigInt와 Number가 섞이고, `1n + undefined`는 `undefined`가 `NaN`(Number)이 되어 역시 섞입니다. 둘 다 `TypeError`입니다. 한쪽이 Number가 아니어도 ToNumeric을 거치면 결국 Number와 섞입니다.
+
+`+`는 ToNumeric보다 먼저 문자열을 봅니다. 10번 줄의 `1n + '1'`과 `'1' + 1n`은 문자열 연결이라 둘 다 `'11'`(`typeof`가 `string`)입니다. BigInt가 끼면 무조건 던지는 것이 아닙니다. 다만 문자열을 먼저 보는 것은 `+`뿐입니다. `1n - '1'`이나 `2n * '3'`은 `'1'`과 `'3'`이 ToNumeric에서 Number가 되어 `TypeError`입니다(`1n - '1'`은 아래 연산 결과 표). 숫자 모양의 문자열이라도 산술에서는 BigInt로 바뀌지 않습니다. 11번 줄은 직접 맞추는 방법입니다. `Number(1n) + 1`은 Number `2`, `1n + BigInt(1)`은 BigInt `2n`입니다. 값과 `typeof`를 함께 출력해 BigInt인지 Number인지 구분했습니다. `String()`만 쓰면 `2n`과 `2`가 둘 다 `2`로 보이기 때문입니다.
+
+### 단항 연산자와 ToNumber를 하는 함수
+
+단항 `-`와 `~`는 ToNumeric이라 BigInt를 받아 BigInt를 돌려줍니다. 예제 2의 9번 줄에서 `-1n`은 `-1n`, `~1n`은 `-2n`(`-x - 1`)이고 `typeof`는 `bigint`입니다. 반면 단항 `+`는 ToNumeric이 아니라 ToNumber를 하므로 BigInt이면 던집니다. 10번 줄의 `+1n`이 `TypeError`입니다. 단항 `-`와 달리 단항 `+`는 BigInt에 쓸 수 없습니다.
+
+인수에 ToNumber를 하는 함수도 같습니다. 11번 줄의 `Math.max(1n, 2n)`과 전역 `isNaN(1n)`은 `TypeError`입니다. 다만 "내장 함수는 BigInt를 받지 못한다"로 넓히면 틀립니다. 12번 줄의 `Number.isInteger(1n)`과 `Number.isNaN(1n)`은 변환하지 않고 값이 Number인지부터 보므로 `false`이고, `parseInt(1n)`은 ToNumber가 아니라 문자열 `'1'`로 바꾸어 읽으므로 Number `1`입니다. BigInt를 돌려주는 것이 아니어서 큰 값은 Number로 반올림됩니다(`parseInt(9007199254740993n)`은 `9007199254740992`). 어떤 함수가 인수를 ToNumber하는지에 달려 있습니다. 이 페이지는 Math 객체를 따로 다루지 않으므로 함수 이름으로만 씁니다.
+
+### 증감과 복합 대입
+
+`x++`는 `x = x + 1`과 같지 않습니다. 후위 증가는 ToNumeric으로 옛 값을 만들고 그것이 BigInt이면 BigInt 1을 더합니다([증감 연산자](/concepts/increment-decrement)). 예제 3의 2번 줄 `a++`가 던지지 않고, `old`와 `a`가 모두 `bigint`인 것(3번 줄)이 Number로 바꿔 더한 것이 아님을 보입니다. 같은 변수에 6번 줄의 `b = b + 1`은 이항 `+`라 `TypeError`이고, 10번 줄의 `b++`는 됩니다. `x += 1`도 이항 `+`와 같은 알고리즘이라 14번 줄에서 던지고 `c`는 그대로 `1n`입니다(16번 줄의 `TypeError 1`). `c += 1n`은 됩니다. 전위 `++x`와 `x--`·`--x`도 같은 방식으로 ToNumeric 뒤 BigInt 1을 더하거나 빼므로(BigInt::add, BigInt::subtract) BigInt에서 던지지 않습니다.
+
+### 비교와 ==는 수학적 값으로
+
+IsLessThan은 한쪽이 BigInt이고 한쪽이 Number이면, Number가 `NaN`이면 `undefined`를 돌려주고, ±∞이면 부호에 따라 바로 결과를 정하고, 그 밖에는 두 값을 수학적 값으로 비교합니다. `undefined`이면 `<`뿐 아니라 `>=`도 `false`입니다. 이 방식이 두 가지 틀린 모델을 가려냅니다.
+
+예제 4의 1번 줄에서 `1n < 1.5`와 `2n > 1.5`가 모두 `true`이고 `1n == 1.5`는 `false`입니다. Number를 BigInt로 바꿔 비교한다면 `BigInt(1.5)`가 RangeError이고, 소수를 버려 `1n`으로 바꾼다 해도 `1n < 1n`은 `false`입니다. 3번 줄의 `big > 9007199254740992`가 `true`이고 `big == 9007199254740992`가 `false`인 것(`big`은 2의 53제곱보다 1 큰 값)은 BigInt를 Number로 바꿔 비교하는 모델도 가려냅니다. 바꾸면 둘 다 `9007199254740992`가 되어 결과가 반대입니다. 4번 줄은 `NaN`과의 비교가 `<`도 `>=`도 `false`이고, `10n ** 400n < Infinity`와 `-(10n ** 400n) > -Infinity`가 `true`임을 보입니다. 이 큰 값을 Number로 바꾸면 `Infinity < Infinity`라 `false`일 것입니다. 5번 줄의 `[1n].includes(1)`은 `false`입니다. `includes`는 `==`가 아니라 SameValueZero로 같은지 보고 타입이 다르면 다른 값입니다([배열 메서드의 함정](/concepts/array-method-pitfalls)). `1n === 1`이 `false`인 것은 [숫자의 함정](/concepts/number-pitfalls) 예제 9에서 보았습니다.
+
+한쪽이 문자열이면 문자열을 Number가 아니라 BigInt로 바꿉니다(StringToBigInt). 예제 5의 1번 줄에서 `1n == ' 1 '`과 `16n == '0x10'`이 `true`인 것은 앞뒤 공백과 `0x` 접두사를 StringToBigInt가 읽기 때문입니다. BigInt를 문자열로 바꿔 문자열끼리 비교한다면 `'1'`과 `' 1 '`이 달라 `false`일 것입니다. 2번 줄은 문자열을 Number로 바꾸는 모델을 `==`와 비교 양쪽에서 가려냅니다. `9007199254740993n == '9007199254740993'`이 `true`인데, 문자열을 Number로 바꾸면 `9007199254740992`가 되어 BigInt와 같지 않으므로 `false`일 것입니다. `9007199254740992n < '9007199254740993'`도 `true`인데, 문자열을 Number로 바꾸면 역시 `9007199254740992`가 되어 `9007199254740992n < 9007199254740992`, 곧 `false`일 것입니다. 문자열이 BigInt 문법이 아니면 `==`는 `false`이고, IsLessThan은 `undefined`를 돌려주어 `<`·`>`·`<=`·`>=`가 모두 `false`입니다. 3번 줄의 `1n == '1.5'`, `1n < '1.5'`, `1n >= '1.5'`가 모두 `false`입니다. `>=`가 `<`의 반대가 아닙니다. 4번 줄의 `1 < '1.5'`는 Number와 문자열의 비교라 문자열을 Number `1.5`로 바꿔 `true`입니다([암묵적 타입 변환](/concepts/type-coercion)). 같은 `'1.5'`가 BigInt와는 비교할 수 없는 값이 됩니다.
+
+### BigInt와 Number로 바꾸기
+
+`BigInt(value)`는 값을 원시 값으로 바꾼 뒤, Number이면 정수인지만 확인해(NumberToBigInt) 바꾸고 아니면 ToBigInt를 합니다. 예제 6의 9번 줄에서 정수가 아닌 `1.5`, `NaN`, `Infinity`는 모두 `RangeError`입니다. 10번 줄에서 `undefined`와 `null`은 `TypeError`이고 `true`는 `1n`입니다. 문자열은 명세의 StringIntegerLiteral 문법으로 읽고(StringToBigInt) 읽지 못하면 `SyntaxError`입니다. 이 문법은 소스 코드의 BigInt 리터럴과 다릅니다. `n` 접미사와 숫자 구분자(`_`)를 쓸 수 없고, 반대로 리터럴에 없는 앞뒤 공백, 빈 문자열, 10진수의 부호, 앞자리 0을 허용합니다(`BigInt('012')`는 `12n`인데 소스의 `012n`은 SyntaxError입니다). 리터럴에는 부호가 없고 `-1n`은 `1n`에 단항 `-`를 적용한 식입니다. 11번 줄에서 앞뒤 공백은 허용되어 `' 12 '`는 `12n`, 빈 문자열은 `0n`, `'0x10'`은 `16n`입니다. 부호는 10진 문자열에서만 허용되어 `'-0x10'`은 `SyntaxError`입니다. 12번 줄의 `'1e3'`, `'1.5'`, 숫자 구분자가 든 `'1_000'`도 `SyntaxError`입니다. `Number('1e3')`은 `1000`이므로 문자열을 Number로 바꾼 뒤 BigInt로 바꾸는 것이 아닙니다. 13번 줄의 `BigInt.asIntN(8, 255)`는 인수에 ToBigInt를 바로 하므로 Number 인수가 `TypeError`이고, `255n`은 `-1n`입니다. `BigInt(255)`는 됩니다. 인수가 이미 Number이면 반올림된 값을 그대로 옮기므로 `BigInt(9007199254740993)`은 `9007199254740992n`입니다([숫자의 함정](/concepts/number-pitfalls) 예제 9). 큰 정수는 `9007199254740993n` 리터럴이나 문자열로 넘깁니다.
+
+반대 방향인 `Number(bigint)`는 가장 가까운 Number 값으로 반올림하고, 너무 크면 `Infinity`입니다(반올림 자체는 [숫자의 함정](/concepts/number-pitfalls) 예제 9에서 보았습니다). 예제 7의 `Number(2n ** 63n)`은 2의 63제곱을 정확히 담을 수 있는 값이라 4번 줄의 `BigInt(n) === big`이 `true`이고, 그 값을 다시 BigInt로 바꾼 문자열이 `9223372036854775808`입니다. 그런데 3번 줄의 출력은 `9223372036854776000`이고 4번 줄의 `String(n) === String(big)`은 `false`입니다. 출력 문자열은 저장된 값이 아닙니다. Number::toString은 그 Number 값으로 되돌아오는 가장 짧은 자릿수를 고르고, 이 값처럼 정수 부분이 21자리 이하이면 모자란 자리를 `0`으로 채웁니다(더 크면 `1e+25`처럼 지수 표기입니다). 이 값은 16자리 `9223372036854776`에 0 세 개를 채운 것입니다. `Number(10n ** 400n)`은 `Infinity`, 음수는 `-Infinity`입니다(5번 줄).
+
+### 나눗셈, 나머지, 거듭제곱
+
+BigInt의 `/`가 0 쪽으로 버리는 것은 [숫자의 함정](/concepts/number-pitfalls) 예제 9에서 보았습니다. 나머지의 부호는 나눠지는 수를 따릅니다(BigInt::remainder). 예제 8의 9번 줄에서 `-5n % 3n`은 `-2n`, `5n % -3n`은 `2n`, `-5n % -3n`은 `-2n`입니다. 나누는 수의 부호를 따르는 나머지(`-5`를 `3`으로 나눈 `1`)가 아닙니다. 10번 줄에서 `1n / 0n`, `1n % 0n`은 `RangeError`이고, 음수 지수 `2n ** -1n`도 `RangeError`입니다. Number의 `1 / 0`은 `Infinity`입니다(11번 줄). `0n ** 0n`은 `1n`이고 `5n / 2n`의 `typeof`는 `bigint`입니다.
+
+### 비트 연산
+
+`&`, `|`, `^`, `~`, `<<`, `>>`는 BigInt끼리 됩니다. 명세는 연산자마다 정의가 다릅니다. `&`·`|`·`^`는 부호를 확장해 비트별로 계산하고(BigIntBitwiseOp), `~`는 `-x - 1`이며, `<<`는 2의 거듭제곱을 곱하고 `>>`는 2의 거듭제곱으로 나눈 뒤 내림합니다(BigInt::leftShift, signedRightShift). 결과는 BigInt를 무한히 긴 2의 보수 비트열로 보고 계산한 것과 같습니다(BigInt::leftShift의 NOTE). 예제 9의 9번 줄은 `5n & 3n`이 `1n`, `|`가 `7n`, `^`가 `6n`, `~5n`이 `-6n`입니다. 10번 줄에서 `-5n >> 1n`은 `-3n`입니다. 오른쪽 시프트는 내림이라 0 쪽으로 버리는 `-5n / 2n`의 `-2n`과 다릅니다. 11번 줄의 `1n << 31n`은 `2147483648`인데 Number `1 << 31`은 `-2147483648`입니다. Number의 시프트는 결과를 32비트 부호 있는 정수로 만들지만 BigInt는 폭이 정해져 있지 않아 `1n << 64n`도 `18446744073709551616`입니다. `>>>`는 BigInt::unsignedRightShift가 항상 던져 12번 줄의 `1n >>> 0n`이 `TypeError`이고, 비트 연산도 산술과 같이 Number와 섞으면 던집니다(`1n & 1`).
+
+13번 줄의 `BigInt.asUintN`과 `BigInt.asIntN`은 하위 비트만 남깁니다. `asUintN(64, -1n)`은 `18446744073709551615`입니다. `asIntN(8, 255n)`은 `255`를 2의 8제곱으로 나눈 나머지 `255`가 2의 7제곱 이상이라 2의 8제곱을 뺀 `-1n`, `asIntN(8, 128n)`은 `-128n`입니다.
+
+### 정렬
+
+비교 함수가 없는 `sort`는 요소를 문자열로 바꿔 비교합니다([배열 메서드의 함정](/concepts/array-method-pitfalls)). 예제 10의 2번 줄에서 `[30n, 4n, 100n]`이 `100,30,4`로 정렬됩니다. 4번 줄의 `(x, y) => x - y`는 BigInt만 든 배열에서도 비교 함수가 불리면 `TypeError`입니다. `x - y` 자체는 BigInt 뺄셈이라 던지지 않습니다. 8번 줄의 `list[0] - list[1]`이 `bigint`인 `26`입니다. 던지는 곳은 비교 함수가 돌려준 값을 숫자로 바꾸는 단계(CompareArrayElements가 반환값에 ToNumber를 합니다)입니다. 10번 줄처럼 `Number(x - y)`로 감싸면 같은 배열이 `4,30,100`으로 정렬됩니다. 요소가 0개나 1개이면 비교 함수가 불리지 않으므로 던지지 않습니다(`[1n].sort((x, y) => x - y)`는 그대로 `[1n]`). 요소가 둘 이상일 때 비교 함수를 몇 번, 어떤 순서로 부르는지는 명세가 구현에 맡깁니다. 비교 함수가 `<`와 `>`로 `-1`, `0`, `1`을 돌려주면 12번 줄처럼 BigInt와 Number가 섞인 배열도 정렬됩니다.
+
+## 예제
+
+예제의 출력은 Node의 `vm` 모듈에서 스크립트로 실행한 결과입니다. `console.log`는 값을 출력하는 호스트 API이며 ECMAScript 언어의 일부가 아닙니다. BigInt는 `String()`으로 바꿔 넘겼고, 값이 BigInt인지가 요점인 줄은 `typeof`를 함께 출력했습니다. 오류는 이름만 출력하려고 `try…catch`를 씁니다. 여러 줄 출력은 퀴즈에서 ' / '로 이어 적었습니다.
+
+### 예제 1: 섞은 산술
+
+```js file=./examples/mixed-arithmetic.js
+
+```
+
+<PredictQuiz
+  question="예제 1의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'TypeError TypeError / TypeError TypeError / number:2 bigint:2',
+    'bigint:1 TypeError / string:11 string:11 / number:2 bigint:2',
+    'TypeError TypeError / string:11 string:11 / number:2 bigint:2',
+    'TypeError TypeError / string:11 string:11 / bigint:2 bigint:2',
+  ]}
+  answer={2}
+  explanation="1n * true에서 true는 ToNumeric으로 Number 1이 되고 1n + undefined에서 undefined는 NaN이 되어 둘 다 BigInt와 Number가 섞여 TypeError입니다. + 에 문자열이 있으면 ToNumeric보다 먼저 문자열 연결을 하므로 1n + '1'과 '1' + 1n은 문자열 '11'입니다. Number(1n) + 1은 Number 덧셈이라 number:2이고 BigInt(1)을 더한 쪽만 bigint:2입니다."
+/>
+
+### 예제 2: 단항 연산자와 내장 함수
+
+```js file=./examples/unary-builtins.js
+
+```
+
+<PredictQuiz
+  question="예제 2의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'bigint:-1 bigint:-2 / TypeError / TypeError TypeError / false false 1',
+    'TypeError TypeError / TypeError / TypeError TypeError / false false 1',
+    'bigint:-1 bigint:-2 / bigint:1 / TypeError TypeError / false false 1',
+    'bigint:-1 bigint:-2 / TypeError / TypeError TypeError / true false 1',
+  ]}
+  answer={0}
+  explanation="단항 - 와 ~는 ToNumeric이라 BigInt를 그대로 BigInt로 돌려줍니다. 단항 +는 ToNumber라 BigInt이면 던지고, Math.max와 전역 isNaN도 인수를 ToNumber하므로 TypeError입니다. Number.isInteger와 Number.isNaN은 변환하지 않고 Number인지부터 보아 둘 다 false이고, parseInt는 인수를 문자열로 바꿔 읽으므로 1입니다."
+/>
+
+### 예제 3: 증감과 복합 대입
+
+```js file=./examples/increment.js
+
+```
+
+<PredictQuiz
+  question="예제 3의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'bigint 1 bigint 2 / bigint 3 / bigint 3',
+    'number 1 number 2 / TypeError / number 2 / TypeError 1 / bigint 2',
+    'bigint 1 bigint 2 / TypeError / bigint 2 / TypeError 2 / bigint 3',
+    'bigint 1 bigint 2 / TypeError / bigint 2 / TypeError 1 / bigint 2',
+  ]}
+  answer={3}
+  explanation="a++는 ToNumeric으로 BigInt 1n을 얻고 BigInt 1을 더하므로 old와 a가 모두 bigint입니다. b = b + 1과 c += 1은 이항 +라 BigInt와 Number를 섞어 TypeError이고, 던진 쪽은 대입이 일어나지 않아 c는 1n 그대로입니다. 같은 b에 b++는 되므로 x++는 x = x + 1과 같지 않습니다."
+/>
+
+### 예제 4: Number와의 비교
+
+```js file=./examples/compare-number.js
+
+```
+
+<PredictQuiz
+  question="예제 4의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'false true true / true false / false false true true / false true',
+    'true true false / true false / false false true true / false true',
+    'true true false / false true / false false true true / false true',
+    'true true false / true false / false false true true / true true',
+  ]}
+  answer={1}
+  explanation="BigInt와 Number는 수학적 값으로 비교하므로 1n < 1.5와 2n > 1.5가 true이고 1n == 1.5는 false입니다. big은 2의 53제곱보다 1 큰 값이라 Number 9007199254740992와 비교하면 크고(true) 같지 않습니다(false). NaN과의 비교는 undefined라 < 도 >= 도 false이고, 아주 큰 BigInt도 Infinity보다 작습니다. includes는 SameValueZero라 타입이 다른 1n과 1은 같지 않습니다."
+/>
+
+### 예제 5: 문자열과의 비교
+
+```js file=./examples/compare-string.js
+
+```
+
+<PredictQuiz
+  question="예제 5의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'false false / true true / false false false / true',
+    'true true / false false / false false false / true',
+    'true true / true true / false false false / true',
+    'true true / true true / false false true / true',
+  ]}
+  answer={2}
+  explanation="BigInt와 문자열을 비교하면 문자열을 StringToBigInt로 BigInt로 바꿉니다. 앞뒤 공백과 0x 접두사를 읽으므로 1n == ' 1 '과 16n == '0x10'이 true이고, 2의 53제곱보다 1 큰 문자열도 정확히 읽어 true입니다. '1.5'는 BigInt로 읽을 수 없어 == 는 false이고 비교는 undefined라 < 와 >= 가 모두 false입니다. Number와 문자열의 1 < '1.5'는 문자열을 Number로 바꿔 true입니다."
+/>
+
+### 예제 6: BigInt로 바꾸기
+
+```js file=./examples/to-bigint.js
+
+```
+
+<PredictQuiz
+  question="예제 6의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'RangeError RangeError RangeError / TypeError TypeError bigint:1 / bigint:12 bigint:0 bigint:16 SyntaxError / SyntaxError 1000 SyntaxError SyntaxError / TypeError bigint:-1 bigint:255',
+    'bigint:1 RangeError RangeError / TypeError TypeError bigint:1 / bigint:12 bigint:0 bigint:16 SyntaxError / SyntaxError 1000 SyntaxError SyntaxError / TypeError bigint:-1 bigint:255',
+    'RangeError RangeError RangeError / TypeError TypeError bigint:1 / bigint:12 bigint:0 bigint:16 SyntaxError / bigint:1000 1000 SyntaxError SyntaxError / TypeError bigint:-1 bigint:255',
+    'RangeError RangeError RangeError / TypeError TypeError bigint:1 / bigint:12 bigint:0 bigint:16 SyntaxError / SyntaxError 1000 SyntaxError SyntaxError / bigint:-1 bigint:-1 bigint:255',
+  ]}
+  answer={0}
+  explanation="정수가 아닌 Number(1.5, NaN, Infinity)는 RangeError이고 undefined와 null은 TypeError입니다. 문자열은 명세의 StringIntegerLiteral 문법(소스의 BigInt 리터럴과 다름)으로 읽어 앞뒤 공백, 빈 문자열, 0x 접두사는 되지만 부호가 붙은 0x와 1e3, 1.5, 숫자 구분자는 SyntaxError입니다. Number('1e3')은 1000이지만 BigInt('1e3')은 Number를 거치지 않으므로 SyntaxError입니다. asIntN은 인수에 ToBigInt를 바로 하므로 Number 255는 TypeError이고 255n은 -1n입니다."
+/>
+
+### 예제 7: Number로 바꾸기
+
+```js file=./examples/to-number.js
+
+```
+
+<PredictQuiz
+  question="예제 7의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'number 9223372036854775808 / true 9223372036854775808 true / Infinity -Infinity',
+    'number 9223372036854776000 / true 9223372036854775808 false / Infinity -Infinity',
+    'number 9223372036854776000 / false 9223372036854776000 false / Infinity -Infinity',
+    'number 9223372036854776000 / true 9223372036854775808 false / RangeError RangeError',
+  ]}
+  answer={1}
+  explanation="2의 63제곱은 Number가 정확히 담는 값이라 BigInt(n) === big이 true이고 BigInt(n)을 문자열로 바꾸면 9223372036854775808입니다. 그러나 Number를 출력할 때는 Number::toString이 그 값으로 돌아오는 가장 짧은 자릿수 9223372036854776을 고르고 0 세 개를 채워 9223372036854776000이 되므로, 출력 문자열과 저장된 값의 문자열이 같지 않습니다. 너무 큰 BigInt는 오류가 아니라 ±Infinity입니다."
+/>
+
+### 예제 8: 나눗셈, 나머지, 거듭제곱
+
+```js file=./examples/division.js
+
+```
+
+<PredictQuiz
+  question="예제 8의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '1 -1 -2 / RangeError RangeError RangeError / bigint:1 bigint:2 Infinity',
+    '-2 2 -2 / Infinity NaN RangeError / bigint:1 bigint:2 Infinity',
+    '-2 2 -2 / RangeError RangeError RangeError / RangeError bigint:2 Infinity',
+    '-2 2 -2 / RangeError RangeError RangeError / bigint:1 bigint:2 Infinity',
+  ]}
+  answer={3}
+  explanation="BigInt의 나머지는 나눠지는 수의 부호를 따라 -5n % 3n은 -2n, 5n % -3n은 2n, -5n % -3n은 -2n입니다. BigInt는 0으로 나누거나 나머지를 구하면 RangeError이고 음수 지수도 RangeError입니다. Number의 1 / 0만 Infinity입니다. 0n ** 0n은 1n이고 5n / 2n은 소수가 아니라 BigInt입니다."
+/>
+
+### 예제 9: 비트 연산
+
+```js file=./examples/bitwise.js
+
+```
+
+<PredictQuiz
+  question="예제 9의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '1 7 6 -6 / -3 -2 / 2147483648 -2147483648 18446744073709551616 / TypeError TypeError / 18446744073709551615 -1 -128',
+    '1 7 6 -6 / -2 -2 / 2147483648 -2147483648 18446744073709551616 / TypeError TypeError / 18446744073709551615 -1 -128',
+    '1 7 6 -6 / -3 -2 / -2147483648 -2147483648 0 / TypeError TypeError / 18446744073709551615 -1 -128',
+    '1 7 6 -6 / -3 -2 / 2147483648 -2147483648 18446744073709551616 / bigint:1 TypeError / 18446744073709551615 -1 -128',
+  ]}
+  answer={0}
+  explanation="BigInt는 무한히 긴 2의 보수 비트열로 계산해 ~5n은 -6n이고, -5n >> 1n은 내림이라 -3n으로 0 쪽으로 버리는 -5n / 2n의 -2n과 다릅니다. BigInt에는 폭이 없어 1n << 31n은 2147483648이고 1n << 64n도 잘리지 않지만 Number의 1 << 31은 32비트 부호 있는 정수라 -2147483648입니다. >>>는 BigInt에서 항상 TypeError이고 Number와 섞은 & 도 TypeError입니다. asUintN(64, -1n)은 하위 64비트 전체가 1인 값이고 asIntN(8, 255n)은 -1n, asIntN(8, 128n)은 -128n입니다."
+/>
+
+### 예제 10: 정렬
+
+```js file=./examples/sort.js
+
+```
+
+<PredictQuiz
+  question="예제 10의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '4,30,100 / TypeError / bigint 26 / 4,30,100 / 1,2,3',
+    '100,30,4 / bigint 26 / 4,30,100 / 1,2,3',
+    '100,30,4 / TypeError / bigint 26 / 4,30,100 / 1,2,3',
+    '100,30,4 / TypeError / bigint 26 / TypeError / 1,2,3',
+  ]}
+  answer={2}
+  explanation="비교 함수가 없으면 요소를 문자열로 바꿔 비교해 100,30,4입니다. x - y 자체는 BigInt 뺄셈이라 bigint 26으로 되지만, sort는 비교 함수가 돌려준 BigInt를 숫자로 바꾸는 단계에서 던지므로 BigInt만 든 배열도 TypeError입니다. Number(x - y)로 감싸면 정렬되어 4,30,100이고, < 와 > 로 -1, 0, 1을 돌려주는 비교 함수는 BigInt와 Number가 섞인 배열도 1,2,3으로 정렬합니다."
+/>
+
+## 결과와 이유
+
+### 예제 1
+
+9번 줄은 `true`와 `undefined`가 ToNumeric에서 Number가 되어 BigInt와 섞이므로 둘 다 `TypeError`입니다. 10번 줄은 문자열 연결이라 `string:11`이 둘입니다. 11번 줄은 `number:2`와 `bigint:2`로, 같은 `2`라도 타입이 다릅니다.
+
+### 예제 2
+
+9번 줄은 단항 `-`·`~`가 BigInt를 돌려줘 `bigint:-1 bigint:-2`, 10번 줄은 단항 `+`가 ToNumber라 `TypeError`입니다. 11번 줄은 ToNumber를 하는 `Math.max`와 `isNaN`이 던집니다. 12번 줄은 `Number.isInteger(1n)`과 `Number.isNaN(1n)`이 `false`, `parseInt(1n)`이 `1`입니다.
+
+### 예제 3
+
+3번 줄은 `old`와 `a`가 `bigint`이고 값이 `1`과 `2`입니다. 8번 줄은 `b = b + 1`의 `TypeError`, 11번 줄은 `b++` 뒤의 `bigint 2`, 16번 줄의 `TypeError 1`은 `c += 1`이 던졌고 `c`가 그대로임을, 19번 줄은 `c += 1n`이 `bigint 2`임을 보입니다.
+
+### 예제 4
+
+1번 줄은 `true true false`로 `1n < 1.5`, `2n > 1.5`가 참이고 `1n == 1.5`는 거짓입니다. 3번 줄은 `true false`로 `big > 9007199254740992`만 참입니다. 4번 줄은 `NaN`과의 비교 둘이 `false false`, 큰 BigInt와 `Infinity`의 비교 둘이 `true true`입니다. 5번 줄은 `[1n].includes(1)`이 `false`, `[1n].includes(1n)`이 `true`입니다.
+
+### 예제 5
+
+1번 줄은 `1n == ' 1 '`, `16n == '0x10'`이 `true true`입니다. 2번 줄은 `9007199254740993n == '9007199254740993'`이 `true`이고 `9007199254740992n < '9007199254740993'`도 `true`입니다. 3번 줄은 `'1.5'`를 BigInt로 읽지 못해 `false false false`입니다. 4번 줄의 `1 < '1.5'`는 Number 비교라 `true`입니다.
+
+### 예제 6
+
+9번 줄은 정수가 아닌 Number 셋이 `RangeError`, 10번 줄은 `undefined`와 `null`이 `TypeError`이고 `true`는 `bigint:1`입니다. 11번 줄은 공백 있는 `' 12 '`가 `12n`, 빈 문자열이 `0n`, `'0x10'`이 `16n`이고 `'-0x10'`만 `SyntaxError`입니다. 12번 줄은 `'1e3'`, `'1.5'`, `'1_000'`이 `SyntaxError`인데 `Number('1e3')`은 `1000`입니다. 13번 줄은 Number 인수의 `asIntN`이 `TypeError`, `255n`이 `bigint:-1`이고 `BigInt(255)`가 `bigint:255`입니다.
+
+### 예제 7
+
+3번 줄은 `number 9223372036854776000`입니다. 4번 줄은 `BigInt(n) === big`이 `true`이고 `BigInt(n)`의 문자열이 `9223372036854775808`이며 `String(n) === String(big)`이 `false`입니다. 값은 2의 63제곱을 정확히 담지만 출력 문자열은 그 값의 십진 전개가 아닙니다. 5번 줄은 `Infinity -Infinity`입니다.
+
+### 예제 8
+
+9번 줄은 `-2 2 -2`, 10번 줄은 `1n / 0n`, `1n % 0n`, `2n ** -1n`이 모두 `RangeError`입니다. 11번 줄은 `0n ** 0n`이 `bigint:1`, `5n / 2n`이 `bigint:2`이고 Number의 `1 / 0`은 `Infinity`입니다.
+
+### 예제 9
+
+9번 줄은 `1 7 6 -6`, 10번 줄은 `-5n >> 1n`이 `-3`, `-5n / 2n`이 `-2`입니다. 11번 줄은 BigInt 시프트 `2147483648`, Number 시프트 `-2147483648`, `1n << 64n`이 `18446744073709551616`입니다. 12번 줄은 `>>>`와 섞은 `&`가 모두 `TypeError`이고, 13번 줄은 `18446744073709551615 -1 -128`입니다.
+
+### 예제 10
+
+2번 줄은 `100,30,4`, 6번 줄은 `x - y` 비교 함수가 낸 `TypeError`, 9번 줄은 `x - y` 자체는 `bigint`의 `26`입니다. 10번 줄은 `Number(x - y)`로 정렬한 `4,30,100`, 12번 줄은 `<`·`>` 비교 함수가 섞인 배열을 정렬한 `1,2,3`입니다.
+
+### 연산 결과 표
+
+앞의 규칙을 연산별로 모았습니다. 결과 칸은 console 출력이 아니라 값을 리터럴로 적은 것입니다(BigInt는 `2n`, 문자열은 작은따옴표, 던지면 오류 이름). 표의 모든 식은 테스트가 새 컨텍스트에서 실제로 평가해 결과 칸과 대조합니다.
+
+<div
+  className="my-6 overflow-x-auto"
+  tabIndex={0}
+  role="region"
+  aria-label="BigInt와 Number 연산 결과 표(좁은 화면에서는 가로로 스크롤할 수 있습니다)"
+>
+  <table className="w-full border-collapse text-left">
+    <thead>
+      <tr>
+        <th className="border-border border px-3 py-2">식</th>
+        <th className="border-border border px-3 py-2">결과</th>
+        <th className="border-border border px-3 py-2">규칙</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'1n + 1'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'TypeError'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          두 피연산자를 ToNumeric으로 바꾼 뒤 BigInt와 Number라 타입이 달라 던집니다(숫자의 함정
+          예제 9와 같은 결과).
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'1n * true'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'TypeError'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          true는 ToNumeric에서 Number 1이 되어 BigInt와 섞입니다.
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{"1n - '1'"}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'TypeError'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          문자열을 먼저 보는 것은 +뿐입니다. -에서는 '1'이 ToNumeric으로 Number가 되어 섞입니다.
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{"1n + '1'"}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{"'11'"}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          +에 문자열이 있으면 ToNumeric보다 먼저 문자열 연결을 합니다.
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'Number(1n) + 1'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'2'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">직접 Number로 맞추면 Number 덧셈입니다.</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'-1n'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'-1n'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          단항 -는 ToNumeric이라 BigInt가 그대로 BigInt입니다.
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'~1n'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'-2n'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          단항 ~는 ToNumeric 뒤 BigInt의 비트 부정(-x - 1)입니다.
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'+1n'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'TypeError'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">단항 +는 ToNumber라 BigInt이면 던집니다.</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'Math.max(1n, 2n)'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'TypeError'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">Math.max는 인수에 ToNumber를 합니다.</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'Number.isInteger(1n)'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'false'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          변환하지 않고 정수인 Number인지만 봅니다.
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'1.5 > 1n'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'true'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          BigInt와 Number의 비교는 수학적 값으로 합니다.
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'1n == 1'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'true'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">==도 수학적 값이 같은지 봅니다.</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'1n == true'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'true'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          불리언은 ToNumber로 1이 된 뒤 BigInt와 수학적 값으로 비교합니다.
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'9007199254740993n == 9007199254740992'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'false'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          BigInt를 Number로 바꾸지 않으므로 둘의 차이가 남습니다.
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{"' 1 ' == 1n"}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'true'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          문자열을 StringToBigInt로 바꾸고 앞뒤 공백은 허용됩니다.
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{"'1.5' > 1n"}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'false'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          StringToBigInt가 실패해 비교 결과가 undefined이고, 그러면 비교 연산자는 false입니다.
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'BigInt(1.5)'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'RangeError'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          정수가 아닌 Number는 BigInt로 바꿀 수 없습니다.
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{"BigInt('1e3')"}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'SyntaxError'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          문자열은 명세의 StringIntegerLiteral 문법으로만 읽고, 지수 표기는 실패합니다.
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'BigInt.asIntN(8, 255)'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'TypeError'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">ToBigInt는 Number를 받지 않습니다.</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'7n / 2n'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'3n'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">나눗셈은 0 쪽으로 버립니다.</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'-7n % 3n'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'-1n'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">나머지의 부호는 나눠지는 수를 따릅니다.</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'1n / 0n'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'RangeError'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          BigInt는 0으로 나누면 던집니다(Number의 <code>{'1 / 0'}</code>은 Infinity).
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'2n ** -1n'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'RangeError'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">지수가 음수이면 던집니다.</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'5n | 3n'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'7n'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          무한 길이의 2의 보수 비트열로 보고 비트별로 계산합니다.
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'-5n >> 1n'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'-3n'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          오른쪽 시프트는 내림(0 쪽이 아님)이라 <code>{'-5n / 2n'}</code>의 -2n과 다릅니다.
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'1n >>> 0n'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'TypeError'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          BigInt에는 부호 없는 오른쪽 시프트가 없어 항상 던집니다.
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'BigInt.asIntN(8, 255n)'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'-1n'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          하위 8비트를 부호 있는 정수로 해석합니다.
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'Number(2n ** 63n)'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'9223372036854776000'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          값은 2의 63제곱을 정확히 담고, 출력은 Number::toString이 고른 가장 짧은 자릿수 표기입니다.
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+### 흔한 오해
+
+<Callout type="misconception" title="BigInt와 Number는 섞으면 무조건 오류다">
+
+던지는 것은 산술과 비트 연산입니다. 비교와 `==`는 수학적 값으로 비교해 `1n < 1.5`가 `true`이고(예제 4), 문자열 연결은 `1n + '1'`이 `'11'`입니다(예제 1). 섞은 비교는 오류가 아니라 `true`나 `false`를 돌려줍니다.
+
+</Callout>
+
+<Callout type="misconception" title="BigInt와 Number를 비교할 때 한쪽을 다른 쪽 타입으로 바꾼다">
+
+BigInt와 Number의 비교는 한쪽을 바꾸지 않고 수학적 값으로 합니다. Number를 BigInt로 바꾸면 `1.5`에서 던지고, BigInt를 Number로 바꾸면 2의 53제곱보다 1 큰 값이 구분되지 않습니다(예제 4). 문자열과는 Number가 아니라 BigInt로 바꾸어 비교하고, 읽을 수 없는 문자열이면 `==`도 `<`·`>`·`<=`·`>=`도 모두 `false`입니다(예제 5).
+
+</Callout>
+
+<Callout type="misconception" title="Number로 출력된 숫자가 저장된 값이다">
+
+`Number(2n ** 63n)`은 2의 63제곱을 정확히 담지만 출력은 `9223372036854776000`입니다. 출력은 그 값으로 되돌아오는 가장 짧은 자릿수에 `0`을 채운 표기이고(21자리 이하일 때), 저장된 값은 `BigInt(n)`으로 다시 바꾸면 `9223372036854775808`임이 드러납니다(예제 7). 값이 같은지는 출력 문자열이 아니라 값으로 비교합니다.
+
+</Callout>

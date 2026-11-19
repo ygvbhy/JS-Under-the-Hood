@@ -1,6 +1,6 @@
 # 추가 게시글 로드맵 2 (기존 페이지가 미뤄 둔 주제 5개)
 
-- 상태: 승인
+- 상태: 완료
 - 작성일: 2026-11-17
 - 기준: `main` @ `7ac81dd`
 
@@ -38,7 +38,7 @@
 | 2 | 클래스의 getter와 setter: 대입했는데 왜 자기 프로퍼티가 생기지 않을까 | 16장, 25장 | 클래스의 `get v`·`set v`는 프로토타입의 접근자라 `a.v = 5` 뒤에도 `Object.hasOwn(a, 'v')`는 `false`. 상속된 setter가 있으면 대입은 setter를 호출. 서브클래스가 getter만 다시 정의하면 대입이 sloppy에서는 무시, strict에서는 TypeError. 서브클래스의 필드 `v = 2`는 상속된 getter를 가리는 자기 프로퍼티를 만듦 | ecmascript | 245 (`class-inheritance` 뒤) | 표 + 퀴즈 | 완료 |
 | 3 | structuredClone: 깊은 복사인데 왜 메서드와 클래스는 사라질까 | 11장 이후 | `Date`·`Map`·중첩 객체·`undefined` 프로퍼티·순환 참조·BigInt는 보존. 함수와 심벌 값은 `DataCloneError`(DOMException). 클래스 인스턴스는 프로토타입이 `Object.prototype`이 되고 접근자는 데이터 프로퍼티로 바뀜(`{value: 7, writable: true, …}`) | browser (호스트 API) | 425 (`json` 뒤) | 값별 결과표(`json`의 표와 나란히) | 완료 |
 | 4 | requestAnimationFrame: 콜백은 언제 실행될까 | 41~42장 | 같은 프레임의 콜백 두 개는 같은 타임스탬프를 받음. 콜백 안에서 다시 등록한 콜백은 다음 프레임. 콜백 하나가 끝날 때마다 마이크로태스크가 먼저 실행(`raf1 → micro-in-raf → raf2`). `cancelAnimationFrame`한 콜백은 실행되지 않음 | browser | 441 (`microtask-queue` 뒤) | 이벤트 루프 시뮬레이터에 렌더링 단계를 더한 것 후보 | 완료 |
-| 5 | BigInt와 Number: 비교는 되는데 왜 더하기는 TypeError일까 | 6장 이후 | `1n == 1`은 `true`, `1n === 1`은 `false`, `2n > 1`은 `true`. `1n + 1`, `+1n`, `Math.max(1n)`은 TypeError. `BigInt(1.5)`는 RangeError, `BigInt('1.5')`는 SyntaxError. `5n / 2n`은 `2`, `-5n / 2n`은 `-2`. `Number(2n ** 64n)`은 `18446744073709552000` | ecmascript | 276 (`number-pitfalls` 뒤) | 연산 결과표 + 퀴즈 | 대기 |
+| 5 | BigInt와 Number: 비교는 되는데 왜 더하기는 TypeError일까 | 6장 이후 | `1n == 1`은 `true`, `1n === 1`은 `false`, `2n > 1`은 `true`. `1n + 1`, `+1n`, `Math.max(1n)`은 TypeError. `BigInt(1.5)`는 RangeError, `BigInt('1.5')`는 SyntaxError. `5n / 2n`은 `2`, `-5n / 2n`은 `-2`. `Number(2n ** 64n)`은 `18446744073709552000` | ecmascript | 276 (`number-pitfalls` 뒤) | 연산 결과표 + 퀴즈 | 완료 |
 
 - 위 결과는 2026-11-17 Node(로컬)와 Playwright Chromium으로 한 번씩 확인한 값이다. 페이지에 쓸 때는 각 계획에서 프로젝트 실행기로 다시 실행하고 명세·표준 원문과 대조한다.
 - 순서는 남은 범위가 넓고 최근 페이지와 이어지는 것부터 놓았다. 1번은 직전 페이지 `classlist-style`과 같은 장이다. 5번은 남은 범위가 가장 좁다.
@@ -75,3 +75,4 @@
 - 2026-11-18: 2번 계획 작성(`class-accessors.md`, 사용자 결정: 핵심 4개 + 추가 4개 모두 — 필드는 setter를 부르지 않음, 부모 생성자가 자식 setter 호출, static·private 접근자, setter 재귀 / 표+퀴즈 / slug `class-accessors`, order 245). Consensus 검토 반영, 승인.
 - 2026-11-18: 2번 `class-accessors`(order 245, objects, 33번째 / 67, 예제 9개·정리 표 12행·퀴즈 9개) 완료. Opus 리뷰 High 1(예제 8의 증거력)·Medium 1 수정, 사용자 검토 4건 반영, `reviewedAt` 2026-11-18. 다음은 3번 structuredClone.
 - 2026-11-18: 3번 `structured-clone`(order 425, objects, browser, 59번째 / 68, 예제 8개+비교표 예제·비교표 12행·퀴즈 8개) 완료. Opus 리뷰 High 1(클래스 인스턴스 문장의 조건)·Medium 5·Low 6 수정, 사용자 검토 6건 반영, `reviewedAt` 2026-11-18. 다음은 4번 requestAnimationFrame.
+- 2026-11-19: 5번 `bigint`(order 276, fundamentals, 39번째 / 70, 예제 10개·연산 결과 표 28행·퀴즈 10개) 완료. 계획 Consensus HIGH 1(2^64 출력 표기 → 2^63) 반영, 리뷰 High 3(예제 5의 증거력, StringIntegerLiteral 용어, 0 채움 범위)·규칙 위반 Low 3 수정, 사용자 검토 7건+1건 반영, `reviewedAt` 2026-11-19. 로드맵 2의 5개 모두 완료.

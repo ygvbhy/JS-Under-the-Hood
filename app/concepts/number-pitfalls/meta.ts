@@ -34,7 +34,7 @@ export const concept = {
     { label: '숫자 타입', slug: 'number-type' },
     { label: '원시 값의 메서드', slug: 'primitive-methods' },
   ],
-  related: ['number-type', 'equality-operators', 'type-coercion', 'global-object'],
+  related: ['number-type', 'equality-operators', 'type-coercion', 'global-object', 'bigint'],
   examples: [
     {
       id: 'stored-value',
@@ -114,7 +114,7 @@ export const concept = {
     'toPrecision과 toExponential은 후보를 고르는 규칙과 지수 표기 조건만 다루고, 결과 문자열을 조립하는 단계는 생략합니다.',
     '예제 8과 9의 try…catch는 오류를 보이려는 용도입니다. 오류 처리는 try/catch/finally 개념에서 다룹니다.',
     '자릿수 인수가 undefined이거나 정수가 아닌 경우는 다루지 않습니다.',
-    'Number.MAX_VALUE와 MIN_VALUE, toString(radix), Intl과 toLocaleString, BigInt의 비트 연산과 asIntN, 단항 연산자는 다루지 않습니다. 비정규 수도 다루지 않습니다.',
+    'Number.MAX_VALUE와 MIN_VALUE, toString(radix), Intl과 toLocaleString은 다루지 않습니다. BigInt의 비트 연산·asIntN·단항 연산자는 BigInt 개념에서 다룹니다. 비정규 수도 다루지 않습니다.',
     '금액처럼 정확한 십진 계산이 필요한 경우의 방법(정수 단위로 계산하기, Intl.NumberFormat, 십진 라이브러리)은 이 페이지의 범위 밖입니다.',
     '반올림 판정 보기는 프리셋 6개(1.005, 1.015, 8.345, 2.5, 0.125, -2.5)만 다룹니다. 음수는 부호를 뗀 값으로 판정하고 결과에 부호를 붙입니다.',
     '안전한 정수 표는 9007199254740990부터 9007199254740996까지만 다룹니다.',

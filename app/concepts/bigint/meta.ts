@@ -1,0 +1,173 @@
+import type { ConceptMeta } from '~/lib/concepts'
+
+const SPEC = 'https://tc39.es/ecma262/#'
+
+export const concept = {
+  slug: 'bigint',
+  title: 'BigInt와 Number: 비교는 되는데 왜 더하기는 TypeError일까',
+  summary:
+    'BigInt와 Number를 섞으면 산술은 TypeError이지만 비교와 ==는 수학적 값으로 됩니다. 변환 오류의 종류, 나눗셈과 나머지, 비트 연산, 정렬을 명세와 실행 결과로 확인합니다.',
+  category: 'fundamentals',
+  order: 276,
+  tags: [
+    'BigInt',
+    'TypeError',
+    'RangeError',
+    'SyntaxError',
+    'ToNumeric',
+    'StringToBigInt',
+    'asIntN',
+    'asUintN',
+    '비트 연산',
+    '정렬',
+    '나머지',
+    '타입 섞기',
+  ],
+  goals: [
+    'BigInt와 Number를 섞은 산술이 TypeError인 이유를 ToNumeric 뒤 타입이 다르면 던지는 규칙으로 설명하고, 문자열 연결·비교·==가 던지지 않는 이유를 구분할 수 있다.',
+    '증감과 복합 대입, 단항 연산자, ToNumber를 하는 함수에서 BigInt가 되는 경우와 TypeError가 되는 경우를 예측할 수 있다.',
+    'BigInt와 Number, BigInt와 문자열의 비교와 ==가 어떤 값으로 바꿔 비교하는지(수학적 값, StringToBigInt) 설명하고 NaN·변환 실패일 때 결과를 예측할 수 있다.',
+    'BigInt()의 변환 오류(RangeError, SyntaxError, TypeError)와 Number()로 바꿀 때의 반올림과 Infinity를 예측하고, Number의 출력 문자열이 저장된 값과 다를 수 있음을 설명할 수 있다.',
+    '나눗셈·나머지·거듭제곱의 오류와 부호 규칙, 비트 연산과 asIntN·asUintN, 비교 함수 a - b를 쓴 sort가 던지는 이유를 설명할 수 있다.',
+  ],
+  prerequisites: [
+    { label: '숫자의 함정', slug: 'number-pitfalls' },
+    { label: '암묵적 타입 변환', slug: 'type-coercion' },
+    { label: '동등 비교', slug: 'equality-operators' },
+  ],
+  related: [
+    'number-pitfalls',
+    'type-coercion',
+    'equality-operators',
+    'increment-decrement',
+    'array-method-pitfalls',
+    'json',
+    'error-handling',
+  ],
+  examples: [
+    {
+      id: 'mixed-arithmetic',
+      file: 'mixed-arithmetic.js',
+      runtime: 'ecmascript',
+      expectedOutput: ['TypeError TypeError', 'string:11 string:11', 'number:2 bigint:2'],
+    },
+    {
+      id: 'unary-builtins',
+      file: 'unary-builtins.js',
+      runtime: 'ecmascript',
+      expectedOutput: ['bigint:-1 bigint:-2', 'TypeError', 'TypeError TypeError', 'false false 1'],
+    },
+    {
+      id: 'increment',
+      file: 'increment.js',
+      runtime: 'ecmascript',
+      expectedOutput: ['bigint 1 bigint 2', 'TypeError', 'bigint 2', 'TypeError 1', 'bigint 2'],
+    },
+    {
+      id: 'compare-number',
+      file: 'compare-number.js',
+      runtime: 'ecmascript',
+      expectedOutput: ['true true false', 'true false', 'false false true true', 'false true'],
+    },
+    {
+      id: 'compare-string',
+      file: 'compare-string.js',
+      runtime: 'ecmascript',
+      expectedOutput: ['true true', 'true true', 'false false false', 'true'],
+    },
+    {
+      id: 'to-bigint',
+      file: 'to-bigint.js',
+      runtime: 'ecmascript',
+      expectedOutput: [
+        'RangeError RangeError RangeError',
+        'TypeError TypeError bigint:1',
+        'bigint:12 bigint:0 bigint:16 SyntaxError',
+        'SyntaxError 1000 SyntaxError SyntaxError',
+        'TypeError bigint:-1 bigint:255',
+      ],
+    },
+    {
+      id: 'to-number',
+      file: 'to-number.js',
+      runtime: 'ecmascript',
+      expectedOutput: [
+        'number 9223372036854776000',
+        'true 9223372036854775808 false',
+        'Infinity -Infinity',
+      ],
+    },
+    {
+      id: 'division',
+      file: 'division.js',
+      runtime: 'ecmascript',
+      expectedOutput: ['-2 2 -2', 'RangeError RangeError RangeError', 'bigint:1 bigint:2 Infinity'],
+    },
+    {
+      id: 'bitwise',
+      file: 'bitwise.js',
+      runtime: 'ecmascript',
+      expectedOutput: [
+        '1 7 6 -6',
+        '-3 -2',
+        '2147483648 -2147483648 18446744073709551616',
+        'TypeError TypeError',
+        '18446744073709551615 -1 -128',
+      ],
+    },
+    {
+      id: 'sort',
+      file: 'sort.js',
+      runtime: 'ecmascript',
+      expectedOutput: ['100,30,4', 'TypeError', 'bigint 26', '4,30,100', '1,2,3'],
+    },
+  ],
+  simplifications: [
+    '예제의 console은 ECMAScript 언어가 아니라 호스트가 제공하는 API입니다. BigInt는 String()으로 바꿔 넘겼고, Node의 출력 서식이 정하는 1n 같은 표기에 기대지 않았습니다.',
+    '예제는 오류의 이름을 보이려고 try…catch를 씁니다. 오류 처리는 try/catch/finally 개념에서 다룹니다.',
+    '객체 피연산자(래퍼 객체, valueOf를 정의한 객체)의 ToPrimitive는 다루지 않습니다.',
+    'a > b와 a <= b는 명세에서 IsLessThan의 인수 순서를 바꿔 계산하지만, 본문은 왼쪽과 오른쪽을 그대로 비교하는 것으로 설명합니다(암묵적 타입 변환 페이지와 같은 단순화).',
+    'BigInt()와 ==, 관계 비교(<, > 등)에 Symbol 값을 넘기는 경우는 다루지 않습니다(관계 비교는 BigInt와 비교해도 TypeError입니다). Symbol은 뒤의 개념입니다.',
+    'Number 비트 연산의 세부(피연산자의 ToInt32·ToUint32, 시프트 횟수를 32로 나눈 나머지)는 다루지 않고 1 << 31과의 대비에 필요한 만큼만 씁니다.',
+    'Number로 바꾼 값의 출력은 Number::toString이 고른 가장 짧은 자릿수 표기입니다. 자릿수 후보가 여럿인 값(예: 2의 64제곱)은 마지막 자리를 명세가 하나로 정하지 않아 예제에 쓰지 않았습니다.',
+    '명세의 수학적 값(ℝ)과 𝔽(가장 가까운 Number 값으로 반올림)은 풀어 쓴 표현입니다.',
+    '정렬에서 비교 함수가 몇 번, 어떤 순서로 불리는지는 명세가 정하지 않으므로 다루지 않습니다.',
+    'Math는 뒤의 장에서 다루는 내장 객체입니다. 이 페이지는 Math.max가 인수에 ToNumber를 한다는 것만 씁니다.',
+    'BigInt 리터럴의 문법 오류(1.5n 등), toString(radix)·toLocaleString, BigInt64Array·DataView, 성능과 내부 표현은 다루지 않습니다. JSON.stringify가 BigInt에서 던지는 TypeError는 JSON 개념에서 다룹니다.',
+    "이 페이지의 예제는 Node의 vm 모듈에서 스크립트로 실행한 결과를 기준으로 합니다. 모든 예제는 맨 앞에 지시어 'use strict';를 붙여도 출력이 같습니다.",
+  ],
+  references: [
+    {
+      label: 'ECMAScript 명세 — ApplyStringOrNumericBinaryOperator',
+      url: `${SPEC}sec-applystringornumericbinaryoperator`,
+    },
+    { label: 'ECMAScript 명세 — ToNumeric', url: `${SPEC}sec-tonumeric` },
+    { label: 'ECMAScript 명세 — IsLessThan', url: `${SPEC}sec-islessthan` },
+    { label: 'ECMAScript 명세 — IsLooselyEqual', url: `${SPEC}sec-islooselyequal` },
+    {
+      label: 'ECMAScript 명세 — BigInt(value)',
+      url: `${SPEC}sec-bigint-constructor-number-value`,
+    },
+    { label: 'ECMAScript 명세 — ToBigInt', url: `${SPEC}sec-tobigint` },
+    { label: 'ECMAScript 명세 — StringToBigInt', url: `${SPEC}sec-stringtobigint` },
+    {
+      label: 'ECMAScript 명세 — BigInt::remainder',
+      url: `${SPEC}sec-numeric-types-bigint-remainder`,
+    },
+    {
+      label: 'ECMAScript 명세 — BigInt::unsignedRightShift',
+      url: `${SPEC}sec-numeric-types-bigint-unsignedRightShift`,
+    },
+    { label: 'ECMAScript 명세 — BigInt.asIntN', url: `${SPEC}sec-bigint.asintn` },
+    {
+      label: 'ECMAScript 명세 — Number(value)',
+      url: `${SPEC}sec-number-constructor-number-value`,
+    },
+    { label: 'ECMAScript 명세 — CompareArrayElements', url: `${SPEC}sec-comparearrayelements` },
+    {
+      label: 'MDN — BigInt',
+      url: 'https://developer.mozilla.org/ko/docs/Web/JavaScript/Reference/Global_Objects/BigInt',
+    },
+  ],
+  reviewedAt: '2026-11-19',
+} satisfies ConceptMeta

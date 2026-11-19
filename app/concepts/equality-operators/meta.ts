@@ -39,7 +39,7 @@ export const concept = {
     { label: '암묵적 타입 변환', slug: 'type-coercion' },
     { label: '원시 값과 객체', slug: 'primitives-and-objects' },
   ],
-  related: ['type-coercion', 'primitives-and-objects', 'hoisting', 'tdz'],
+  related: ['type-coercion', 'primitives-and-objects', 'hoisting', 'tdz', 'bigint'],
   examples: [
     {
       id: 'strict',
@@ -83,7 +83,7 @@ export const concept = {
     '시뮬레이터는 IsLooselyEqual이 값을 바꾼 뒤 자기 자신을 다시 호출하는 과정을 "라운드"로 나눠 보여 줍니다. 평가 단계(GetValue)와 완료 처리 표기(!, ?)는 묶어서 표시하지 않습니다.',
     '명세는 a == b, a === b를 오른쪽 값을 첫 인수로 넘겨(IsLooselyEqual(b, a)) 계산합니다. 명세 Note대로 a == b는 평가 순서를 빼면 b == a와 같으므로, 시뮬레이터와 본문은 왼쪽과 오른쪽을 소스 그대로 보여 줍니다.',
     '"문자열을 숫자로", "불리언을 숫자로", "해당하는 규칙이 없음" 같은 규칙 이름과 "라운드"는 교육용 이름이며 명세 용어가 아닙니다.',
-    'BigInt와 Symbol이 끼는 ==의 규칙(문자열을 BigInt로 바꾸는 규칙, BigInt와 숫자 비교)은 다루지 않습니다.',
+    'BigInt와 문자열·숫자·불리언의 == 규칙(문자열을 BigInt로 바꾸는 규칙, BigInt와 숫자 비교)은 BigInt 개념에서 다룹니다. BigInt와 객체, Symbol이 끼는 ==의 규칙은 다루지 않습니다.',
     '객체를 원시 값으로 바꾸는 과정(ToPrimitive)은 결과만 보여 줍니다. 데이터만 담은 객체 리터럴은 문자열 "[object Object]"가 되며, valueOf·toString을 직접 정의한 객체는 결과가 달라지는데 이 경우는 다루지 않습니다(암묵적 타입 변환 페이지와 같은 범위입니다).',
     '브라우저 호스트의 document.all(명세 부록 B의 [[IsHTMLDDA]])이 null·undefined와 ==로 같다고 판정되는 예외는 다루지 않습니다.',
     '문자열의 일치 비교는 명세상 길이와 같은 위치의 UTF-16 코드 유닛이 모두 같은지로 판정합니다. 이 페이지는 "같은 문자열인지"로 줄여 말합니다.',
