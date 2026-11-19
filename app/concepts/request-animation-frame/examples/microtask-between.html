@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"></head>
+<body>
+<script>
+requestAnimationFrame(function () {
+  console.log('raf1');
+  Promise.resolve().then(function () {
+    console.log('then');
+  });
+});
+requestAnimationFrame(function () {
+  console.log('raf2');
+});
+console.log('스크립트 끝');
+</script>
+</body>
+</html>

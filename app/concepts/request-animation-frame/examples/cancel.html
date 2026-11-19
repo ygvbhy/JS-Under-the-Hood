@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"></head>
+<body>
+<script>
+var a = requestAnimationFrame(function () {
+  console.log('A');
+});
+cancelAnimationFrame(a);
+var c;
+requestAnimationFrame(function () {
+  console.log('B');
+  cancelAnimationFrame(c);
+});
+c = requestAnimationFrame(function () {
+  console.log('C');
+});
+requestAnimationFrame(function () {
+  console.log('D');
+});
+</script>
+</body>
+</html>

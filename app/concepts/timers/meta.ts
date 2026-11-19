@@ -28,7 +28,14 @@ export const concept = {
     { label: 'this', slug: 'this-binding' },
     { label: '클로저', slug: 'closure' },
   ],
-  related: ['this-binding', 'closure', 'global-object', 'promise', 'microtask-queue'],
+  related: [
+    'this-binding',
+    'closure',
+    'global-object',
+    'promise',
+    'microtask-queue',
+    'request-animation-frame',
+  ],
   examples: [
     {
       id: 'sync-first',
@@ -110,7 +117,7 @@ export const concept = {
     '문자열 handler(setTimeout("코드", 0))의 컴파일과 Trusted Types, CSP는 다루지 않습니다.',
     '백그라운드 탭이나 절전 상태에서 브라우저가 타이머를 더 늦추는 정책은 다루지 않습니다.',
     'Node의 동작(setTimeout이 Timeout 객체를 돌려주는 것, 2147483647보다 큰 지연을 1로 바꾸는 것)은 Node 공식 문서를 근거로 한 설명이며, 이 사이트의 실행기로 확인하지 않았습니다.',
-    '워커의 타이머와 requestAnimationFrame, queueMicrotask는 다루지 않습니다.',
+    '워커의 타이머와 queueMicrotask는 다루지 않습니다. requestAnimationFrame은 requestAnimationFrame 개념에서 다룹니다.',
     '스로틀(throttle)은 디바운스와의 차이를 이름으로만 언급하고 예제를 두지 않습니다.',
     '예제의 실행 결과는 Chromium에서 실행한 값입니다. 다른 브라우저는 이 페이지에서 확인하지 않았습니다. 예제의 setTimeout, console, performance는 ECMAScript 언어가 아니라 호스트가 제공하는 API입니다.',
   ],

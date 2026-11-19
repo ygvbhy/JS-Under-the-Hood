@@ -82,6 +82,8 @@ import {
   PROMISE_STATIC_METHODS_PATH,
   PROMISE_STATIC_METHODS_SIMULATOR_NAME,
   MICROTASK_QUEUE_SIMULATOR_NAME,
+  REQUEST_ANIMATION_FRAME_PATH,
+  REQUEST_ANIMATION_FRAME_SIMULATOR_NAME,
   GENERATOR_PATH,
   GENERATOR_SIMULATOR_NAME,
   ASYNC_AWAIT_PATH,
@@ -1436,6 +1438,32 @@ test('마이크로태스크 큐 개념 페이지: 첫 시나리오를 끝까지 
   expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
 })
 
+test(`${REQUEST_ANIMATION_FRAME_PATH}: 가로 스크롤이 없다`, async ({ page }) => {
+  await page.goto(REQUEST_ANIMATION_FRAME_PATH)
+  await waitForHydration(page)
+  const { scrollWidth, innerWidth } = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    innerWidth: window.innerWidth,
+  }))
+  expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
+})
+
+test('requestAnimationFrame 개념 페이지: 첫 시나리오를 끝까지 진행해도 가로 스크롤이 없다', async ({
+  page,
+}) => {
+  await page.goto(REQUEST_ANIMATION_FRAME_PATH)
+  await waitForHydration(page)
+  const region = page.getByRole('region', { name: REQUEST_ANIMATION_FRAME_SIMULATOR_NAME })
+  const next = region.getByRole('button', { name: '다음' })
+  for (let i = 0; i < 17; i++) await next.click()
+  await expect(region.getByText(/^단계 18 \/ 18$/)).toBeVisible()
+  const { scrollWidth, innerWidth } = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    innerWidth: window.innerWidth,
+  }))
+  expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
+})
+
 test(`${GENERATOR_PATH}: 가로 스크롤이 없다`, async ({ page }) => {
   await page.goto(GENERATOR_PATH)
   await waitForHydration(page)
@@ -1665,7 +1693,7 @@ test('Promise 정적 메서드 개념 페이지: 두 시나리오를 끝까지 �
 test('홈 학습 순서 보기: 가로 스크롤이 없다', async ({ page }) => {
   await page.goto('/?view=order')
   await waitForHydration(page)
-  await expect(page.getByRole('article')).toHaveCount(68)
+  await expect(page.getByRole('article')).toHaveCount(69)
   const { scrollWidth, innerWidth } = await page.evaluate(() => ({
     scrollWidth: document.documentElement.scrollWidth,
     innerWidth: window.innerWidth,

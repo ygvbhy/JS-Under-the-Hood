@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"></head>
+<body>
+<script>
+var times = [];
+requestAnimationFrame(function (t) {
+  times.push(t);
+  var end = performance.now() + 5;
+  while (performance.now() < end) {}
+});
+requestAnimationFrame(function (t) {
+  times.push(t);
+  console.log(times.length, times[0] === times[1]);
+});
+</script>
+</body>
+</html>

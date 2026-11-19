@@ -1399,6 +1399,21 @@ describe('시뮬레이터 프리렌더 (microtask-queue)', () => {
   })
 })
 
+// 추가 게시글(request-animation-frame): 시뮬레이터의 첫 단계와 퀴즈가 프리렌더 HTML에 정적으로 있어야 한다.
+describe('프리렌더 (request-animation-frame)', () => {
+  const html = read('concepts/request-animation-frame/index.html')
+  const text = htmlToText(html)
+
+  it('requestAnimationFrame 시뮬레이터 region과 첫 단계가 HTML에 있다', () => {
+    expect(html).toMatch(/role="region"[^>]*aria-label="requestAnimationFrame 시뮬레이터"/)
+    expect(text).toMatch(/단계 1 \/ \d+/)
+  })
+
+  it('퀴즈 정답이 <details>로 7개 이상 프리렌더된다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(7)
+  })
+})
+
 // 추가 게시글(promise-static-methods): 장부 시뮬레이터의 첫 단계, 비교 표 region, 퀴즈가 프리렌더 HTML에 정적으로 있어야 한다.
 describe('시뮬레이터 프리렌더 (promise-static-methods)', () => {
   const html = read('concepts/promise-static-methods/index.html')

@@ -84,6 +84,8 @@ import {
   PROMISE_STATIC_METHODS_PATH,
   PROMISE_STATIC_METHODS_SIMULATOR_NAME,
   MICROTASK_QUEUE_SIMULATOR_NAME,
+  REQUEST_ANIMATION_FRAME_PATH,
+  REQUEST_ANIMATION_FRAME_SIMULATOR_NAME,
   GENERATOR_PATH,
   GENERATOR_SIMULATOR_NAME,
   ASYNC_AWAIT_PATH,
@@ -1147,6 +1149,24 @@ for (const colorScheme of ['light', 'dark'] as const) {
       for (let i = 0; i < 7; i++) await next.click()
       await expect(region).toBeVisible()
       await expect(region.getByText(/^단계 8 \/ 16$/)).toBeVisible()
+      await expectNoSeriousViolations(page)
+    })
+
+    test('개념 페이지: requestAnimationFrame', async ({ page }) => {
+      await page.goto(REQUEST_ANIMATION_FRAME_PATH)
+      await waitForHydration(page)
+      await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
+      await expectNoSeriousViolations(page)
+    })
+
+    test('개념 페이지: requestAnimationFrame 시뮬레이터를 진행한 뒤', async ({ page }) => {
+      await page.goto(REQUEST_ANIMATION_FRAME_PATH)
+      await waitForHydration(page)
+      const region = page.getByRole('region', { name: REQUEST_ANIMATION_FRAME_SIMULATOR_NAME })
+      const next = region.getByRole('button', { name: '다음' })
+      for (let i = 0; i < 3; i++) await next.click()
+      await expect(region).toBeVisible()
+      await expect(region.getByText(/^단계 4 \/ 18$/)).toBeVisible()
       await expectNoSeriousViolations(page)
     })
 

@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"></head>
+<body>
+<script>
+var times = [];
+window.addEventListener('error', function (event) {
+  event.preventDefault();
+  console.log('error 이벤트', event.error.message);
+});
+requestAnimationFrame(function (t) {
+  times.push(t);
+  throw new Error('boom');
+});
+requestAnimationFrame(function (t) {
+  times.push(t);
+  console.log('raf2', times[0] === times[1]);
+});
+</script>
+</body>
+</html>
