@@ -33,7 +33,15 @@ export const concept = {
     { label: '블록 스코프', slug: 'block-scope' },
     { label: '호이스팅', slug: 'hoisting' },
   ],
-  related: ['closure', 'global-object', 'block-scope', 'for-let', 'error-handling', 'es-modules'],
+  related: [
+    'closure',
+    'global-object',
+    'block-scope',
+    'for-let',
+    'error-handling',
+    'es-modules',
+    'function-definitions',
+  ],
   examples: [
     {
       id: 'name-collision',

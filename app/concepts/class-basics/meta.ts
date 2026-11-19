@@ -38,6 +38,7 @@ export const concept = {
     'this-binding',
     'closure',
     'iife-module-pattern',
+    'function-definitions',
     'class-inheritance',
     'arrow-functions',
     'error-handling',

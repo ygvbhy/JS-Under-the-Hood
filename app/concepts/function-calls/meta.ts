@@ -24,7 +24,7 @@ export const concept = {
     'return이 없거나 값 없는 return;이면 결과가 undefined이고, 반복문·switch 안의 return도 함수 전체를 끝낸다는 것과 f와 f()의 차이를 설명할 수 있다.',
   ],
   prerequisites: [
-    { label: '함수 선언' },
+    { label: '함수를 정의하는 방법', slug: 'function-definitions' },
     { label: '암묵적 타입 변환', slug: 'type-coercion' },
     { label: 'switch와 break·continue', slug: 'switch-break-continue' },
   ],

@@ -31,7 +31,7 @@ export const concept = {
     { label: '함수 호출', slug: 'function-calls' },
     { label: '원시 값과 객체', slug: 'primitives-and-objects' },
   ],
-  related: ['execution-context', 'scope-chain', 'for-let'],
+  related: ['execution-context', 'scope-chain', 'for-let', 'function-definitions'],
   examples: [
     {
       id: 'counter',
@@ -81,7 +81,7 @@ export const concept = {
     '실행 컨텍스트 그림의 단순화(구성 요소 일부만, sloppy 함수의 레코드 둘, 컨텍스트 push와 선언 처리를 한 단계로)를 그대로 따릅니다. this 바인딩은 이 페이지에서 그리지 않습니다.',
     '함수가 남는 기준은 변수·남아 있는 레코드의 바인딩·변수가 가리키는 객체의 메서드에서 이어지는지로 단순화했습니다. 객체 자체와 그 다른 프로퍼티는 그리지 않습니다.',
     '반복문 안에서 만든 클로저(var와 let의 차이)는 for 문의 let 개념에서 다룹니다.',
-    '이름 있는 함수 식은 자기 이름을 바꿀 수 없는 바인딩으로 담은 선언적 환경 레코드를 하나 더 만들고, 그 레코드를 [[Environment]]로 삼습니다. 이 페이지의 예제는 이름 없는 함수 식만 쓰며 이 레코드는 다루지 않습니다.',
+    '이름 있는 함수 식은 자기 이름을 바꿀 수 없는 바인딩으로 담은 선언적 환경 레코드를 하나 더 만들고, 그 레코드를 [[Environment]]로 삼습니다. 이 페이지의 예제는 이름 없는 함수 식만 쓰며, 이 레코드는 함수를 정의하는 방법 개념에서 다룹니다.',
     '즉시 실행 함수와 모듈 패턴, 클래스의 private 필드는 다루지 않습니다.',
     'console.log를 부를 때 만들어지는 실행 컨텍스트는 생략합니다.',
   ],

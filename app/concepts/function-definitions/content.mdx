@@ -1,0 +1,238 @@
+같은 `function` 코드가 어떤 자리에서는 둘러싼 스코프에 이름을 만들고, 어떤 자리에서는 만들지 않는 것은 왜일까요? 스크립트나 함수 본문에서 문(statement)의 맨 앞에 쓴 `function 이름() {}`는 함수 선언이고, 둘러싼 스코프에 그 이름의 변수를 만듭니다. 식이 올 자리(초기화식, 인수, 괄호 안, 연산자의 피연산자, `return` 뒤)에 쓴 같은 글자는 함수 표현식입니다. 이름 있는 함수 표현식의 이름은 그 함수만을 위한 별도의 환경에 있어서 함수 안에서만 보이고(이 바인딩은 바꿀 수도 없습니다), `new Function(…)`으로 만든 함수는 만든 곳이 아니라 전역 환경을 봅니다. 이 페이지는 이 차이를 예제 여섯 개로 확인합니다. [변수 선언과 할당](/concepts/variable-declaration)과 [표현식과 문](/concepts/expressions-statements)을 전제합니다.
+
+## 동작 원리
+
+### 자리에 따라 함수 선언 또는 함수 표현식
+
+명세의 식 문(ExpressionStatement)은 `{`, `function`, `async function`, `class`, `let [`로 시작할 수 없습니다([표현식과 문](/concepts/expressions-statements)). 그래서 스크립트나 함수 본문의 문 맨 앞에 쓴 `function`은 식이 아니라 함수 선언으로 읽힙니다. 문의 맨 앞이 아닌 곳, 곧 식이 올 자리에 쓴 `function`은 함수 표현식입니다.
+
+예제 1의 1번 줄 `function d() {}`는 문 맨 앞이라 함수 선언이고, 둘러싼 스코프에 변수 `d`가 생깁니다. 2번 줄의 `function b() {}`는 `var a =` 뒤의 초기화식 자리에 있으므로 함수 표현식입니다. 3번 줄은 문이 `(`로 시작하므로 괄호 안의 `function c() {}`가 식으로 읽힙니다. 이 식은 함수를 만들어 바로 버립니다. 바로 호출하는 형태는 [즉시 실행 함수와 모듈 패턴](/concepts/iife-module-pattern)에서 다룹니다. 4번 줄의 `typeof`는 `a`와 `d`가 `function`이고 `b`와 `c`가 `undefined`임을 보입니다. 다만 `typeof`는 선언되지 않은 이름에도 `undefined`를 돌려주므로 값이 `undefined`인 바인딩과 구별되지 않습니다. 그래서 5~9번 줄이 바깥에서 `b`를 읽습니다. 던져지는 `ReferenceError`가 `b`가 값이 `undefined`인 변수가 아니라 아예 둘러싼 스코프에 없음을 보입니다. 10번 줄은 `typeof`의 피연산자 자리에 쓴 `function w() {}`가 함수 표현식이라 `function`이고, 11번 줄에서 `w`는 바깥에 만들어지지 않았습니다. 블록 안, `if` 절, 레이블 뒤의 함수 선언은 다루지 않습니다.
+
+### 이름 바인딩이 생기는 곳
+
+이름과 값을 묶어 두는 것을 바인딩(binding)이라고 합니다. 함수 선언의 이름은 둘러싼 스코프에 만들어지는 변수라서 보통 변수처럼 다시 대입할 수 있습니다(예제 2의 1~3번 줄). 이름 있는 함수 표현식은 다릅니다. 명세(InstantiateOrdinaryFunctionExpression)는 이런 함수 표현식을 평가할 때 그 함수 표현식만을 위한 새 선언적 환경 레코드를 만들고, 거기에 이름을 변경할 수 없는(immutable) 바인딩으로 만든 다음, 이 환경을 함수가 기억해 두는 환경으로 씁니다. 함수가 기억해 두는 환경은 함수가 만들어질 때 정해지는 함수 객체의 내부 칸(명세의 `[[Environment]]`)이며, 이 페이지는 이를 "함수가 기억한 환경"이라고 부릅니다. 그래서 이름은 함수 안에서 자기 자신을 부르는 재귀 호출에 쓸 수 있고, 둘러싼 스코프에는 생기지 않습니다. 명세의 주석도 함수 표현식의 이름은 둘러싼 스코프에서 참조할 수 없고 둘러싼 스코프에 영향을 주지 않는다고 적습니다. 이름을 안쪽 환경부터 바깥 환경으로 차례로 찾는 일반 규칙은 [스코프 체인](/concepts/scope-chain)에서 다룹니다.
+
+변경할 수 없는 바인딩에 대입하면 어떻게 될까요? strict 바인딩이 아닌 변경할 수 없는 바인딩에 대입하면, 명세의 SetMutableBinding은 대입하는 코드가 strict mode일 때만 TypeError를 던지고 아니면 아무 일도 하지 않습니다. 예제 2의 6번 줄 `g = 1`은 sloppy mode라 무시됩니다. 그래서 7번 줄의 `typeof g`는 여전히 `function`이고, 호출이 끝난 뒤 10번 줄에서 바깥의 `typeof g`는 `undefined`입니다. 이 대입이 바깥에 전역 변수를 만들지도 않았다는 뜻입니다. 12~20번 줄의 함수는 본문 첫 줄에 `'use strict';`가 있어([strict mode](/concepts/strict-mode)) 같은 대입이 TypeError가 됩니다. `const`로 선언한 변수는 sloppy mode에서도 대입이 TypeError입니다. 명세가 대입하는 코드와 상관없이 오류를 던지는 바인딩(strict 바인딩)으로 만들기 때문이고, 함수 표현식의 이름은 그렇지 않은 바인딩입니다. 예제 2는 sloppy mode 결과에 기댑니다. 파일 첫 줄에 `'use strict';`를 붙이면 `g = 1` 줄에서 TypeError가 나 스크립트가 멈춥니다.
+
+함수를 호출하면 환경이 하나 새로 만들어지고(명세의 NewFunctionEnvironment) 그 환경의 바깥은 함수가 기억한 환경입니다. 매개변수와 `var`로 선언한 지역 변수는 이 새 환경에 만들어집니다(명세의 FunctionDeclarationInstantiation). 이름 있는 함수 표현식에서는 함수가 기억한 환경이 이름 바인딩이 있는 환경입니다. 그래서 이름과 같은 이름의 매개변수는 이름 바인딩을 가립니다. 예제 3의 1번 줄 `function g(g)`에서 인수 없이 `f()`를 부르면 `typeof g`는 `function`이 아니라 매개변수의 값 `undefined`입니다. 본문에 같은 이름의 `var n;`이 있는 6~9번 줄도 마찬가지입니다. 먼저 12~16번 줄을 봅니다. 매개변수 `n`과 같은 환경에 `var n;`을 다시 선언해도 `p(1)`은 `number`입니다. 초기화식이 없는 `var` 재선언은 같은 환경에 이미 있던 값을 지우지 않습니다. 그러니 이름 바인딩과 같은 환경에서 `var n;`을 선언했다면 `function`이 출력되었을 것입니다. 6~9번 줄에서 `undefined`가 나오므로 이름 바인딩은 `var n`이 만들어지는 환경이 아니라 그 바깥 환경에 있다는 것을 알 수 있습니다. 이 페이지는 이 두 경우만 확인합니다. 매개변수 기본값이 있는 경우처럼 이 설명을 그대로 일반화할 수 없는 경우는 다루지 않습니다.
+
+함수를 담은 변수의 이름과 함수 안의 이름 바인딩은 별개입니다. 예제 4의 1~3번 줄에서 `add`에 담은 함수는 안쪽 이름 `sum`으로 자기 자신을 부릅니다. `add(3)`은 `6`이고, 바깥에서 `sum`을 읽으면 `ReferenceError`입니다. 10~12번 줄에서 `keep`에 같은 함수를 담고 `add`를 `null`로 바꿔도 `keep(3)`은 여전히 `6`입니다. 재귀가 바깥 변수 `add`가 아니라 함수 안의 `sum`을 쓰기 때문입니다. 14~16번 줄의 익명 함수 표현식은 자기 이름 바인딩을 만들지 않으므로 재귀가 바깥 변수 `fact`를 읽습니다. 18번 줄에서 `fact`를 `null`로 바꾸면 `keepFact(3)`의 재귀 호출 `fact(2)`가 `null`을 호출하는 `TypeError`가 됩니다. 변수에 담은 익명 함수의 `name` 프로퍼티가 변수 이름으로 정해지는 것은 이름 바인딩과 다른 별도의 동작이며, 이 페이지는 "이름 바인딩"만 다룹니다.
+
+### Function 생성자는 전역 환경을 본다
+
+`new Function('return x')`처럼 문자열로 받은 코드로 함수를 만드는 기능이 Function 생성자입니다. 이 페이지는 이렇게 만든 함수가 어느 스코프를 보는지만 보이며, 쓰기를 권하지 않습니다. 명세(CreateDynamicFunction)는 이렇게 만든 함수가 기억할 환경을 현재 전역 환경으로 정합니다. 함수를 만든 자리의 환경이 아닙니다. 그래서 예제 5의 5~7번 줄 함수 표현식은 `outer`의 지역 변수를 보고 10번 줄에서 `local`을 돌려주지만, 8번 줄의 Function 생성자 함수는 전역 환경에서 `x`를 찾아 11번 줄에서 `global`을 돌려줍니다. 9번 줄의 함수도 `outer`의 `let y`를 보지 못해 12번 줄에서 `typeof y`가 `undefined`입니다. 전역 객체의 프로퍼티만 보는 것은 아니고 전역 환경 전체를 봅니다. 스크립트의 맨 바깥에서 `let`으로 선언한 변수도 보입니다. 함수가 만들어진 자리의 변수를 찾는 규칙은 [스코프 체인](/concepts/scope-chain)에서 다룹니다. 이렇게 만든 함수 안에는 이름 바인딩이 없습니다.
+
+### 이름 없는 함수 선언
+
+함수 선언의 문법은 이름을 요구합니다(모듈의 `export default`는 예외인데 이 페이지는 다루지 않습니다). 그래서 스크립트나 함수 본문의 문 맨 앞에 `function () {}`를 쓰면 이름 없는 함수 선언으로 읽혀 SyntaxError입니다. 같은 글자를 `return` 뒤처럼 식이 올 자리에 쓰면 함수 표현식이라 문제가 없습니다. 문법 오류는 코드가 실행되기 전에 걸러지므로 그 줄이 있는 스크립트는 한 줄도 실행되지 않습니다. 그래서 예제 6은 코드를 문자열로 넘겨 `new Function`으로 컴파일해 보고, 던져진 오류를 잡아 이름을 출력합니다([strict mode](/concepts/strict-mode)의 예제도 같은 방식입니다). 2번 줄의 `function f() {}`는 이름이 있어 컴파일됩니다. 8번 줄의 `function () {}`는 만들려는 함수 본문의 맨 앞이라 `SyntaxError`입니다. 13번 줄의 본문은 `return function () {};`이고 `function () {}`가 `return` 뒤의 식이라 문제가 없으므로, 만든 함수를 호출해 돌아온 값의 `typeof`가 `function`입니다.
+
+## 예제
+
+예제의 출력은 Node의 `vm` 모듈에서 모듈이 아닌 스크립트(Script)로 실행한 결과입니다. 지시어가 없으므로 sloppy mode이고, 이 전제에는 예제 2만 기댑니다. 예제 5는 맨 바깥의 `var x`가 전역 환경에 만들어지는 스크립트여야 합니다. Node에서 CommonJS 파일이나 ES 모듈로 실행하면 `x`가 전역 환경에 없어 11번 줄의 호출에서 `ReferenceError`가 납니다. `console.log`는 값을 출력하는 호스트 API이며 ECMAScript 언어의 일부가 아닙니다. 여러 줄 출력은 퀴즈에서 ' / '로 이어 적었습니다.
+
+### 예제 1: 같은 function이 자리에 따라 달라진다
+
+```js file=./examples/position.js
+
+```
+
+<PredictQuiz
+  question="예제 1의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'function function function function / function / function',
+    'function undefined undefined function / ReferenceError / function / undefined',
+    'function undefined undefined function / function / undefined',
+    'function undefined undefined function / ReferenceError / function / function',
+  ]}
+  answer={1}
+  explanation="문 맨 앞의 function d는 함수 선언이라 d가 생기고, 초기화식의 function b와 괄호 안의 function c, typeof 뒤의 function w는 함수 표현식이라 바깥에 이름을 만들지 않습니다. 그래서 4번 줄은 function undefined undefined function이고, 바깥에서 b를 읽는 5~9번 줄은 ReferenceError입니다. 10번 줄 typeof function w는 function, 11번 줄 typeof w는 undefined입니다."
+/>
+
+### 예제 2: 이름에 대입하면
+
+```js file=./examples/rebind.js
+
+```
+
+<PredictQuiz
+  question="예제 2의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'function / function / undefined / TypeError',
+    'number / function / undefined / TypeError',
+    'number / function / number / TypeError',
+    'number / function / undefined / function',
+  ]}
+  answer={1}
+  explanation="함수 선언의 이름 d는 변수라 d = 1 뒤 typeof d가 number입니다. 이름 있는 함수 표현식의 이름 g는 바꿀 수 없는 바인딩이라 sloppy mode의 g = 1은 무시되어 함수 안의 typeof g가 function이고, 대입이 전역 변수를 만들지도 않아 바깥의 typeof g는 undefined입니다. 본문 첫 줄에 use strict를 둔 k는 같은 대입이 TypeError입니다."
+/>
+
+### 예제 3: 매개변수와 var가 이름과 같으면
+
+```js file=./examples/shadow.js
+
+```
+
+<PredictQuiz
+  question="예제 3의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'function / function / number',
+    'undefined / function / number',
+    'undefined / undefined / undefined',
+    'undefined / undefined / number',
+  ]}
+  answer={3}
+  explanation="함수를 호출할 때 만들어지는 환경(매개변수와 var가 있는 환경)이 함수 표현식의 이름 바인딩이 있는 환경보다 안쪽입니다. f()는 인수가 없어 typeof g가 매개변수의 값 undefined입니다. p(1)이 number이듯 초기화식 없는 var 재선언은 같은 환경의 값을 지우지 않으므로, m()의 var n;이 undefined라는 것은 이름 바인딩이 var n과 다른 바깥 환경에 있다는 뜻입니다."
+/>
+
+### 예제 4: 담은 변수와 함수 안의 이름
+
+```js file=./examples/variable-vs-name.js
+
+```
+
+<PredictQuiz
+  question="예제 4의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '6 / ReferenceError / TypeError / TypeError',
+    '6 / 6 / TypeError',
+    '6 / ReferenceError / 6 / 6',
+    '6 / ReferenceError / 6 / TypeError',
+  ]}
+  answer={3}
+  explanation="이름 있는 함수 표현식 sum은 함수 안의 이름 바인딩으로 자기 자신을 부르므로 add를 null로 바꿔도 keep(3)은 6이고, 바깥에서 sum을 읽으면 ReferenceError입니다. 익명 함수 표현식은 재귀에서 바깥 변수 fact를 읽으므로 fact를 null로 바꾼 뒤 keepFact(3)은 null을 호출하는 TypeError입니다."
+/>
+
+### 예제 5: Function 생성자로 만든 함수
+
+```js file=./examples/function-constructor.js
+
+```
+
+<PredictQuiz
+  question="예제 5의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'local / local / undefined',
+    'local / global / number',
+    'local / global / undefined',
+    'local / local / number',
+  ]}
+  answer={2}
+  explanation="함수 표현식은 만든 자리의 환경을 보므로 outer의 지역 변수 x를 읽어 local입니다. Function 생성자로 만든 함수는 전역 환경을 보므로 x는 global이고, outer의 지역 변수 y는 보이지 않아 typeof y가 undefined입니다."
+/>
+
+### 예제 6: 이름 없는 함수 선언
+
+```js file=./examples/anonymous-declaration.js
+
+```
+
+<PredictQuiz
+  question="예제 6의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'SyntaxError / SyntaxError / function',
+    'compiled / compiled / function',
+    'SyntaxError / compiled / function',
+    'compiled / SyntaxError / function',
+  ]}
+  answer={3}
+  explanation="본문 맨 앞의 function f() {}는 이름이 있는 함수 선언이라 컴파일되고, function () {}는 이름 없는 함수 선언이라 SyntaxError입니다. return 뒤의 function () {}는 식 자리의 함수 표현식이라 문제가 없고, 호출해서 얻은 값의 typeof는 function입니다."
+/>
+
+## 결과와 이유
+
+### 예제 1
+
+4번 줄은 `function undefined undefined function`입니다. 문 맨 앞인 `d`만 함수 선언이라 `typeof d`가 `function`이고, 초기화식의 `b`, 괄호 안의 `c`는 바깥에 만들어지지 않아 `undefined`입니다. 5~9번 줄이 바깥에서 `b`를 읽으면 `ReferenceError`가 나므로 `b`는 값이 `undefined`인 변수가 아니라 둘러싼 스코프에 없는 이름입니다. 10번 줄은 `function`, 11번 줄은 `undefined`입니다.
+
+### 예제 2
+
+3번 줄은 `number`입니다. 함수 선언의 이름은 변수라 `d = 1`이 값을 바꿉니다. 9번 줄은 `function`이어서 이름 있는 함수 표현식의 이름 `g`가 sloppy mode의 대입에 바뀌지 않았고, 10번 줄은 `undefined`여서 그 대입이 전역 변수 `g`를 만들지도 않았습니다. 21번 줄은 `TypeError`입니다. 함수 본문 첫 줄이 `'use strict';`이므로 `k = 1`이 strict mode 코드의 변경할 수 없는 바인딩에 대한 대입이 되기 때문입니다.
+
+### 예제 3
+
+4번 줄은 `undefined`입니다. 매개변수 `g`가 있는 환경이 함수 표현식의 이름 `g`가 있는 환경보다 안쪽이라 `typeof g`는 인수가 없는 매개변수의 값을 읽습니다. 10번 줄도 `undefined`입니다. 16번 줄의 `number`가 보이듯 초기화식 없는 `var` 재선언은 같은 환경의 값을 지우지 않습니다. 그런데 `var n;`이 `function`이 아니라 `undefined`이므로, 이름 바인딩은 `var n`이 만들어진 환경이 아니라 그 바깥 환경에 있습니다.
+
+### 예제 4
+
+4번 줄은 `6`(3 + 2 + 1 + 0), 6번 줄은 `ReferenceError`입니다. `sum`은 함수 안에서만 보입니다. 12번 줄은 `add`를 `null`로 바꾼 뒤에도 `6`입니다. 재귀가 이름 바인딩 `sum`을 쓰기 때문입니다. `fact`에 담은 익명 함수는 같은 일을 하면 20번 줄의 `keepFact(3)` 안에서 15번 줄의 `fact(x - 1)`이 `null`을 호출해 `TypeError`가 납니다.
+
+### 예제 5
+
+10번 줄은 `local`, 11번 줄은 `global`, 12번 줄은 `undefined`입니다. 함수 표현식은 `outer` 안에서 만들어져 지역 변수 `x`를 보고, Function 생성자 함수는 전역 환경을 봅니다. `let y`는 `outer`의 지역 변수라 전역 환경에서 보이지 않습니다.
+
+### 예제 6
+
+`function f() {}`는 컴파일되어 `compiled`, 이름 없는 `function () {}`는 문 맨 앞이라 `SyntaxError`, `return` 뒤의 `function () {}`는 함수 표현식이라 호출한 값의 `typeof`가 `function`입니다.
+
+### 비교표
+
+네 가지 형태를 한 표에 모았습니다. 마지막 칸은 근거가 되는 예제 번호입니다.
+
+<div
+  className="my-6 overflow-x-auto"
+  tabIndex={0}
+  role="region"
+  aria-label="함수를 정의하는 형태 비교 표(좁은 화면에서는 가로로 스크롤할 수 있습니다)"
+>
+  <table className="w-full border-collapse text-left">
+    <thead>
+      <tr>
+        <th className="border-border border px-3 py-2">형태</th>
+        <th className="border-border border px-3 py-2">이름 바인딩이 생기는 곳</th>
+        <th className="border-border border px-3 py-2">그 이름에 대입하면</th>
+        <th className="border-border border px-3 py-2">함수가 보는 바깥 스코프</th>
+        <th className="border-border border px-3 py-2">예제</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td className="border-border border px-3 py-2">함수 선언</td>
+        <td className="border-border border px-3 py-2">둘러싼 스코프의 변수</td>
+        <td className="border-border border px-3 py-2">보통 변수처럼 다시 대입할 수 있음</td>
+        <td className="border-border border px-3 py-2">선언이 놓인 곳의 스코프</td>
+        <td className="border-border border px-3 py-2">1, 2</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">익명 함수 표현식</td>
+        <td className="border-border border px-3 py-2">해당 없음(이름 바인딩 없음)</td>
+        <td className="border-border border px-3 py-2">해당 없음(이름 바인딩 없음)</td>
+        <td className="border-border border px-3 py-2">식을 평가한 곳의 스코프</td>
+        <td className="border-border border px-3 py-2">4</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">이름 있는 함수 표현식</td>
+        <td className="border-border border px-3 py-2">
+          그 함수 표현식만을 위한 환경(함수 안에서만 보임)
+        </td>
+        <td className="border-border border px-3 py-2">
+          sloppy mode에서는 무시, strict mode에서는 TypeError
+        </td>
+        <td className="border-border border px-3 py-2">식을 평가한 곳의 스코프</td>
+        <td className="border-border border px-3 py-2">1, 2, 3, 4</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">Function 생성자</td>
+        <td className="border-border border px-3 py-2">해당 없음(이름 바인딩 없음)</td>
+        <td className="border-border border px-3 py-2">해당 없음(이름 바인딩 없음)</td>
+        <td className="border-border border px-3 py-2">
+          전역 환경(만든 곳의 지역 변수는 보지 못함)
+        </td>
+        <td className="border-border border px-3 py-2">5</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+### 흔한 오해
+
+<Callout type="misconception" title="함수 표현식에 붙인 이름도 바깥에서 쓸 수 있다">
+
+함수 표현식의 이름은 둘러싼 스코프에 만들어지지 않습니다. 예제 1에서 `var a = function b() {}` 뒤 바깥에서 `b`를 읽으면 `ReferenceError`이고, 예제 4에서도 `sum`은 함수 안에서만 보입니다. 네 형태 중 함수의 이름이 둘러싼 스코프에 생기는 것은 문 맨 앞에 쓴 함수 선언뿐입니다.
+
+</Callout>
+
+<Callout type="misconception" title="Function 생성자로 만든 함수도 만든 곳의 변수를 본다">
+
+Function 생성자로 만든 함수는 만든 자리가 아니라 전역 환경을 봅니다. 예제 5에서 같은 `outer` 안에서 만든 함수 표현식은 `local`을, Function 생성자 함수는 `global`을 돌려줍니다.
+
+</Callout>

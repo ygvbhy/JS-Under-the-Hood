@@ -1,0 +1,130 @@
+import type { ConceptMeta } from '~/lib/concepts'
+
+const SPEC = 'https://tc39.es/ecma262/#'
+
+export const concept = {
+  slug: 'function-definitions',
+  title: '함수를 정의하는 방법: 같은 function인데 왜 어떤 이름은 밖에서 보이지 않을까',
+  summary:
+    '같은 function 코드도 문 맨 앞이면 함수 선언, 식 자리면 함수 표현식입니다. 형태마다 이름 바인딩이 생기는 곳과 함수가 보는 바깥 스코프가 어떻게 다른지 명세와 실행 결과로 확인합니다.',
+  category: 'fundamentals',
+  order: 95,
+  tags: [
+    '함수 선언',
+    '함수 표현식',
+    '이름 있는 함수 표현식',
+    '익명 함수 표현식',
+    'Function 생성자',
+    '이름 바인딩',
+    'SyntaxError',
+    '재귀',
+  ],
+  goals: [
+    '같은 function 코드가 문의 맨 앞에 있으면 함수 선언이고 식이 올 자리에 있으면 함수 표현식이라는 것을 구분하고, 어느 쪽이 둘러싼 스코프에 이름을 만드는지 말할 수 있다.',
+    '이름 있는 함수 표현식의 이름이 함수 안에서만 보이는 이유와, 그 이름에 대입했을 때 sloppy mode와 strict mode에서 결과가 다른 이유를 설명할 수 있다.',
+    '매개변수나 지역 var가 함수 표현식의 이름과 같을 때 어느 쪽이 보이는지, 담은 변수의 이름과 함수 안의 이름 바인딩이 다르다는 것을 예제로 예측할 수 있다.',
+    'Function 생성자로 만든 함수가 만든 곳의 지역 변수가 아니라 전역 환경을 본다는 것을 예측하고, 이름 없는 function () {}가 문 맨 앞에서는 SyntaxError이고 식 자리에서는 함수 표현식으로 허용된다는 것을 구분할 수 있다.',
+  ],
+  prerequisites: [
+    { label: '변수 선언과 할당', slug: 'variable-declaration' },
+    { label: '표현식과 문', slug: 'expressions-statements' },
+  ],
+  related: [
+    'function-calls',
+    'expressions-statements',
+    'hoisting',
+    'scope-chain',
+    'execution-context',
+    'iife-module-pattern',
+    'closure',
+    'strict-mode',
+    'es-modules',
+    'arrow-functions',
+    'class-basics',
+    'generator',
+    'async-await',
+    'new-operator',
+    'default-parameters',
+    'error-handling',
+  ],
+  examples: [
+    {
+      id: 'position',
+      file: 'position.js',
+      runtime: 'ecmascript',
+      expectedOutput: [
+        'function undefined undefined function',
+        'ReferenceError',
+        'function',
+        'undefined',
+      ],
+    },
+    {
+      id: 'rebind',
+      file: 'rebind.js',
+      runtime: 'ecmascript',
+      expectedOutput: ['number', 'function', 'undefined', 'TypeError'],
+    },
+    {
+      id: 'shadow',
+      file: 'shadow.js',
+      runtime: 'ecmascript',
+      expectedOutput: ['undefined', 'undefined', 'number'],
+    },
+    {
+      id: 'variable-vs-name',
+      file: 'variable-vs-name.js',
+      runtime: 'ecmascript',
+      expectedOutput: ['6', 'ReferenceError', '6', 'TypeError'],
+    },
+    {
+      id: 'function-constructor',
+      file: 'function-constructor.js',
+      runtime: 'ecmascript',
+      expectedOutput: ['local', 'global', 'undefined'],
+    },
+    {
+      id: 'anonymous-declaration',
+      file: 'anonymous-declaration.js',
+      runtime: 'ecmascript',
+      expectedOutput: ['compiled', 'SyntaxError', 'function'],
+    },
+  ],
+  simplifications: [
+    '화살표 함수와 메서드 축약은 화살표 함수와 메서드 축약 개념, 클래스는 함수다 개념, 제너레이터 함수는 제너레이터 개념, async 함수는 async/await 개념에서 다룹니다.',
+    '블록 안의 함수 선언은 블록 스코프 규칙과 명세 부록 B의 레거시 규칙이 함께 걸려 다루지 않습니다. if 절과 레이블 뒤의 함수 선언도 부록 B의 규칙입니다. 이 페이지의 함수 선언은 스크립트 또는 함수 본문의 문 맨 앞에 쓴 것만 가리킵니다.',
+    '모듈의 export default function () {}는 이름 없는 함수 선언이 허용되는 자리입니다. 이 페이지의 SyntaxError 설명은 스크립트와 함수 본문에 한정하며, 모듈은 ES 모듈 개념에서 다룹니다.',
+    'strict mode(지시어, sloppy·strict 구분)는 strict mode 개념에서, 즉시 실행 함수는 즉시 실행 함수와 모듈 패턴 개념에서 다룹니다.',
+    '함수 선언이 코드를 실행하기 전에 처리되는 것은 호이스팅 개념에서 다룹니다. 예제는 선언문 뒤에서 이름을 쓰는 순서로만 씁니다.',
+    '"스코프"와 "환경"(선언적 환경 레코드, 전역 환경)은 명세의 환경 레코드를 가리키는 교육용 표현이며, 엔진이 실제로 이런 구조를 만든다는 뜻이 아닙니다. 실행 컨텍스트와 환경 레코드는 실행 컨텍스트 개념에서, 스코프가 정해지고 이어지는 방식은 스코프 체인 개념에서 다룹니다.',
+    '매개변수 기본값 안의 함수가 함수 표현식의 이름을 보는 경우는 다루지 않습니다. 매개변수 기본값이 있을 때 본문 var와 매개변수의 관계는 매개변수 기본값 개념에서 다루며, 이 페이지의 매개변수 설명을 그대로 일반화하지 않습니다. 함수 본문의 let·const가 만들어지는 환경(sloppy mode 함수에서는 매개변수·var와 다른 환경)도 다루지 않습니다.',
+    '함수의 name 프로퍼티와 이름 추론(익명 함수 표현식을 변수에 담으면 name이 정해지는 것)은 별도 개념입니다. 본문은 "이름 바인딩"만 말합니다. Function 생성자로 만든 함수의 strict 여부는 strict mode 개념에서 다루고, 매개변수 문자열의 세부 문법은 다루지 않습니다.',
+    '호스트는 문자열로 함수를 만드는 것을 막을 수 있습니다(명세의 HostEnsureCanCompileStrings). 이 페이지는 Function 생성자의 동작만 보이며 쓰기를 권하지 않습니다. 예제는 Node의 vm 모듈에서 실행한 결과입니다.',
+    '예제 5·6은 new 연산자 개념에서 다루는 new를 Function 생성자를 부르는 데만 쓰고, 그 결과만 봅니다.',
+    '예제의 try…catch는 오류의 이름을 보이려는 용도이며 try/catch/finally 개념에서 다룹니다. console은 ECMAScript가 아니라 호스트가 제공하는 API입니다.',
+    "예제 2의 결과는 sloppy mode에 기대는 부분이 있습니다. 파일 첫 줄에 'use strict';를 붙이면 이름 있는 함수 표현식에 대입한 줄이 TypeError가 되어 실행이 중단됩니다. 나머지 예제는 지시어를 붙여도 출력이 같습니다. 예제 5는 맨 바깥의 var x가 전역 환경에 만들어지는 스크립트여야 합니다. Node에서 CommonJS 파일이나 ES 모듈로 실행하면 x가 전역 환경에 없어 11번 줄의 호출이 ReferenceError가 됩니다.",
+  ],
+  references: [
+    { label: 'ECMAScript 명세 — Function Definitions', url: `${SPEC}sec-function-definitions` },
+    {
+      label: 'ECMAScript 명세 — InstantiateOrdinaryFunctionExpression',
+      url: `${SPEC}sec-runtime-semantics-instantiateordinaryfunctionexpression`,
+    },
+    {
+      label: 'ECMAScript 명세 — Declarative Environment Record의 SetMutableBinding',
+      url: `${SPEC}sec-declarative-environment-records-setmutablebinding-n-v-s`,
+    },
+    { label: 'ECMAScript 명세 — NewFunctionEnvironment', url: `${SPEC}sec-newfunctionenvironment` },
+    { label: 'ECMAScript 명세 — CreateDynamicFunction', url: `${SPEC}sec-createdynamicfunction` },
+    { label: 'ECMAScript 명세 — Expression Statement', url: `${SPEC}sec-expression-statement` },
+    {
+      label: 'MDN — function 표현식',
+      url: 'https://developer.mozilla.org/ko/docs/Web/JavaScript/Reference/Operators/function',
+    },
+    {
+      label: 'MDN — Function() 생성자',
+      url: 'https://developer.mozilla.org/ko/docs/Web/JavaScript/Reference/Global_Objects/Function/Function',
+    },
+  ],
+  reviewedAt: '2026-11-19',
+} satisfies ConceptMeta

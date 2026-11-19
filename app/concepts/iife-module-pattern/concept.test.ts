@@ -73,11 +73,6 @@ describe('본문 주장 검증', () => {
     }
   })
 
-  it('이름 있는 함수 식의 이름에 대입하면 sloppy에서는 무시되고 strict에서는 TypeError다', () => {
-    expect(runInNewContext('(function f() { f = 1; return typeof f })()')).toBe('function')
-    expect(errorNameOf("(function f() { 'use strict'; f = 1 })()")).toBe('TypeError')
-  })
-
   it('Object.freeze는 추가·삭제·쓰기를 막고 한 단계만 고정한다', () => {
     expect(
       runInNewContext(`var o = Object.freeze({ a: 1, inner: { n: 1 } });

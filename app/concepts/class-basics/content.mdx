@@ -32,7 +32,7 @@ import { comparison } from './comparison'
 
 ### 클래스 이름 바인딩
 
-클래스 안에서 쓰는 클래스 이름은 변경할 수 없는(immutable) 바인딩입니다. 예제 6의 2번 줄에서 `static reset` 메서드가 `Config = null`을 하려고 하면, 4번 줄이 보이듯 `TypeError`가 납니다. 명세(ClassDefinitionEvaluation)는 클래스 안쪽 이름을 클래스만을 위한 환경 레코드에 strict 바인딩인 변경할 수 없는 바인딩(`CreateImmutableBinding`의 두 번째 인수가 `true`)으로 만듭니다. strict 바인딩에 대입하면 대입하는 코드의 모드와 관계없이 항상 TypeError입니다. 이름 있는 함수 식의 이름도 변경할 수 없는 바인딩이지만 strict 바인딩이 아니어서, sloppy mode 함수 안에서 대입하면 오류 없이 무시됩니다([즉시 실행 함수와 모듈 패턴](/concepts/iife-module-pattern)). 반면 바깥의 클래스 선언이 만든 바인딩은 `let`처럼 다시 대입할 수 있어서, 5번 줄의 `Config = 'replaced'`는 오류 없이 6번 줄에서 `'replaced'`를 출력합니다. 안쪽 이름과 바깥 이름은 서로 다른 바인딩이므로, 바깥 `Config`에 다른 값을 대입한 뒤에도 클래스 안의 `Config`는 여전히 원래 클래스를 가리킵니다.
+클래스 안에서 쓰는 클래스 이름은 변경할 수 없는(immutable) 바인딩입니다. 예제 6의 2번 줄에서 `static reset` 메서드가 `Config = null`을 하려고 하면, 4번 줄이 보이듯 `TypeError`가 납니다. 명세(ClassDefinitionEvaluation)는 클래스 안쪽 이름을 클래스만을 위한 환경 레코드에 strict 바인딩인 변경할 수 없는 바인딩(`CreateImmutableBinding`의 두 번째 인수가 `true`)으로 만듭니다. strict 바인딩에 대입하면 대입하는 코드의 모드와 관계없이 항상 TypeError입니다. 이름 있는 함수 식의 이름도 변경할 수 없는 바인딩이지만 strict 바인딩이 아니어서, sloppy mode 함수 안에서 대입하면 오류 없이 무시됩니다([함수를 정의하는 방법](/concepts/function-definitions)). 반면 바깥의 클래스 선언이 만든 바인딩은 `let`처럼 다시 대입할 수 있어서, 5번 줄의 `Config = 'replaced'`는 오류 없이 6번 줄에서 `'replaced'`를 출력합니다. 안쪽 이름과 바깥 이름은 서로 다른 바인딩이므로, 바깥 `Config`에 다른 값을 대입한 뒤에도 클래스 안의 `Config`는 여전히 원래 클래스를 가리킵니다.
 
 클래스 식의 이름은 클래스 안에서만 보입니다. 7번 줄의 `class Inner`에서 `Inner`는 메서드 안에서는 `typeof Inner`가 `'function'`이지만, 8번 줄의 바깥에서 `typeof Inner`는 `'undefined'`입니다. 한편 같은 스코프에 `let A;`가 있는데 `class A {}`를 또 선언하면 문법 오류(SyntaxError)입니다. 문법 오류는 코드가 실행되기 전에 걸러지므로 그런 줄이 하나라도 있으면 스크립트 전체가 한 줄도 실행되지 않습니다. 그래서 예제로 출력을 보일 수 없습니다.
 

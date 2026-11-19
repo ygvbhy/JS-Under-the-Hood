@@ -3,6 +3,7 @@ import {
   CONCEPT_PATH,
   DATA_TYPES_PATH,
   EXPRESSIONS_STATEMENTS_PATH,
+  FUNCTION_DEFINITIONS_PATH,
   VARIABLE_DECLARATION_PATH,
   collectConsoleErrors,
   waitForHydration,
@@ -82,7 +83,7 @@ test.describe('내비게이션', () => {
     await expect(page.getByRole('heading', { level: 3, name: '학습 순서' })).toBeVisible()
 
     const cards = page.getByRole('article')
-    await expect(cards).toHaveCount(70)
+    await expect(cards).toHaveCount(71)
     // 순위(span)와 제목(링크)은 별개 요소이므로 따로 확인한다
     const firstHeading = cards.first().getByRole('heading', { level: 4 })
     await expect(firstHeading).toContainText('1번째')
@@ -90,7 +91,7 @@ test.describe('내비게이션', () => {
       '변수 선언과 할당: 선언만 한 변수는 왜 undefined일까',
     )
     const lastHeading = cards.last().getByRole('heading', { level: 4 })
-    await expect(lastHeading).toContainText('70번째')
+    await expect(lastHeading).toContainText('71번째')
     await expect(lastHeading.getByRole('link')).toHaveText(
       'ES 모듈: import한 변수는 왜 저절로 바뀔까',
     )
@@ -107,22 +108,22 @@ test.describe('내비게이션', () => {
     expect(ranks).toEqual([
       '4',
       '12',
-      '19',
       '20',
       '21',
       '22',
-      '24',
+      '23',
       '25',
-      '27',
-      '29',
-      '31',
+      '26',
+      '28',
+      '30',
       '32',
-      '36',
-      '45',
-      '47',
+      '33',
+      '37',
+      '46',
       '48',
-      '59',
-      '66',
+      '49',
+      '60',
+      '67',
     ])
 
     // 카드 → 개념 페이지 → 뒤로 가기: 보기와 검색어가 유지된다
@@ -147,7 +148,7 @@ test.describe('내비게이션', () => {
       page.getByRole('group', { name: '보기 방식' }).getByRole('button', { name: '학습 순서' }),
     ).toHaveAttribute('aria-pressed', 'true')
     await expect(page.getByRole('heading', { level: 3, name: '학습 순서' })).toBeVisible()
-    await expect(page.getByRole('article')).toHaveCount(70)
+    await expect(page.getByRole('article')).toHaveCount(71)
     expect(errors.messages).toEqual([])
   })
 
@@ -173,14 +174,14 @@ test.describe('내비게이션', () => {
     await page.goto(VARIABLE_DECLARATION_PATH)
     await waitForHydration(page)
     let pager = page.getByRole('navigation', { name: '학습 순서' })
-    await expect(pager).toContainText('학습 순서 1 / 70')
+    await expect(pager).toContainText('학습 순서 1 / 71')
     await expect(pager.getByRole('link')).toHaveCount(1)
     await expect(pager.getByRole('link')).toHaveAttribute('href', EXPRESSIONS_STATEMENTS_PATH)
 
     await page.goto(CONCEPT_PATH)
     await waitForHydration(page)
     pager = page.getByRole('navigation', { name: '학습 순서' })
-    await expect(pager).toContainText('학습 순서 4 / 70')
+    await expect(pager).toContainText('학습 순서 4 / 71')
     await expect(pager.getByRole('link')).toHaveCount(2)
     await expect(pager.getByRole('link', { name: /이전 개념/ })).toHaveAttribute(
       'href',
@@ -194,7 +195,7 @@ test.describe('내비게이션', () => {
     await page.goto('/concepts/closure')
     await waitForHydration(page)
     pager = page.getByRole('navigation', { name: '학습 순서' })
-    await expect(pager).toContainText('학습 순서 28 / 70')
+    await expect(pager).toContainText('학습 순서 29 / 71')
     await expect(pager.getByRole('link')).toHaveCount(2)
     await expect(pager.getByRole('link', { name: /이전 개념/ })).toHaveAttribute(
       'href',
@@ -208,7 +209,7 @@ test.describe('내비게이션', () => {
     await page.goto('/concepts/for-let')
     await waitForHydration(page)
     pager = page.getByRole('navigation', { name: '학습 순서' })
-    await expect(pager).toContainText('학습 순서 30 / 70')
+    await expect(pager).toContainText('학습 순서 31 / 71')
     await expect(pager.getByRole('link')).toHaveCount(2)
     await expect(pager.getByRole('link', { name: /이전 개념/ })).toHaveAttribute(
       'href',
@@ -222,7 +223,7 @@ test.describe('내비게이션', () => {
     await page.goto('/concepts/class-basics')
     await waitForHydration(page)
     pager = page.getByRole('navigation', { name: '학습 순서' })
-    await expect(pager).toContainText('학습 순서 31 / 70')
+    await expect(pager).toContainText('학습 순서 32 / 71')
     await expect(pager.getByRole('link')).toHaveCount(2)
     await expect(pager.getByRole('link', { name: /이전 개념/ })).toHaveAttribute(
       'href',
@@ -236,7 +237,7 @@ test.describe('내비게이션', () => {
     await page.goto('/concepts/class-inheritance')
     await waitForHydration(page)
     pager = page.getByRole('navigation', { name: '학습 순서' })
-    await expect(pager).toContainText('학습 순서 32 / 70')
+    await expect(pager).toContainText('학습 순서 33 / 71')
     await expect(pager.getByRole('link')).toHaveCount(2)
     await expect(pager.getByRole('link', { name: /이전 개념/ })).toHaveAttribute(
       'href',
@@ -250,7 +251,7 @@ test.describe('내비게이션', () => {
     await page.goto('/concepts/class-accessors')
     await waitForHydration(page)
     pager = page.getByRole('navigation', { name: '학습 순서' })
-    await expect(pager).toContainText('학습 순서 33 / 70')
+    await expect(pager).toContainText('학습 순서 34 / 71')
     await expect(pager.getByRole('link')).toHaveCount(2)
     await expect(pager.getByRole('link', { name: /이전 개념/ })).toHaveAttribute(
       'href',
@@ -264,7 +265,7 @@ test.describe('내비게이션', () => {
     await page.goto('/concepts/arrow-functions')
     await waitForHydration(page)
     pager = page.getByRole('navigation', { name: '학습 순서' })
-    await expect(pager).toContainText('학습 순서 34 / 70')
+    await expect(pager).toContainText('학습 순서 35 / 71')
     await expect(pager.getByRole('link')).toHaveCount(2)
     await expect(pager.getByRole('link', { name: /이전 개념/ })).toHaveAttribute(
       'href',
@@ -278,7 +279,7 @@ test.describe('내비게이션', () => {
     await page.goto('/concepts/default-parameters')
     await waitForHydration(page)
     pager = page.getByRole('navigation', { name: '학습 순서' })
-    await expect(pager).toContainText('학습 순서 35 / 70')
+    await expect(pager).toContainText('학습 순서 36 / 71')
     await expect(pager.getByRole('link')).toHaveCount(2)
     await expect(pager.getByRole('link', { name: /이전 개념/ })).toHaveAttribute(
       'href',
@@ -292,7 +293,7 @@ test.describe('내비게이션', () => {
     await page.goto('/concepts/array-index-length')
     await waitForHydration(page)
     pager = page.getByRole('navigation', { name: '학습 순서' })
-    await expect(pager).toContainText('학습 순서 36 / 70')
+    await expect(pager).toContainText('학습 순서 37 / 71')
     await expect(pager.getByRole('link')).toHaveCount(2)
     await expect(pager.getByRole('link', { name: /이전 개념/ })).toHaveAttribute(
       'href',
@@ -306,7 +307,7 @@ test.describe('내비게이션', () => {
     await page.goto('/concepts/array-method-pitfalls')
     await waitForHydration(page)
     pager = page.getByRole('navigation', { name: '학습 순서' })
-    await expect(pager).toContainText('학습 순서 37 / 70')
+    await expect(pager).toContainText('학습 순서 38 / 71')
     await expect(pager.getByRole('link')).toHaveCount(2)
     await expect(pager.getByRole('link', { name: /이전 개념/ })).toHaveAttribute(
       'href',
@@ -320,7 +321,7 @@ test.describe('내비게이션', () => {
     await page.goto('/concepts/number-pitfalls')
     await waitForHydration(page)
     pager = page.getByRole('navigation', { name: '학습 순서' })
-    await expect(pager).toContainText('학습 순서 38 / 70')
+    await expect(pager).toContainText('학습 순서 39 / 71')
     await expect(pager.getByRole('link')).toHaveCount(2)
     await expect(pager.getByRole('link', { name: /이전 개념/ })).toHaveAttribute(
       'href',
@@ -334,7 +335,7 @@ test.describe('내비게이션', () => {
     await page.goto('/concepts/bigint')
     await waitForHydration(page)
     pager = page.getByRole('navigation', { name: '학습 순서' })
-    await expect(pager).toContainText('학습 순서 39 / 70')
+    await expect(pager).toContainText('학습 순서 40 / 71')
     await expect(pager.getByRole('link')).toHaveCount(2)
     await expect(pager.getByRole('link', { name: /이전 개념/ })).toHaveAttribute(
       'href',
@@ -348,7 +349,7 @@ test.describe('내비게이션', () => {
     await page.goto('/concepts/date')
     await waitForHydration(page)
     pager = page.getByRole('navigation', { name: '학습 순서' })
-    await expect(pager).toContainText('학습 순서 40 / 70')
+    await expect(pager).toContainText('학습 순서 41 / 71')
     await expect(pager.getByRole('link')).toHaveCount(2)
     await expect(pager.getByRole('link', { name: /이전 개념/ })).toHaveAttribute(
       'href',
@@ -362,7 +363,7 @@ test.describe('내비게이션', () => {
     await page.goto('/concepts/regexp-lastindex')
     await waitForHydration(page)
     pager = page.getByRole('navigation', { name: '학습 순서' })
-    await expect(pager).toContainText('학습 순서 41 / 70')
+    await expect(pager).toContainText('학습 순서 42 / 71')
     await expect(pager.getByRole('link')).toHaveCount(2)
     await expect(pager.getByRole('link', { name: /이전 개념/ })).toHaveAttribute(
       'href',
@@ -376,7 +377,7 @@ test.describe('내비게이션', () => {
     await page.goto('/concepts/string-utf16')
     await waitForHydration(page)
     pager = page.getByRole('navigation', { name: '학습 순서' })
-    await expect(pager).toContainText('학습 순서 42 / 70')
+    await expect(pager).toContainText('학습 순서 43 / 71')
     await expect(pager.getByRole('link')).toHaveCount(2)
     await expect(pager.getByRole('link', { name: /이전 개념/ })).toHaveAttribute(
       'href',
@@ -390,7 +391,7 @@ test.describe('내비게이션', () => {
     await page.goto('/concepts/string-replace-split')
     await waitForHydration(page)
     pager = page.getByRole('navigation', { name: '학습 순서' })
-    await expect(pager).toContainText('학습 순서 43 / 70')
+    await expect(pager).toContainText('학습 순서 44 / 71')
     await expect(pager.getByRole('link')).toHaveCount(2)
     await expect(pager.getByRole('link', { name: /이전 개념/ })).toHaveAttribute(
       'href',
@@ -404,7 +405,7 @@ test.describe('내비게이션', () => {
     await page.goto('/concepts/symbol')
     await waitForHydration(page)
     pager = page.getByRole('navigation', { name: '학습 순서' })
-    await expect(pager).toContainText('학습 순서 44 / 70')
+    await expect(pager).toContainText('학습 순서 45 / 71')
     await expect(pager.getByRole('link')).toHaveCount(2)
     await expect(pager.getByRole('link', { name: /이전 개념/ })).toHaveAttribute(
       'href',
@@ -418,7 +419,7 @@ test.describe('내비게이션', () => {
     await page.goto('/concepts/iterable-for-of')
     await waitForHydration(page)
     pager = page.getByRole('navigation', { name: '학습 순서' })
-    await expect(pager).toContainText('학습 순서 45 / 70')
+    await expect(pager).toContainText('학습 순서 46 / 71')
     await expect(pager.getByRole('link')).toHaveCount(2)
     await expect(pager.getByRole('link', { name: /이전 개념/ })).toHaveAttribute(
       'href',
@@ -432,7 +433,7 @@ test.describe('내비게이션', () => {
     await page.goto('/concepts/match-all')
     await waitForHydration(page)
     pager = page.getByRole('navigation', { name: '학습 순서' })
-    await expect(pager).toContainText('학습 순서 46 / 70')
+    await expect(pager).toContainText('학습 순서 47 / 71')
     await expect(pager.getByRole('link')).toHaveCount(2)
     await expect(pager.getByRole('link', { name: /이전 개념/ })).toHaveAttribute(
       'href',
@@ -446,7 +447,7 @@ test.describe('내비게이션', () => {
     await page.goto('/concepts/spread-destructuring')
     await waitForHydration(page)
     pager = page.getByRole('navigation', { name: '학습 순서' })
-    await expect(pager).toContainText('학습 순서 47 / 70')
+    await expect(pager).toContainText('학습 순서 48 / 71')
     await expect(pager.getByRole('link')).toHaveCount(2)
     await expect(pager.getByRole('link', { name: /이전 개념/ })).toHaveAttribute(
       'href',
@@ -460,7 +461,7 @@ test.describe('내비게이션', () => {
     await page.goto('/concepts/set-map')
     await waitForHydration(page)
     pager = page.getByRole('navigation', { name: '학습 순서' })
-    await expect(pager).toContainText('학습 순서 48 / 70')
+    await expect(pager).toContainText('학습 순서 49 / 71')
     await expect(pager.getByRole('link')).toHaveCount(2)
     await expect(pager.getByRole('link', { name: /이전 개념/ })).toHaveAttribute(
       'href',
@@ -474,7 +475,7 @@ test.describe('내비게이션', () => {
     await page.goto('/concepts/script-async-defer')
     await waitForHydration(page)
     pager = page.getByRole('navigation', { name: '학습 순서' })
-    await expect(pager).toContainText('학습 순서 49 / 70')
+    await expect(pager).toContainText('학습 순서 50 / 71')
     await expect(pager.getByRole('link')).toHaveCount(2)
     await expect(pager.getByRole('link', { name: /이전 개념/ })).toHaveAttribute(
       'href',
@@ -488,7 +489,7 @@ test.describe('내비게이션', () => {
     await page.goto('/concepts/dom-tree-nodes')
     await waitForHydration(page)
     pager = page.getByRole('navigation', { name: '학습 순서' })
-    await expect(pager).toContainText('학습 순서 50 / 70')
+    await expect(pager).toContainText('학습 순서 51 / 71')
     await expect(pager.getByRole('link')).toHaveCount(2)
     await expect(pager.getByRole('link', { name: /이전 개념/ })).toHaveAttribute(
       'href',
@@ -502,7 +503,7 @@ test.describe('내비게이션', () => {
     await page.goto('/concepts/live-html-collection')
     await waitForHydration(page)
     pager = page.getByRole('navigation', { name: '학습 순서' })
-    await expect(pager).toContainText('학습 순서 51 / 70')
+    await expect(pager).toContainText('학습 순서 52 / 71')
     await expect(pager.getByRole('link')).toHaveCount(2)
     await expect(pager.getByRole('link', { name: /이전 개념/ })).toHaveAttribute(
       'href',
@@ -516,7 +517,7 @@ test.describe('내비게이션', () => {
     await page.goto('/concepts/html-attribute-dom-property')
     await waitForHydration(page)
     pager = page.getByRole('navigation', { name: '학습 순서' })
-    await expect(pager).toContainText('학습 순서 52 / 70')
+    await expect(pager).toContainText('학습 순서 53 / 71')
     await expect(pager.getByRole('link')).toHaveCount(2)
     await expect(pager.getByRole('link', { name: /이전 개념/ })).toHaveAttribute(
       'href',
@@ -530,7 +531,7 @@ test.describe('내비게이션', () => {
     await page.goto('/concepts/classlist-style')
     await waitForHydration(page)
     pager = page.getByRole('navigation', { name: '학습 순서' })
-    await expect(pager).toContainText('학습 순서 53 / 70')
+    await expect(pager).toContainText('학습 순서 54 / 71')
     await expect(pager.getByRole('link')).toHaveCount(2)
     await expect(pager.getByRole('link', { name: /이전 개념/ })).toHaveAttribute(
       'href',
@@ -544,7 +545,7 @@ test.describe('내비게이션', () => {
     await page.goto('/concepts/dom-manipulation')
     await waitForHydration(page)
     pager = page.getByRole('navigation', { name: '학습 순서' })
-    await expect(pager).toContainText('학습 순서 54 / 70')
+    await expect(pager).toContainText('학습 순서 55 / 71')
     await expect(pager.getByRole('link')).toHaveCount(2)
     await expect(pager.getByRole('link', { name: /이전 개념/ })).toHaveAttribute(
       'href',
@@ -558,7 +559,7 @@ test.describe('내비게이션', () => {
     await page.goto('/concepts/event-propagation-delegation')
     await waitForHydration(page)
     pager = page.getByRole('navigation', { name: '학습 순서' })
-    await expect(pager).toContainText('학습 순서 55 / 70')
+    await expect(pager).toContainText('학습 순서 56 / 71')
     await expect(pager.getByRole('link')).toHaveCount(2)
     await expect(pager.getByRole('link', { name: /이전 개념/ })).toHaveAttribute(
       'href',
@@ -572,7 +573,7 @@ test.describe('내비게이션', () => {
     await page.goto('/concepts/prevent-default-stop-propagation')
     await waitForHydration(page)
     pager = page.getByRole('navigation', { name: '학습 순서' })
-    await expect(pager).toContainText('학습 순서 56 / 70')
+    await expect(pager).toContainText('학습 순서 57 / 71')
     await expect(pager.getByRole('link')).toHaveCount(2)
     await expect(pager.getByRole('link', { name: /이전 개념/ })).toHaveAttribute(
       'href',
@@ -586,7 +587,7 @@ test.describe('내비게이션', () => {
     await page.goto('/concepts/timers')
     await waitForHydration(page)
     pager = page.getByRole('navigation', { name: '학습 순서' })
-    await expect(pager).toContainText('학습 순서 57 / 70')
+    await expect(pager).toContainText('학습 순서 58 / 71')
     await expect(pager.getByRole('link')).toHaveCount(2)
     await expect(pager.getByRole('link', { name: /이전 개념/ })).toHaveAttribute(
       'href',
@@ -600,7 +601,7 @@ test.describe('내비게이션', () => {
     await page.goto('/concepts/event-loop')
     await waitForHydration(page)
     pager = page.getByRole('navigation', { name: '학습 순서' })
-    await expect(pager).toContainText('학습 순서 58 / 70')
+    await expect(pager).toContainText('학습 순서 59 / 71')
     await expect(pager.getByRole('link')).toHaveCount(2)
     await expect(pager.getByRole('link', { name: /이전 개념/ })).toHaveAttribute(
       'href',
@@ -614,7 +615,7 @@ test.describe('내비게이션', () => {
     await page.goto('/concepts/json')
     await waitForHydration(page)
     pager = page.getByRole('navigation', { name: '학습 순서' })
-    await expect(pager).toContainText('학습 순서 59 / 70')
+    await expect(pager).toContainText('학습 순서 60 / 71')
     await expect(pager.getByRole('link')).toHaveCount(2)
     await expect(pager.getByRole('link', { name: /이전 개념/ })).toHaveAttribute(
       'href',
@@ -628,7 +629,7 @@ test.describe('내비게이션', () => {
     await page.goto('/concepts/structured-clone')
     await waitForHydration(page)
     pager = page.getByRole('navigation', { name: '학습 순서' })
-    await expect(pager).toContainText('학습 순서 60 / 70')
+    await expect(pager).toContainText('학습 순서 61 / 71')
     await expect(pager.getByRole('link')).toHaveCount(2)
     await expect(pager.getByRole('link', { name: /이전 개념/ })).toHaveAttribute(
       'href',
@@ -642,7 +643,7 @@ test.describe('내비게이션', () => {
     await page.goto('/concepts/promise')
     await waitForHydration(page)
     pager = page.getByRole('navigation', { name: '학습 순서' })
-    await expect(pager).toContainText('학습 순서 61 / 70')
+    await expect(pager).toContainText('학습 순서 62 / 71')
     await expect(pager.getByRole('link')).toHaveCount(2)
     await expect(pager.getByRole('link', { name: /이전 개념/ })).toHaveAttribute(
       'href',
@@ -656,7 +657,7 @@ test.describe('내비게이션', () => {
     await page.goto('/concepts/microtask-queue')
     await waitForHydration(page)
     pager = page.getByRole('navigation', { name: '학습 순서' })
-    await expect(pager).toContainText('학습 순서 62 / 70')
+    await expect(pager).toContainText('학습 순서 63 / 71')
     await expect(pager.getByRole('link')).toHaveCount(2)
     await expect(pager.getByRole('link', { name: /이전 개념/ })).toHaveAttribute(
       'href',
@@ -670,7 +671,7 @@ test.describe('내비게이션', () => {
     await page.goto('/concepts/request-animation-frame')
     await waitForHydration(page)
     pager = page.getByRole('navigation', { name: '학습 순서' })
-    await expect(pager).toContainText('학습 순서 63 / 70')
+    await expect(pager).toContainText('학습 순서 64 / 71')
     await expect(pager.getByRole('link')).toHaveCount(2)
     await expect(pager.getByRole('link', { name: /이전 개념/ })).toHaveAttribute(
       'href',
@@ -684,7 +685,7 @@ test.describe('내비게이션', () => {
     await page.goto('/concepts/promise-static-methods')
     await waitForHydration(page)
     pager = page.getByRole('navigation', { name: '학습 순서' })
-    await expect(pager).toContainText('학습 순서 64 / 70')
+    await expect(pager).toContainText('학습 순서 65 / 71')
     await expect(pager.getByRole('link')).toHaveCount(2)
     await expect(pager.getByRole('link', { name: /이전 개념/ })).toHaveAttribute(
       'href',
@@ -698,7 +699,7 @@ test.describe('내비게이션', () => {
     await page.goto('/concepts/fetch')
     await waitForHydration(page)
     pager = page.getByRole('navigation', { name: '학습 순서' })
-    await expect(pager).toContainText('학습 순서 65 / 70')
+    await expect(pager).toContainText('학습 순서 66 / 71')
     await expect(pager.getByRole('link')).toHaveCount(2)
     await expect(pager.getByRole('link', { name: /이전 개념/ })).toHaveAttribute(
       'href',
@@ -712,7 +713,7 @@ test.describe('내비게이션', () => {
     await page.goto('/concepts/generator')
     await waitForHydration(page)
     pager = page.getByRole('navigation', { name: '학습 순서' })
-    await expect(pager).toContainText('학습 순서 66 / 70')
+    await expect(pager).toContainText('학습 순서 67 / 71')
     await expect(pager.getByRole('link')).toHaveCount(2)
     await expect(pager.getByRole('link', { name: /이전 개념/ })).toHaveAttribute(
       'href',
@@ -726,7 +727,7 @@ test.describe('내비게이션', () => {
     await page.goto('/concepts/async-await')
     await waitForHydration(page)
     pager = page.getByRole('navigation', { name: '학습 순서' })
-    await expect(pager).toContainText('학습 순서 67 / 70')
+    await expect(pager).toContainText('학습 순서 68 / 71')
     await expect(pager.getByRole('link')).toHaveCount(2)
     await expect(pager.getByRole('link', { name: /이전 개념/ })).toHaveAttribute(
       'href',
@@ -740,7 +741,7 @@ test.describe('내비게이션', () => {
     await page.goto('/concepts/error-handling')
     await waitForHydration(page)
     pager = page.getByRole('navigation', { name: '학습 순서' })
-    await expect(pager).toContainText('학습 순서 68 / 70')
+    await expect(pager).toContainText('학습 순서 69 / 71')
     await expect(pager.getByRole('link')).toHaveCount(2)
     await expect(pager.getByRole('link', { name: /이전 개념/ })).toHaveAttribute(
       'href',
@@ -754,7 +755,7 @@ test.describe('내비게이션', () => {
     await page.goto('/concepts/async-generator')
     await waitForHydration(page)
     pager = page.getByRole('navigation', { name: '학습 순서' })
-    await expect(pager).toContainText('학습 순서 69 / 70')
+    await expect(pager).toContainText('학습 순서 70 / 71')
     await expect(pager.getByRole('link')).toHaveCount(2)
     await expect(pager.getByRole('link', { name: /이전 개념/ })).toHaveAttribute(
       'href',
@@ -768,9 +769,23 @@ test.describe('내비게이션', () => {
     await page.goto('/concepts/es-modules')
     await waitForHydration(page)
     pager = page.getByRole('navigation', { name: '학습 순서' })
-    await expect(pager).toContainText('학습 순서 70 / 70')
+    await expect(pager).toContainText('학습 순서 71 / 71')
     await expect(pager.getByRole('link')).toHaveCount(1)
     await expect(pager.getByRole('link')).toHaveAttribute('href', '/concepts/async-generator')
+
+    await page.goto(FUNCTION_DEFINITIONS_PATH)
+    await waitForHydration(page)
+    pager = page.getByRole('navigation', { name: '학습 순서' })
+    await expect(pager).toContainText('학습 순서 13 / 71')
+    await expect(pager.getByRole('link')).toHaveCount(2)
+    await expect(pager.getByRole('link', { name: /이전 개념/ })).toHaveAttribute(
+      'href',
+      '/concepts/property-keys',
+    )
+    await expect(pager.getByRole('link', { name: /다음 개념/ })).toHaveAttribute(
+      'href',
+      '/concepts/function-calls',
+    )
 
     await page.goto('/concepts/hoisting')
     await waitForHydration(page)

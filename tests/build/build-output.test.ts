@@ -1414,6 +1414,21 @@ describe('프리렌더 (bigint)', () => {
   })
 })
 
+// function-definitions: 형태·예제 비교 표와 퀴즈가 프리렌더 HTML에 정적으로 있어야 한다.
+describe('프리렌더 (function-definitions)', () => {
+  const html = read('concepts/function-definitions/index.html')
+
+  it('퀴즈 정답이 <details>로 6개 이상 프리렌더된다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(6)
+  })
+
+  it('형태와 예제 비교 표가 HTML에 있다', () => {
+    expect(html).toContain('<table')
+    expect(html).toMatch(/<th[^>]*>\s*형태\s*<\/th>/)
+    expect(html).toMatch(/<th[^>]*>\s*예제\s*<\/th>/)
+  })
+})
+
 // 추가 게시글(request-animation-frame): 시뮬레이터의 첫 단계와 퀴즈가 프리렌더 HTML에 정적으로 있어야 한다.
 describe('프리렌더 (request-animation-frame)', () => {
   const html = read('concepts/request-animation-frame/index.html')
