@@ -193,7 +193,7 @@ describe('예제가 없는 주장의 탐침', () => {
     expect(show('const c = 1; try { c = 2; } catch (e) { e.name; }')).toBe('TypeError')
   })
 
-  it('본문: 변수에 담은 익명 함수 표현식의 name은 변수 이름으로 정해진다(이름 바인딩과 별개)', () => {
+  it('본문: 변수 선언의 초기화식에 바로 쓴 익명 함수 표현식의 name은 변수 이름으로 정해진다(이름 바인딩과 별개)', () => {
     expect(show('var fact = function () {}; fact.name')).toBe('fact')
   })
 

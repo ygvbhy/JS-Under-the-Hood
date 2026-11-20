@@ -1429,6 +1429,22 @@ describe('프리렌더 (function-definitions)', () => {
   })
 })
 
+// function-name: 이름 비교 표와 퀴즈가 프리렌더 HTML에 정적으로 있어야 한다.
+describe('프리렌더 (function-name)', () => {
+  const html = read('concepts/function-name/index.html')
+
+  it('퀴즈 정답이 <details>로 5개 이상 프리렌더된다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(5)
+  })
+
+  it('코드·name·이유·예제 비교 표가 HTML에 있다', () => {
+    expect(html).toContain('<table')
+    for (const header of ['코드', 'name', '이유', '예제']) {
+      expect(html).toMatch(new RegExp(`<th[^>]*>\\s*${header}\\s*</th>`))
+    }
+  })
+})
+
 // 추가 게시글(request-animation-frame): 시뮬레이터의 첫 단계와 퀴즈가 프리렌더 HTML에 정적으로 있어야 한다.
 describe('프리렌더 (request-animation-frame)', () => {
   const html = read('concepts/request-animation-frame/index.html')
