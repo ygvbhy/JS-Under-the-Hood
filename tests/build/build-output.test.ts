@@ -1578,6 +1578,39 @@ describe('시뮬레이터 프리렌더 (date)', () => {
   })
 })
 
+// to-primitive: 객체를 원시 값으로 시뮬레이터의 첫 단계, 비교표, 퀴즈가 프리렌더 HTML에 정적으로 있어야 한다.
+describe('프리렌더 (to-primitive)', () => {
+  const html = read('concepts/to-primitive/index.html')
+  const text = htmlToText(html)
+
+  it('객체를 원시 값으로 시뮬레이터 region과 첫 단계가 HTML에 있다', () => {
+    expect(html).toMatch(/role="region"[^>]*aria-label="객체를 원시 값으로 시뮬레이터"/)
+    expect(text).toMatch(/단계 1: /)
+  })
+
+  it('시나리오 선택 라디오 3개와 라벨이 있다', () => {
+    expect(html.match(/type="radio"/g)?.length).toBeGreaterThanOrEqual(3)
+    for (const label of [
+      '힌트에 따라 순서가 바뀐다',
+      '객체를 돌려주면 다음 메서드',
+      '둘 다 실패하면 TypeError',
+    ]) {
+      expect(text).toContain(label)
+    }
+  })
+
+  it('퀴즈 정답이 <details>로 6개 이상 프리렌더된다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(6)
+  })
+
+  it('연산·ToPrimitive 힌트·먼저 부르는 메서드·결과·예제 비교 표가 HTML에 있다', () => {
+    expect(html).toContain('<table')
+    for (const header of ['연산', 'ToPrimitive 힌트', '먼저 부르는 메서드', '결과', '예제']) {
+      expect(html).toMatch(new RegExp(`<th[^>]*>\\s*${header}\\s*</th>`))
+    }
+  })
+})
+
 // 43~48장 로드맵 7번(es-modules): ES 모듈 시뮬레이터의 첫 단계와 퀴즈가 프리렌더 HTML에 정적으로 있어야 한다.
 describe('시뮬레이터 프리렌더 (es-modules)', () => {
   const html = read('concepts/es-modules/index.html')

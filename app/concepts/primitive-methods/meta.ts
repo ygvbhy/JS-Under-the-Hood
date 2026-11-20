@@ -42,6 +42,7 @@ export const concept = {
     'error-handling',
     'global-object',
     'strict-mode',
+    'to-primitive',
   ],
   examples: [
     {
@@ -104,7 +105,7 @@ export const concept = {
     '원시 값의 메서드를 호출하거나 getter를 읽을 때, 메서드와 getter 안의 this는 명세상 원시 값 그대로 전달되고 sloppy mode 함수라면 객체로 바꿔 받습니다. this는 this 개념에서 다룹니다.',
     '문자열의 인덱스 접근(str[0])은 String 객체의 특별한 [[GetOwnProperty]]가 감싼 문자열에서 만들고, length는 String 객체가 만들어질 때 쓰기 불가 데이터 프로퍼티로 정의됩니다. 이 세부 동작과 각 내장 메서드의 목록은 다루지 않습니다.',
     '대입할 이름이 체인에서 setter를 만나면(예: Object.prototype의 __proto__) setter가 호출되어 이 페이지의 규칙과 다르게 동작합니다. 예제는 체인에 없는 이름과 length만 씁니다.',
-    '==가 래퍼 객체를 원시 값으로 바꾸는 과정(ToPrimitive)은 결과만 보여 줍니다.',
+    '==가 래퍼 객체를 원시 값으로 바꾸는 과정(ToPrimitive)은 결과만 보여 줍니다. 그 과정은 객체를 원시 값으로 개념에서 다룹니다.',
     '옵셔널 체이닝은 기준 값이 null·undefined일 때 undefined를 돌려준다는 것만 다룹니다. ?.() 호출 형태와 나머지 식을 평가하지 않는 동작은 다루지 않습니다.',
     '예제는 오류를 보이려고 try…catch와 e.name을 씁니다. 오류 처리는 try/catch/finally 개념에서 다룹니다.',
     '예제 4를 파일로 실행할 때 .mjs 파일이거나 package.json에 "type": "module"이 있으면 모듈이라 항상 strict mode여서 2번 줄에서 TypeError가 납니다. 클래식 스크립트나 CommonJS(.cjs)로 실행하면 이 페이지의 결과와 같습니다.',

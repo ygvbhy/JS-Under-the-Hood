@@ -43,7 +43,7 @@ ToObject는 `null`과 `undefined`에 TypeError를 던집니다. 이 둘은 대�
 `new String('hi')`, `new Number(5)`, `new Boolean(false)`는 래퍼 객체를 코드에서 직접 만듭니다. 이 값은 원시 값이 아니라 객체입니다.
 
 - `typeof new String('hi')`는 `'string'`이 아니라 `'object'`입니다.
-- `new String('hi') === 'hi'`는 `false`입니다. 타입이 다르기 때문입니다. 반면 `==`는 `true`입니다(예제 7). `==`가 객체를 원시 값으로 바꾸는 과정은 [동등 비교 연산자](/concepts/equality-operators)에서 결과만 확인합니다.
+- `new String('hi') === 'hi'`는 `false`입니다. 타입이 다르기 때문입니다. 반면 `==`는 `true`입니다(예제 7). `==`가 래퍼 객체를 원시 값으로 바꾸는 과정은 [객체를 원시 값으로](/concepts/to-primitive)에서 다룹니다.
 - 객체이므로 프로퍼티를 대입하면 남습니다. 예제 7의 `a.custom`은 `1`입니다. 원시 값 `'hi'`에 대입했을 때와 다른 점입니다.
 - `new Boolean(false)`는 객체라서 truthy입니다. 조건식에 쓰면 참으로 평가되고 `Boolean(flag)`도 `true`입니다(예제 8). truthy와 falsy는 [단축 평가](/concepts/short-circuit-evaluation)에서 다룹니다. 안에 든 원시 값은 `valueOf()`로 꺼내며, 예제 8에서 `false`입니다.
 

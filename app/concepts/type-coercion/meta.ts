@@ -34,7 +34,14 @@ export const concept = {
     { label: '원시 값과 객체', slug: 'primitives-and-objects' },
     { label: '단축 평가와 truthy/falsy', slug: 'short-circuit-evaluation' },
   ],
-  related: ['short-circuit-evaluation', 'primitives-and-objects', 'hoisting', 'tdz', 'bigint'],
+  related: [
+    'short-circuit-evaluation',
+    'primitives-and-objects',
+    'hoisting',
+    'tdz',
+    'bigint',
+    'to-primitive',
+  ],
   examples: [
     {
       id: 'to-string',
@@ -81,7 +88,7 @@ export const concept = {
     '"문자열 연결", "숫자 덧셈", "문자열로 비교", "숫자로 바꿔 비교" 같은 규칙 이름과 "암묵적/명시적 타입 변환"이라는 구분은 교육용 이름이며 명세 용어가 아닙니다.',
     '명세에서 a > b는 피연산자 순서를 바꿔 IsLessThan(b, a)로 계산하지만, 시뮬레이터와 본문은 왼쪽과 오른쪽을 그대로 비교하는 것으로 설명합니다(이 페이지 예제의 결과는 같습니다).',
     "문자열끼리의 비교는 앞에서부터 한 글자씩 UTF-16 코드 유닛 값을 비교하고, 한쪽이 다른 쪽의 앞부분이면 짧은 쪽이 작습니다('1' < '10'). 이 페이지는 숫자 문자('0'~'9')끼리의 비교만 다룹니다. 숫자로 바꾼 결과가 NaN이면 >, <는 모두 false가 되는데, 이 경우는 다루지 않습니다.",
-    '객체가 원시 값으로 바뀌는 과정(ToPrimitive가 객체의 valueOf·toString 메서드를 호출)은 프로토타입 개념이 필요해 다루지 않고 결과만 보여 줍니다. 연산마다 원시 값으로 바꾸는 방식이 조금씩 다르지만(+와 템플릿 리터럴·String()의 차이 등), 데이터만 담은 객체 리터럴은 어느 쪽이든 문자열 "[object Object]"가 됩니다. 객체에 valueOf·toString 메서드를 직접 정의하거나 Symbol.toPrimitive를 쓰면 결과가 달라지는데, 이 경우는 다루지 않습니다.',
+    '객체가 원시 값으로 바뀌는 과정(ToPrimitive가 객체의 valueOf·toString 메서드를 호출)은 프로토타입 개념이 필요해 다루지 않고 결과만 보여 줍니다. 연산마다 원시 값으로 바꾸는 방식이 조금씩 다르지만(+와 템플릿 리터럴·String()의 차이 등), 데이터만 담은 객체 리터럴은 어느 쪽이든 문자열 "[object Object]"가 됩니다. 객체가 원시 값으로 바뀌는 과정과 valueOf·toString을 직접 정의하거나 Symbol.toPrimitive를 둔 경우의 호출 순서는 객체를 원시 값으로 개념에서, Symbol.toPrimitive가 받는 힌트 문자열은 심벌 개념에서 다룹니다.',
     '숫자로 바꾸는 연산은 정확히는 ToNumeric(BigInt면 BigInt를 그대로 사용)입니다. >·< 비교에서 한쪽이 BigInt이고 다른 쪽이 문자열이면 문자열을 숫자가 아니라 BigInt로 바꿔 비교합니다. BigInt 자체는 BigInt 개념에서 다루고, Symbol 자체는 다루지 않으며 "변환이 안 되는 경우"에서 오류가 나는지만 다룹니다. 문자열을 숫자로 바꾸는 세부 규칙(0x10, Infinity, 지수 표기 등)과 숫자를 문자열로 바꾸는 세부 규칙(지수 표기, -0)은 다루지 않습니다.',
     'ToBoolean에는 브라우저 호스트의 document.all(명세 부록 B의 [[IsHTMLDDA]])만 falsy로 다루는 예외가 있지만 이 페이지에서는 다루지 않습니다.',
     '==(느슨한 동등 비교)의 변환과 <=, >=, 비트 연산자 등 다른 연산자는 다루지 않습니다.',

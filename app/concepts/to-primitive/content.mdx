@@ -1,0 +1,333 @@
+import { Simulator } from './Simulator'
+import { scenarios } from './scenarios'
+
+`[] + {}`의 결과는 `'[object Object]'`입니다. 빈 배열과 빈 객체를 더했는데 왜 이런 문자열이 나올까요? `+`, 템플릿 리터럴, `<`·`>`, 프로퍼티 키, 그리고 다른 쪽이 원시 값(null·undefined 제외)인 `==`처럼 객체를 문자열이나 숫자로 바꿔야 하는 연산은 먼저 명세의 ToPrimitive로 객체를 원시 값으로 바꿉니다. 객체에 `Symbol.toPrimitive` 메서드가 있으면 그것을 부르고, 없으면 OrdinaryToPrimitive가 힌트가 string일 때는 `toString` → `valueOf`, 힌트가 number이거나 없을 때는 `valueOf` → `toString` 순으로 불러 처음 나온 원시 값을 씁니다. `[]`와 `{}`는 `valueOf`를 직접 갖지 않아 `Object.prototype.valueOf`(객체 자신을 돌려줌)를 상속하므로 `valueOf`의 결과는 원시 값이 아니라서 건너뛰고, `toString`이 배열은 요소를 이은 `''`를, `Symbol.toStringTag`가 없는 일반 객체는 `'[object Object]'`를 돌려줍니다. `+`는 왼쪽 → 오른쪽 순으로 두 피연산자를 원시 값으로 바꾼 뒤 문자열이 있어 이어 붙입니다. 이 페이지는 이 과정을 예제 여섯 개와 시뮬레이터로 확인합니다.
+
+## 동작 원리
+
+### ToPrimitive와 힌트
+
+ToPrimitive는 객체와 힌트(hint)를 받아 원시 값을 돌려주는 명세의 추상 연산이고, 힌트는 ToPrimitive를 부르는 연산이 정합니다. 명세에서 이 인자의 이름은 preferredType이고 값은 string이나 number이며 생략할 수 있습니다. 이 페이지는 생략한 경우를 "힌트 없음"이라고 부릅니다. `Symbol.toPrimitive` 메서드에는 이 값이 `'default'`(생략)·`'string'`·`'number'` 문자열로 전달됩니다. 대표적인 호출 지점과 힌트는 아래와 같습니다.
+
+- 힌트 없음: 이항 `+`(ApplyStringOrNumericBinaryOperator), `==`(IsLooselyEqual, 상대가 String·Number·BigInt·Symbol일 때. 불리언은 먼저 Number로 바꾼 뒤), 인수 하나로 부르는 `new Date(값)`(값이 Date 객체가 아닐 때. Date 객체이면 ToPrimitive 없이 그 시각 값을 바로 읽습니다).
+- number: ToNumber와 ToNumeric(단항 `+`, 그리고 `-`·`*` 같은 산술 연산), IsLessThan(`<`, `>`).
+- string: ToString(템플릿 리터럴, `String()`)과 ToPropertyKey(대괄호 키).
+
+힌트 없이 불리면 ToPrimitive는 먼저 `Symbol.toPrimitive`를 찾고, 없을 때만 OrdinaryToPrimitive에 number를 넘깁니다. 명세의 "preferredType이 없으면 number로 한다"는 단계는 `Symbol.toPrimitive` 확인 뒤에 있으므로, "힌트가 없으면 number"라고만 외우면 `Symbol.toPrimitive`가 있는 객체에서 틀립니다(예제 6). 힌트 문자열로 분기하는 `Symbol.toPrimitive` 메서드를 작성하는 방법은 [심벌](/concepts/symbol)에서 다룹니다. 양쪽이 모두 객체인 `==`(같은 객체인지만 봅니다)나 `obj == null`은 ToPrimitive를 부르지 않으며, `==`의 나머지 단계는 [동등 비교](/concepts/equality-operators)에서 다룹니다.
+
+### valueOf와 toString의 순서
+
+예제 1의 객체 `o`는 `valueOf`가 `1`을, `toString`이 `'two'`를 돌려줍니다. 12번 줄 `o + ''`는 힌트가 없어 `valueOf`를 먼저 불러 숫자 `1`을 얻고, `toString`은 부르지 않습니다. 그 값 `1`을 `+`가 문자열 `"1"`로 바꿔 이어 붙입니다. 14번 줄 `` `${o}` ``는 string 힌트라 `toString`을 먼저 불러 `'two'`를 얻고, `valueOf`는 부르지 않습니다. 어느 메서드가 불렸는지는 `log`의 기록으로 확인합니다.
+
+예제 2는 같은 `o`로 연산마다 힌트가 다름을 보입니다. 11번 줄의 `+o`, `o * 1`, `o > 0`은 number 힌트라 `valueOf`가 먼저입니다. `o > 0`이 `true`인 것은 `valueOf`의 `1`을 쓰기 때문이고, `toString`이 먼저였다면 `'two' > 0`이 되어 `false`였을 것입니다. 12번 줄의 `o == 1`은 `true`, `o == 'two'`는 `false`입니다. 상대가 문자열이어도 힌트는 없음이라 `valueOf`가 먼저이고, `'two'`를 돌려주는 `toString`은 불리지 않습니다. 13번 줄의 `String(o)`와 10번 줄의 `box[o] = true;`(대괄호 키)는 string 힌트라 `toString`이 먼저여서 `'two'`가 되고, 키는 `'two'`입니다. 객체가 프로퍼티 키로 바뀌는 규칙은 [프로퍼티 키](/concepts/property-keys)에서 다룹니다.
+
+### 객체를 돌려주면 다음 메서드
+
+OrdinaryToPrimitive는 메서드를 부른 결과가 원시 값이 아니라 객체이면 그 결과를 버리고 다음 메서드로 넘어갑니다. 배열과 일반 객체는 `valueOf`를 직접 갖지 않고 `Object.prototype.valueOf`를 상속하는데([프로토타입 체인](/concepts/prototype-chain)), 이 메서드는 객체 자신을 돌려줍니다. 예제 3의 2번 줄 `a.valueOf() === a`가 `true`입니다. 그래서 number 힌트나 힌트 없음에서도 `valueOf`를 부른 결과(객체)는 버려지고 `toString`으로 갑니다.
+
+배열의 `toString`은 `Array.prototype.toString`이라 요소를 쉼표로 이은 문자열(`join`)을 돌려줍니다. 3번 줄에서 `a + 1`은 `'1,2'` 뒤에 `1`을 이어 `"1,21"`, `[] + []`는 빈 문자열 둘이라 `""`, `[] + {}`는 `''`와 `'[object Object]'`를 이어 `"[object Object]"`입니다. `Symbol.toStringTag`가 없는 일반 객체의 `toString`이 `'[object Object]'`를 돌려줍니다. 4번 줄의 `[5] * 2`는 `'5'`를 ToNumber가 5로 바꿔 `10`이고, `[1] == 1`은 `true`입니다. `[] == ![]`도 `true`입니다. `!`는 ToBoolean이라 ToPrimitive를 부르지 않고 객체는 항상 true이므로 `![]`는 `false`이고, `==`가 불리언을 먼저 숫자 0으로 바꾼 뒤 `[]`를 ToPrimitive해 `''`를 얻고 이것이 0과 같다고 판단합니다.
+
+래퍼 객체(String·Number·Boolean·BigInt)는 상속한 `valueOf`가 감싼 원시 값을 돌려주므로 `valueOf`에서 곧바로 원시 값이 나옵니다. 5번 줄의 `new Number(5) + 1`은 `6`, `new String('hi') == 'hi'`는 `true`입니다([원시 값의 메서드](/concepts/primitive-methods)).
+
+### 원시 값이면 그 값을 쓰고, 연산이 다시 변환한다
+
+ToPrimitive는 처음 나온 원시 값을 그대로 돌려줄 뿐 그 값을 문자열이나 숫자로 바꾸지 않습니다. 변환은 ToPrimitive가 끝난 뒤 연산이 자기 규칙으로 합니다. 예제 4의 `five`는 `valueOf`가 문자열 `'5'`를 돌려줍니다. `five - 1`은 number 힌트라 `valueOf`의 `'5'`를 얻고, `-`가 ToNumber로 `5`로 바꿔 `4`입니다. `five + 1`은 힌트 없음이라 같은 `'5'`를 얻은 뒤 문자열이 있으므로 이어 붙여 `"51"`입니다. 두 식에서 ToPrimitive의 결과는 같고, 그다음 연산이 다릅니다. 같은 이유로 number 힌트는 메서드를 부르는 순서만 정할 뿐 숫자로 비교한다는 뜻이 아닙니다. `[10] > [9]`는 두 배열이 `toString`으로 `'10'`과 `'9'`가 되고, 둘 다 문자열이라 `>`가 문자열로 비교해 `false`입니다(`[2] > [10]`은 `true`). 원시 값끼리의 변환 규칙은 [암묵적 타입 변환](/concepts/type-coercion)에서 다룹니다.
+
+### TypeError, Symbol.toPrimitive, Date
+
+`valueOf`와 `toString`을 모두 시도하고도 원시 값을 얻지 못하면 OrdinaryToPrimitive는 TypeError를 던집니다. 예제 5의 `Object.create(null)`로 만든 `bare`는 `Object.prototype`을 상속하지 않아 두 메서드가 없고 호출할 수 없으므로([프로토타입 체인](/concepts/prototype-chain)) `String(bare)`가 `TypeError`입니다. 메서드가 있어도 둘 다 객체를 돌려주는 `stubborn`은 `stubborn + ''`가 `TypeError`입니다.
+
+객체에 `Symbol.toPrimitive` 메서드가 있으면 OrdinaryToPrimitive로 가지 않습니다. 그래서 `Symbol.toPrimitive` 메서드가 객체를 돌려주면 `valueOf`·`toString`으로 넘어가지 않고 바로 TypeError입니다. 이 프로퍼티의 값이 `undefined`나 `null`이면 메서드가 없는 것으로 보고 OrdinaryToPrimitive로 가고, 그 밖에 함수가 아닌 값이면 TypeError입니다(명세의 GetMethod). 예제 6의 `priced`는 `valueOf`도 있지만 `priced + ''`는 `Symbol.toPrimitive`가 받은 힌트 `'default'`를 돌려주고 `valueOf`는 한 번도 불리지 않습니다(`log.length`가 `0`). Date는 상속한 `Date.prototype[Symbol.toPrimitive]`가 힌트 `'default'`를 string처럼 다루므로 `typeof (d + 1)`이 `'string'`이고, `d - 1`은 number 힌트라 시각 값 0을 써서 `-1`입니다([Date](/concepts/date)). 명세의 ToPrimitive NOTE는 명세가 정의한 객체 가운데 기본 동작을 바꾸는 것은 Date와 Symbol 객체뿐이라고 말합니다. 그래서 `valueOf` → `toString`이라는 순서는 `Symbol.toPrimitive`가 없는 일반적인 객체의 규칙입니다.
+
+## 예제
+
+예제의 출력은 Node의 `vm` 모듈에서 스크립트로 실행한 결과입니다. 여섯 예제는 파일 첫 줄에 `'use strict';`를 붙여도 출력이 같습니다. 예제는 문자열과 빈 문자열을 보이려고 `JSON.stringify`를 쓰며, 이는 출력 용도입니다. `console.log`는 값을 출력하는 호스트 API이며 ECMAScript 언어의 일부가 아닙니다. 여러 줄 출력은 퀴즈에서 ' / '로 이어 적었습니다.
+
+### 예제 1: 힌트에 따라 순서가 바뀐다
+
+```js file=./examples/hint-order.js
+
+```
+
+<PredictQuiz
+  question="예제 1의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '"two" toString / "two" toString',
+    '"1" valueOf / "1" valueOf',
+    '"1" valueOf / "two" toString',
+    '"1" valueOf,toString / "two" toString,valueOf',
+  ]}
+  answer={2}
+  explanation="힌트가 없는 o + ''는 valueOf를 먼저 불러 숫자 1을 얻고 toString은 부르지 않습니다. string 힌트인 템플릿 리터럴은 toString을 먼저 불러 'two'를 얻고 valueOf는 부르지 않습니다. 원시 값이 나오면 남은 메서드는 부르지 않으므로 log에는 메서드 하나만 남습니다."
+/>
+
+### 예제 2: 연산마다 다른 힌트
+
+```js file=./examples/operation-hints.js
+
+```
+
+<PredictQuiz
+  question="예제 2의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '1 1 true / true false / two two',
+    '1 1 false / true false / two two',
+    '1 1 true / true true / two two',
+    '1 1 true / true false / two 1',
+  ]}
+  answer={0}
+  explanation="+o, o * 1, o > 0은 number 힌트라 valueOf의 1을 쓰고, o > 0은 1 > 0이라 true입니다. o == 1과 o == 'two'는 힌트가 없어 상대 타입과 무관하게 valueOf가 먼저이므로 1 == 1은 true, 1 == 'two'는 false입니다. String(o)와 대괄호 키는 string 힌트라 toString의 'two'를 씁니다."
+/>
+
+### 예제 3: 객체를 돌려주면 다음 메서드
+
+```js file=./examples/array-and-object.js
+
+```
+
+<PredictQuiz
+  question="예제 3의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'false / "1,21" "" "[object Object]" / 10 true true / 6 true',
+    'true / "1,21" 0 "0[object Object]" / 10 true true / 6 true',
+    'true / "1,21" "" "[object Object]" / 10 true false / 6 true',
+    'true / "1,21" "" "[object Object]" / 10 true true / 6 true',
+  ]}
+  answer={3}
+  explanation="배열은 Object.prototype.valueOf를 상속해 valueOf가 배열 자신을 돌려주므로 a.valueOf() === a는 true이고, ToPrimitive는 객체인 그 결과를 건너뛰고 toString으로 갑니다. 빈 배열의 toString은 빈 문자열이라 [] + []는 빈 문자열이고 [] + {}는 [object Object]입니다. ![]는 false이고 ==가 이를 0으로 바꾼 뒤 []의 빈 문자열과 비교하므로 [] == ![]는 true입니다. 래퍼 객체의 valueOf는 감싼 원시 값을 돌려줍니다."
+/>
+
+### 예제 4: 원시 값이 나온 뒤 연산이 하는 일
+
+```js file=./examples/primitive-result.js
+
+```
+
+<PredictQuiz
+  question="예제 4의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={['4 6', '4 "51"', 'NaN "51"', '4 "[object Object]1"']}
+  answer={1}
+  explanation="five의 valueOf가 돌려준 문자열 '5'가 ToPrimitive의 결과입니다. five - 1은 - 연산이 ToNumber로 5로 바꿔 4가 되고, five + 1은 문자열이 있어 '5'와 '1'을 이어 붙인 문자열 '51'입니다. + 연산이 toString을 부르는 것이 아니라 valueOf가 이미 원시 값을 돌려주었습니다."
+/>
+
+### 예제 5: 둘 다 실패하면 TypeError
+
+```js file=./examples/type-error.js
+
+```
+
+<PredictQuiz
+  question="예제 5의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '[object Object] / TypeError',
+    'TypeError / [object Object]',
+    'TypeError / TypeError',
+    'undefined / undefined',
+  ]}
+  answer={2}
+  explanation="Object.create(null)의 bare는 valueOf와 toString이 없어 호출할 수 없고, stubborn은 두 메서드가 모두 객체를 돌려줍니다. 두 경우 모두 원시 값을 얻지 못했으므로 OrdinaryToPrimitive가 TypeError를 던집니다. 빈 문자열이나 [object Object]로 대신하지 않습니다."
+/>
+
+시뮬레이터의 시나리오 세 개는 예제 1·3·5의 호출을 한 단계씩 보여 줍니다. 단계마다 ToPrimitive가 받은 힌트, `Symbol.toPrimitive` 확인, OrdinaryToPrimitive에 넘긴 힌트, 메서드를 부르는 순서와 각 결과, 연산이 이어서 하는 일을 보입니다. ToNumber 같은 후속 변환은 "연산이 이어서 하는 일" 한 줄로 줄여 그립니다.
+
+<Simulator scenarios={scenarios} />
+
+### 예제 6: Symbol.toPrimitive와 Date
+
+```js file=./examples/symbol-and-date.js
+
+```
+
+<PredictQuiz
+  question="예제 6의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'default 0 / string -1',
+    '1 1 / string -1',
+    'default 0 / number -1',
+    'number 0 / number -1',
+  ]}
+  answer={0}
+  explanation="Symbol.toPrimitive가 있으면 valueOf보다 먼저 쓰이고, 힌트 없는 priced + ''에는 힌트 'default'가 전달되어 valueOf는 호출되지 않습니다. Date의 [Symbol.toPrimitive]는 'default'를 string처럼 다뤄 d + 1은 문자열이고, d - 1은 number 힌트라 시각 값 0에서 1을 뺀 -1입니다."
+/>
+
+## 결과와 이유
+
+### 예제 1
+
+출력은 `"1" valueOf`와 `"two" toString`입니다. `o + ''`는 힌트가 없어 `valueOf`가 먼저 불려 숫자 `1`이 나왔고 `toString`은 불리지 않았습니다. `` `${o}` ``는 string 힌트라 `toString`이 먼저 불려 `'two'`가 나왔고 `valueOf`는 불리지 않았습니다. `+`는 ToPrimitive가 돌려준 숫자 `1`을 문자열 `"1"`로 바꿔 이어 붙였습니다.
+
+### 예제 2
+
+첫 줄 `1 1 true`는 `+o`, `o * 1`, `o > 0`이 모두 `valueOf`를 먼저 쓴 결과입니다. 둘째 줄 `true false`는 `o == 1`과 `o == 'two'`입니다. 상대 피연산자의 타입과 상관없이 `valueOf`가 먼저라서 `1 == 'two'`가 되었습니다. 셋째 줄 `two two`는 `String(o)`와 객체 키가 string 힌트로 `toString`의 `'two'`를 쓴 결과입니다.
+
+### 예제 3
+
+첫 줄 `true`는 배열의 `valueOf`가 배열 자신을 돌려준다는 뜻이고, 그래서 `toString`으로 넘어갑니다. 둘째 줄 `"1,21" "" "[object Object]"`는 `a + 1`, `[] + []`, `[] + {}`입니다. 셋째 줄 `10 true true`는 `[5] * 2`, `[1] == 1`, `[] == ![]`이고, 넷째 줄 `6 true`는 래퍼 객체 `new Number(5) + 1`과 `new String('hi') == 'hi'`입니다.
+
+### 예제 4
+
+`4 "51"`에서 `five - 1`은 `valueOf`가 준 `'5'`를 `-`가 숫자로 바꿔 `4`이고, `five + 1`은 같은 `'5'`에 문자열이 있어 `"51"`입니다. ToPrimitive는 `'5'`를 그대로 돌려주었을 뿐입니다.
+
+### 예제 5
+
+두 줄 모두 `TypeError`입니다. `bare`는 호출할 수 있는 `toString`·`valueOf`가 없고, `stubborn`은 두 메서드가 모두 객체를 돌려주어 원시 값을 얻지 못했습니다.
+
+### 예제 6
+
+`default 0`에서 `default`는 `priced`의 `Symbol.toPrimitive`가 힌트 없는 `+`에서 받은 힌트이고, `0`은 `valueOf`가 한 번도 불리지 않았다는 뜻입니다. `string -1`에서 `d + 1`은 Date가 `'default'`를 string처럼 다뤄 문자열이 되었고, `d - 1`은 number 힌트라 시각 값 `0`을 써서 `-1`입니다.
+
+### 비교표
+
+연산 칸은 마지막 칸의 예제 파일에 있는 코드입니다. `o`는 `valueOf`가 `1`을, `toString`이 `'two'`를 돌려주는 예제 1·2의 객체이고, `d`는 예제 6의 `new Date(0)`입니다. 힌트 없음이 `number`가 되는 것은 `Symbol.toPrimitive`가 없을 때뿐입니다.
+
+<div
+  className="my-6 overflow-x-auto"
+  tabIndex={0}
+  role="region"
+  aria-label="객체를 원시 값으로 바꾸는 연산 비교 표(좁은 화면에서는 가로로 스크롤할 수 있습니다)"
+>
+  <table className="w-full border-collapse text-left">
+    <thead>
+      <tr>
+        <th className="border-border border px-3 py-2">연산</th>
+        <th className="border-border border px-3 py-2">ToPrimitive 힌트</th>
+        <th className="border-border border px-3 py-2">먼저 부르는 메서드</th>
+        <th className="border-border border px-3 py-2">결과</th>
+        <th className="border-border border px-3 py-2">예제</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{"o + ''"}</code>
+        </td>
+        <td className="border-border border px-3 py-2">없음 → number(Symbol.toPrimitive 없음)</td>
+        <td className="border-border border px-3 py-2">
+          <code>valueOf</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{"'1'"}</code>
+        </td>
+        <td className="border-border border px-3 py-2">1</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'`${o}`'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">string</td>
+        <td className="border-border border px-3 py-2">
+          <code>toString</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{"'two'"}</code>
+        </td>
+        <td className="border-border border px-3 py-2">1</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>+o</code>
+        </td>
+        <td className="border-border border px-3 py-2">number</td>
+        <td className="border-border border px-3 py-2">
+          <code>valueOf</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>1</code>
+        </td>
+        <td className="border-border border px-3 py-2">2</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'o > 0'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">number</td>
+        <td className="border-border border px-3 py-2">
+          <code>valueOf</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>true</code>
+        </td>
+        <td className="border-border border px-3 py-2">2</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>o == 1</code>
+        </td>
+        <td className="border-border border px-3 py-2">없음 → number(Symbol.toPrimitive 없음)</td>
+        <td className="border-border border px-3 py-2">
+          <code>valueOf</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>true</code>
+        </td>
+        <td className="border-border border px-3 py-2">2</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>String(o)</code>
+        </td>
+        <td className="border-border border px-3 py-2">string</td>
+        <td className="border-border border px-3 py-2">
+          <code>toString</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{"'two'"}</code>
+        </td>
+        <td className="border-border border px-3 py-2">2</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>box[o] = true</code>
+        </td>
+        <td className="border-border border px-3 py-2">string</td>
+        <td className="border-border border px-3 py-2">
+          <code>toString</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          키 <code>{"'two'"}</code>
+        </td>
+        <td className="border-border border px-3 py-2">2</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'[] + {}'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">없음 → number(Symbol.toPrimitive 없음)</td>
+        <td className="border-border border px-3 py-2">
+          <code>valueOf</code>(객체라 건너뜀) → <code>toString</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{"'[object Object]'"}</code>
+        </td>
+        <td className="border-border border px-3 py-2">3</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>d + 1</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          없음 → default(Date의 Symbol.toPrimitive가 string처럼)
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>[Symbol.toPrimitive]</code> → <code>toString</code>
+        </td>
+        <td className="border-border border px-3 py-2">문자열</td>
+        <td className="border-border border px-3 py-2">6</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+### 흔한 오해
+
+<Callout type="misconception" title="+에 문자열이 있으면 toString을 부른다">
+
+`+`는 문자열이 있는지 보기 전에 두 피연산자를 힌트 없이 ToPrimitive로 바꿉니다. 그래서 `o + ''`는 `''`가 문자열이어도 `valueOf`를 먼저 불러 `1`을 얻었고(예제 1), 문자열이 있는지는 ToPrimitive가 끝난 뒤에 정해져 `"1"`로 이어 붙였습니다. 배열과 일반 객체에서 `toString`이 쓰이는 것은 `valueOf`가 자기 자신인 객체를 돌려줘 건너뛰기 때문입니다(예제 3).
+
+</Callout>
+
+<Callout type="misconception" title="valueOf는 숫자를 돌려주고 결과는 숫자다">
+
+`valueOf`는 객체가 아닌 값이면 무엇이든 돌려줄 수 있습니다. 예제 4의 `valueOf`는 문자열 `'5'`를 돌려주었고, ToPrimitive는 그 값을 그대로 썼습니다. 그 뒤 `five - 1`은 `-`가 숫자로 바꿔 `4`, `five + 1`은 문자열 이어 붙이기라 `"51"`입니다. 변환은 ToPrimitive가 아니라 그 뒤의 연산이 합니다.
+
+</Callout>
