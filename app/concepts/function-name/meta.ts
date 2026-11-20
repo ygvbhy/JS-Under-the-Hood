@@ -20,10 +20,10 @@ export const concept = {
     'Function 생성자',
   ],
   goals: [
-    '익명 함수 정의가 변수 초기화식·매개변수 기본값·식별자 대입의 오른쪽, 리터럴의 `키: 값`에 바로 있으면 그 이름을 받고, 메서드·getter·setter는 키(getter·setter는 `get `·`set ` 접두)를 받는다는 것을 예측할 수 있다.',
-    '`o.p = () => {}`, 인수로 넘긴 함수, 쉼표·`||`로 감싼 함수의 name이 빈 문자열인 이유를 "왼쪽이 식별자인가", "오른쪽 식이 함수 정의 그 자체인가"라는 두 조건으로 설명할 수 있다.',
-    '이미 만든 함수를 다른 변수에 담아도 name이 바뀌지 않고, Function 생성자로 만든 함수는 `anonymous`라는 것을 예측할 수 있다.',
-    'name 프로퍼티의 어트리뷰트로 대입(sloppy 무시·strict TypeError), `defineProperty`, `delete`, `bind`의 결과를 예측할 수 있다.',
+    '익명 함수 정의가 변수 초기화식·매개변수 기본값·식별자 대입의 오른쪽, 리터럴의 키: 값에 바로 있으면 그 이름을 받고, 메서드·getter·setter는 키(getter·setter는 get·set 접두)를 받는다는 것을 예측할 수 있다.',
+    'o.p = () => {}, 인수로 넘긴 함수, 쉼표·||로 감싼 함수의 name이 빈 문자열인 이유를 "왼쪽이 식별자인가", "오른쪽 식이 함수 정의 그 자체인가"라는 두 조건으로 설명할 수 있다.',
+    '이미 만든 함수를 다른 변수에 담아도 name이 바뀌지 않고, Function 생성자로 만든 함수는 anonymous라는 것을 예측할 수 있다.',
+    'name 프로퍼티의 어트리뷰트로 대입(sloppy 무시·strict TypeError), defineProperty, delete, bind의 결과를 예측할 수 있다.',
   ],
   prerequisites: [
     { label: '함수를 정의하는 방법', slug: 'function-definitions' },
