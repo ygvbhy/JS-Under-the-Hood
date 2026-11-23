@@ -1,0 +1,135 @@
+import type { ConceptMeta } from '~/lib/concepts'
+
+const SPEC = 'https://tc39.es/ecma262/#'
+const MDN = 'https://developer.mozilla.org/ko/docs/Web/JavaScript/Reference/Global_Objects/'
+
+export const concept = {
+  slug: 'array-higher-order-functions',
+  title: '배열 고차 함수: forEach 안에서 push한 요소는 왜 방문하지 않을까',
+  summary:
+    'forEach·map·filter·some·every·find는 시작할 때 length를 한 번만 읽어서 순회 중 push한 요소는 방문하지 않습니다. pop이 지운 끝 인덱스는 forEach가 HasProperty로 확인해 건너뛰지만 find는 확인 없이 undefined로 읽습니다.',
+  category: 'objects',
+  order: 272,
+  tags: [
+    '배열 고차 함수',
+    'higher-order function',
+    'forEach',
+    'map',
+    'filter',
+    'find',
+    'findIndex',
+    'some',
+    'every',
+    'flat',
+    'flatMap',
+    'LengthOfArrayLike',
+    '순회 중 변경',
+  ],
+  goals: [
+    'forEach·map·filter·some·every가 시작할 때 length를 한 번만 읽고 인덱스마다 HasProperty로 확인한다는 것으로, 순회 중 push한 요소는 방문하지 않고, pop·shift가 지운 끝 인덱스는 루프가 닿아도 건너뛰며, 콜백 안에서 shift로 한 칸씩 당겨진 값 중 지금 인덱스 바로 뒤에 있던 값만 이미 값을 읽은 지금 인덱스로 옮겨져 방문하지 않는 결과를 예측할 수 있다.',
+    '요소의 값은 그 인덱스를 방문할 때 읽으므로 앞선 콜백이 뒤 요소에 대입한 값이 전달되고, filter는 콜백에 넘긴 값을 결과에 담는다는 것을 설명할 수 있다.',
+    'find·findIndex와 filter의 반환값·콜백 호출 횟수 차이, some·every가 결과가 정해지는 순간 멈추는 것과 빈 배열에서의 결과를 예측할 수 있다.',
+    'forEach·map·filter·some·every는 프로퍼티가 없는 인덱스에서 콜백을 부르지 않지만 find·findIndex는 그 자리도 undefined로 읽는다는 것을 HasProperty 확인 유무로 설명할 수 있다.',
+    'flat의 기본 깊이 1과 구멍 처리, flatMap이 콜백 결과를 깊이 1만 펼친다는 것을 예측할 수 있다.',
+  ],
+  prerequisites: [
+    { label: '배열은 객체다', slug: 'array-index-length' },
+    { label: '배열 메서드의 함정', slug: 'array-method-pitfalls' },
+    { label: '화살표 함수와 메서드 축약', slug: 'arrow-functions' },
+  ],
+  related: [
+    'array-method-pitfalls',
+    'array-index-length',
+    'arrow-functions',
+    'type-coercion',
+    'iterable-for-of',
+    'live-html-collection',
+    'set-map',
+    'async-await',
+  ],
+  examples: [
+    {
+      id: 'push-during-foreach',
+      file: 'push-during-foreach.js',
+      runtime: 'ecmascript',
+      expectedOutput: ['[1,2] [1,2,3,4]'],
+    },
+    {
+      id: 'remove-during-foreach',
+      file: 'remove-during-foreach.js',
+      runtime: 'ecmascript',
+      expectedOutput: ['[1,2] 2', '[1,3] [2,3]'],
+    },
+    {
+      id: 'read-when-visited',
+      file: 'read-when-visited.js',
+      runtime: 'ecmascript',
+      expectedOutput: ['[10,20,300] 6', '[1,2,3] [0,0,0]'],
+    },
+    {
+      id: 'find-vs-filter',
+      file: 'find-vs-filter.js',
+      runtime: 'ecmascript',
+      expectedOutput: ['15 [3,15]', '[15,40] [3,15,7,40]', 'undefined [] -1'],
+    },
+    {
+      id: 'find-reads-missing-index',
+      file: 'find-reads-missing-index.js',
+      runtime: 'ecmascript',
+      expectedOutput: ['0:1 1:undefined 2:3', '1 2 undefined'],
+    },
+    {
+      id: 'some-every',
+      file: 'some-every.js',
+      runtime: 'ecmascript',
+      expectedOutput: ['true [1,2]', 'false [1,2]', 'false true'],
+    },
+    {
+      id: 'flat-flatmap',
+      file: 'flat-flatmap.js',
+      runtime: 'ecmascript',
+      expectedOutput: [
+        '[1,2,[3,[4]]] [1,2,3,[4]]',
+        '[1,2,3,4] [1,2,3]',
+        '[[1,10],[2,20]]',
+        '[1,[10],2,[20]]',
+        '[1,3]',
+      ],
+    },
+  ],
+  simplifications: [
+    '`thisArg`, 유사 배열에 빌려 쓰는 범용성, `Symbol.species`와 ArraySpeciesCreate가 하위 클래스에서 하는 일은 다루지 않습니다.',
+    '구멍 설명은 `Array.prototype`과 `Object.prototype`에 인덱스 프로퍼티가 없는 보통의 경우를 전제합니다. HasProperty와 Get은 프로토타입 체인까지 봅니다.',
+    '`reduce`·`reduceRight`도 시작할 때 length를 한 번 읽고 HasProperty로 건너뛰지만, 초기값과 구멍은 배열 메서드의 함정 개념에서 다루므로 예제를 두지 않습니다. `findLast`·`findLastIndex`(ES2023, 뒤에서부터 같은 FindViaPredicate)는 다루지 않습니다.',
+    '`for...of`가 length를 매번 다시 읽는 것은 이터러블과 for...of 개념에서 다룹니다.',
+    '`flat`의 depth 변환(ToIntegerOrInfinity, 음수는 0)과 `flatMap` 콜백이 배열이 아닌 유사 배열을 돌려줄 때(IsArray가 false라 펼치지 않음)는 다루지 않습니다.',
+    '시뮬레이터는 HasProperty와 Get을 한 단계로, 콜백 본문 실행을 한 단계로 묶고 forEach와 find만 그립니다. map·filter·some·every는 forEach와 같은 루프에 결과 처리가 더해진 것이라 본문과 표로 다룹니다.',
+    '예제의 console은 호스트 API입니다. 예제는 sloppy mode 스크립트지만 결과는 strict mode에서도 같습니다.',
+  ],
+  references: [
+    {
+      label: 'ECMAScript 명세 — Array.prototype.forEach',
+      url: `${SPEC}sec-array.prototype.foreach`,
+    },
+    { label: 'ECMAScript 명세 — Array.prototype.map', url: `${SPEC}sec-array.prototype.map` },
+    { label: 'ECMAScript 명세 — Array.prototype.filter', url: `${SPEC}sec-array.prototype.filter` },
+    { label: 'ECMAScript 명세 — Array.prototype.some', url: `${SPEC}sec-array.prototype.some` },
+    { label: 'ECMAScript 명세 — Array.prototype.every', url: `${SPEC}sec-array.prototype.every` },
+    { label: 'ECMAScript 명세 — Array.prototype.find', url: `${SPEC}sec-array.prototype.find` },
+    { label: 'ECMAScript 명세 — FindViaPredicate', url: `${SPEC}sec-findviapredicate` },
+    {
+      label: 'ECMAScript 명세 — Array.prototype.findIndex',
+      url: `${SPEC}sec-array.prototype.findindex`,
+    },
+    { label: 'ECMAScript 명세 — Array.prototype.flat', url: `${SPEC}sec-array.prototype.flat` },
+    { label: 'ECMAScript 명세 — FlattenIntoArray', url: `${SPEC}sec-flattenintoarray` },
+    {
+      label: 'ECMAScript 명세 — Array.prototype.flatMap',
+      url: `${SPEC}sec-array.prototype.flatmap`,
+    },
+    { label: 'ECMAScript 명세 — LengthOfArrayLike', url: `${SPEC}sec-lengthofarraylike` },
+    { label: 'MDN — Array.prototype.forEach()', url: `${MDN}Array/forEach` },
+    { label: 'MDN — Array.prototype.find()', url: `${MDN}Array/find` },
+  ],
+  reviewedAt: '2026-11-23',
+} satisfies ConceptMeta

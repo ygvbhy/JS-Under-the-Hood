@@ -110,6 +110,11 @@ export const TO_PRIMITIVE_SIMULATOR_NAME = '객체를 원시 값으로 시뮬레
 export const TO_PRIMITIVE_SCENARIO_ORDER = '힌트에 따라 순서가 바뀐다'
 export const TO_PRIMITIVE_SCENARIO_OBJECT = '객체를 돌려주면 다음 메서드'
 export const TO_PRIMITIVE_SCENARIO_TYPE_ERROR = '둘 다 실패하면 TypeError'
+export const ARRAY_HOF_PATH = '/concepts/array-higher-order-functions'
+export const ARRAY_HOF_SIMULATOR_NAME = '배열 고차 함수 시뮬레이터'
+export const ARRAY_HOF_SCENARIO_PUSH = 'push한 요소는 방문하지 않는다'
+export const ARRAY_HOF_SCENARIO_POP_SHIFT = 'pop·shift 뒤의 인덱스'
+export const ARRAY_HOF_SCENARIO_FIND_HOLE = 'find는 프로퍼티가 없는 인덱스도 읽는다'
 export const ES_MODULES_PATH = '/concepts/es-modules'
 export const ES_MODULES_SIMULATOR_NAME = 'ES 모듈 시뮬레이터'
 

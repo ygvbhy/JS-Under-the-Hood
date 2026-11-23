@@ -104,6 +104,11 @@ import {
   TO_PRIMITIVE_SCENARIO_ORDER,
   TO_PRIMITIVE_SCENARIO_OBJECT,
   TO_PRIMITIVE_SCENARIO_TYPE_ERROR,
+  ARRAY_HOF_PATH,
+  ARRAY_HOF_SIMULATOR_NAME,
+  ARRAY_HOF_SCENARIO_PUSH,
+  ARRAY_HOF_SCENARIO_POP_SHIFT,
+  ARRAY_HOF_SCENARIO_FIND_HOLE,
   PROMISE_PATH,
   PROMISE_SIMULATOR_NAME,
   SCRIPT_ASYNC_DEFER_PATH,
@@ -1698,6 +1703,40 @@ for (const scenario of [
   })
 }
 
+test(`${ARRAY_HOF_PATH}: 가로 스크롤이 없다`, async ({ page }) => {
+  await page.goto(ARRAY_HOF_PATH)
+  await waitForHydration(page)
+  const { scrollWidth, innerWidth } = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    innerWidth: window.innerWidth,
+  }))
+  expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
+})
+
+for (const scenario of [
+  ARRAY_HOF_SCENARIO_PUSH,
+  ARRAY_HOF_SCENARIO_POP_SHIFT,
+  ARRAY_HOF_SCENARIO_FIND_HOLE,
+]) {
+  test(`배열 고차 함수 개념 페이지: '${scenario}' 시나리오를 끝까지 진행해도 가로 스크롤이 없다`, async ({
+    page,
+  }) => {
+    await page.goto(ARRAY_HOF_PATH)
+    await waitForHydration(page)
+    const region = page.getByRole('region', { name: ARRAY_HOF_SIMULATOR_NAME })
+    await region.getByRole('radio', { name: scenario }).click()
+    const next = region.getByRole('button', { name: '다음' })
+    // 시나리오별 단계 수를 고정하지 않고 '다음'이 비활성화될 때(마지막 단계)까지 진행한다.
+    while (await next.isEnabled()) await next.click()
+    await expect(next).toBeDisabled()
+    const { scrollWidth, innerWidth } = await page.evaluate(() => ({
+      scrollWidth: document.documentElement.scrollWidth,
+      innerWidth: window.innerWidth,
+    }))
+    expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
+  })
+}
+
 test(`${ES_MODULES_PATH}: 가로 스크롤이 없다`, async ({ page }) => {
   await page.goto(ES_MODULES_PATH)
   await waitForHydration(page)
@@ -1765,7 +1804,7 @@ test('Promise 정적 메서드 개념 페이지: 두 시나리오를 끝까지 �
 test('홈 학습 순서 보기: 가로 스크롤이 없다', async ({ page }) => {
   await page.goto('/?view=order')
   await waitForHydration(page)
-  await expect(page.getByRole('article')).toHaveCount(73)
+  await expect(page.getByRole('article')).toHaveCount(74)
   const { scrollWidth, innerWidth } = await page.evaluate(() => ({
     scrollWidth: document.documentElement.scrollWidth,
     innerWidth: window.innerWidth,

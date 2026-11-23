@@ -103,6 +103,8 @@ import {
   ES_MODULES_SIMULATOR_NAME,
   TO_PRIMITIVE_PATH,
   TO_PRIMITIVE_SIMULATOR_NAME,
+  ARRAY_HOF_PATH,
+  ARRAY_HOF_SIMULATOR_NAME,
   PROMISE_PATH,
   PROMISE_SIMULATOR_NAME,
   SCRIPT_ASYNC_DEFER_PATH,
@@ -1297,6 +1299,24 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await page.goto(TO_PRIMITIVE_PATH)
       await waitForHydration(page)
       const region = page.getByRole('region', { name: TO_PRIMITIVE_SIMULATOR_NAME })
+      const next = region.getByRole('button', { name: '다음' })
+      for (let i = 0; i < 3; i++) await next.click()
+      await expect(region).toBeVisible()
+      await expect(region.getByText(/^단계 4 \/ \d+$/)).toBeVisible()
+      await expectNoSeriousViolations(page)
+    })
+
+    test('개념 페이지: 배열 고차 함수', async ({ page }) => {
+      await page.goto(ARRAY_HOF_PATH)
+      await waitForHydration(page)
+      await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
+      await expectNoSeriousViolations(page)
+    })
+
+    test('개념 페이지: 배열 고차 함수 시뮬레이터를 진행한 뒤', async ({ page }) => {
+      await page.goto(ARRAY_HOF_PATH)
+      await waitForHydration(page)
+      const region = page.getByRole('region', { name: ARRAY_HOF_SIMULATOR_NAME })
       const next = region.getByRole('button', { name: '다음' })
       for (let i = 0; i < 3; i++) await next.click()
       await expect(region).toBeVisible()

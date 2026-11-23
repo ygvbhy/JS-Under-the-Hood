@@ -101,15 +101,15 @@ describe('getAdjacentConcepts', () => {
     expect(adj.prev).toBeNull()
     expect(adj.next?.slug).toBe('expressions-statements')
     expect(adj.position).toBe(1)
-    expect(adj.total).toBe(73)
+    expect(adj.total).toBe(74)
   })
 
   it('마지막 개념은 다음이 없다', () => {
     const adj = getAdjacentConcepts('es-modules')
     expect(adj.prev?.slug).toBe('async-generator')
     expect(adj.next).toBeNull()
-    expect(adj.position).toBe(73)
-    expect(adj.total).toBe(73)
+    expect(adj.position).toBe(74)
+    expect(adj.total).toBe(74)
   })
 
   it('중간 개념은 앞뒤 개념을 돌려준다', () => {

@@ -1611,6 +1611,39 @@ describe('프리렌더 (to-primitive)', () => {
   })
 })
 
+// array-higher-order-functions: 배열 고차 함수 시뮬레이터의 첫 단계, 비교표, 퀴즈가 프리렌더 HTML에 정적으로 있어야 한다.
+describe('프리렌더 (array-higher-order-functions)', () => {
+  const html = read('concepts/array-higher-order-functions/index.html')
+  const text = htmlToText(html)
+
+  it('배열 고차 함수 시뮬레이터 region과 첫 단계가 HTML에 있다', () => {
+    expect(html).toMatch(/role="region"[^>]*aria-label="배열 고차 함수 시뮬레이터"/)
+    expect(text).toMatch(/단계 1: /)
+  })
+
+  it('시나리오 선택 라디오 3개와 라벨이 있다', () => {
+    expect(html.match(/type="radio"/g)?.length).toBeGreaterThanOrEqual(3)
+    for (const label of [
+      'push한 요소는 방문하지 않는다',
+      'pop·shift 뒤의 인덱스',
+      'find는 프로퍼티가 없는 인덱스도 읽는다',
+    ]) {
+      expect(text).toContain(label)
+    }
+  })
+
+  it('퀴즈 정답 7개가 <details>로 프리렌더된다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(7)
+  })
+
+  it('메서드·프로퍼티 없는 인덱스·멈추는 때·돌려주는 값·예제 비교 표가 HTML에 있다', () => {
+    expect(html).toContain('<table')
+    for (const header of ['메서드', '프로퍼티 없는 인덱스', '멈추는 때', '돌려주는 값', '예제']) {
+      expect(html).toMatch(new RegExp(`<th[^>]*>\\s*${header}\\s*</th>`))
+    }
+  })
+})
+
 // 43~48장 로드맵 7번(es-modules): ES 모듈 시뮬레이터의 첫 단계와 퀴즈가 프리렌더 HTML에 정적으로 있어야 한다.
 describe('시뮬레이터 프리렌더 (es-modules)', () => {
   const html = read('concepts/es-modules/index.html')
