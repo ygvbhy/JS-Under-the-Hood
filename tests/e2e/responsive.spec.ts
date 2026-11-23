@@ -63,6 +63,7 @@ import {
   BIGINT_PATH,
   FUNCTION_DEFINITIONS_PATH,
   FUNCTION_NAME_PATH,
+  TAGGED_TEMPLATES_PATH,
   NUMBER_PITFALLS_VIEW_NAME,
   ITERABLE_FOR_OF_PATH,
   ITERABLE_FOR_OF_SIMULATOR_NAME,
@@ -1507,6 +1508,16 @@ test(`${FUNCTION_NAME_PATH}: 가로 스크롤이 없다`, async ({ page }) => {
   expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
 })
 
+test(`${TAGGED_TEMPLATES_PATH}: 가로 스크롤이 없다`, async ({ page }) => {
+  await page.goto(TAGGED_TEMPLATES_PATH)
+  await waitForHydration(page)
+  const { scrollWidth, innerWidth } = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    innerWidth: window.innerWidth,
+  }))
+  expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
+})
+
 test(`${GENERATOR_PATH}: 가로 스크롤이 없다`, async ({ page }) => {
   await page.goto(GENERATOR_PATH)
   await waitForHydration(page)
@@ -1804,7 +1815,7 @@ test('Promise 정적 메서드 개념 페이지: 두 시나리오를 끝까지 �
 test('홈 학습 순서 보기: 가로 스크롤이 없다', async ({ page }) => {
   await page.goto('/?view=order')
   await waitForHydration(page)
-  await expect(page.getByRole('article')).toHaveCount(74)
+  await expect(page.getByRole('article')).toHaveCount(75)
   const { scrollWidth, innerWidth } = await page.evaluate(() => ({
     scrollWidth: document.documentElement.scrollWidth,
     innerWidth: window.innerWidth,

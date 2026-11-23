@@ -1445,6 +1445,28 @@ describe('프리렌더 (function-name)', () => {
   })
 })
 
+// tagged-templates: 분해 표와 퀴즈가 프리렌더 HTML에 정적으로 있어야 한다.
+describe('프리렌더 (tagged-templates)', () => {
+  const html = read('concepts/tagged-templates/index.html')
+  const text = htmlToText(html)
+
+  it('분해 표 region이 HTML에 있다', () => {
+    expect(html).toMatch(/role="region"[^>]*aria-label="태그드 템플릿 분해 표/)
+  })
+
+  it('분해 표 칸이 렌더된 표기로 보인다', () => {
+    // 렌더된 텍스트: t`a\tb`, ["a\\tb"](백슬래시 2개), [undefined]
+    expect(text).toContain('t`a\\tb`')
+    expect(text).toContain('["a\\\\tb"]')
+    expect(text).toContain('[undefined]')
+  })
+
+  it('퀴즈 정답이 <details>로 6개 이상 프리렌더되고 예제 3의 정답이 있다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(6)
+    expect(text).toContain('true true / false / false true')
+  })
+})
+
 // 추가 게시글(request-animation-frame): 시뮬레이터의 첫 단계와 퀴즈가 프리렌더 HTML에 정적으로 있어야 한다.
 describe('프리렌더 (request-animation-frame)', () => {
   const html = read('concepts/request-animation-frame/index.html')

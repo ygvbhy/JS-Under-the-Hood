@@ -1,6 +1,6 @@
 # 추가 게시글 로드맵 3 (기초 보강과 미뤄 둔 주제 5개)
 
-- 상태: 승인
+- 상태: 완료
 - 작성일: 2026-11-19
 - 기준: `main` @ `bf9c568`
 
@@ -35,8 +35,8 @@
 | 1 | 함수를 정의하는 방법: 같은 function인데 왜 어떤 이름은 밖에서 보이지 않을까 (`function-definitions`) | 12장 | `const f = function g() { return typeof g; }`에서 `f()`는 `'function'`, 밖의 `typeof g`는 `'undefined'`. 함수 안의 `g = 1`은 sloppy에서 무시, strict에서 TypeError. `(function foo() {})` 뒤의 `typeof foo`는 `'undefined'`(괄호 안은 표현식). Function 생성자로 만든 함수는 둘러싼 함수의 변수가 아니라 전역을 본다(`local` 1 대 2) | ecmascript | 95 (`property-keys` 90과 `function-calls` 100 사이, 계획 때 105에서 변경) | 표 + 퀴즈 | 완료 |
 | 2 | 함수의 name: o.p = () => {}의 name은 왜 빈 문자열일까 (`function-name`) | 18장 + 26장 | `let x; x = () => {}`는 `'x'`인데 `o.p = () => {}`는 `''`. 메서드 `'m'`, getter `'get x'`, 심벌 키 `'[k]'`, `bind`는 `'bound h'`이고 `length`가 인수만큼 줄어 2. `const g = f`로 옮겨도 `g.name`은 `'f'`, `f.name = 'z'`는 무시(쓰기 불가) | ecmascript | 257 (`default-parameters` 255 뒤, `array-index-length` 260 앞) | 표 + 퀴즈 | 완료 |
 | 3 | 객체를 원시 값으로: [] + {}는 왜 '[object Object]'일까 (`to-primitive`) | 9장 보충 (프로토타입·Symbol·Date 뒤) | `[] + {}`는 `'[object Object]'`, `[] + []`는 `''`, `{ valueOf() { return 1; } } + 1`은 `2`, `new Date(0) + 1`은 문자열, `[1] == 1`은 `true` | ecmascript | 305 (`symbol` 300 뒤, `iterable-for-of` 310 앞) | 단계 시뮬레이터 또는 표 (계획 때 결정) | 완료 |
-| 4 | 배열 고차 함수: forEach 안에서 push한 요소는 왜 방문하지 않을까 | 27장 | `[1, 2]`를 `forEach`로 돌며 `push`해도 방문은 `1, 2`. 순회 중 `pop`하면 마지막 요소를 방문하지 않음(`[1, 2]`). `map` 콜백이 뒤 요소에 대입하면 그 값을 읽음(`[1, 0, 0]`) | ecmascript | 272 (`array-method-pitfalls` 270과 `number-pitfalls` 275 사이) | 표 + 퀴즈 (시뮬레이터는 계획 때 결정) | 대기 |
-| 5 | 태그드 템플릿: 같은 템플릿을 두 번 평가하면 왜 같은 배열을 받을까 | 32장 근처 | 반복문에서 같은 위치의 `` t`x` ``는 매번 같은 strings 배열(`true`)이고 동결되어 있으며(`true`), 다른 위치의 `` t`x` ``와는 다른 배열(`false`) | ecmascript | 292 (`string-utf16` 290과 `string-replace-split` 295 사이) | 표 + 퀴즈 | 대기 |
+| 4 | 배열 고차 함수: forEach 안에서 push한 요소는 왜 방문하지 않을까 | 27장 | `[1, 2]`를 `forEach`로 돌며 `push`해도 방문은 `1, 2`. 순회 중 `pop`하면 마지막 요소를 방문하지 않음(`[1, 2]`). `map` 콜백이 뒤 요소에 대입하면 그 값을 읽음(`[1, 0, 0]`) | ecmascript | 272 (`array-method-pitfalls` 270과 `number-pitfalls` 275 사이) | 표 + 퀴즈 (시뮬레이터는 계획 때 결정) | 완료 |
+| 5 | 태그드 템플릿: 같은 템플릿을 두 번 평가하면 왜 같은 배열을 받을까 | 32장 근처 | 반복문에서 같은 위치의 `` t`x` ``는 매번 같은 strings 배열(`true`)이고 동결되어 있으며(`true`), 다른 위치의 `` t`x` ``와는 다른 배열(`false`) | ecmascript | 292 (`string-utf16` 290과 `string-replace-split` 295 사이) | 표 + 퀴즈 | 완료 |
 
 - 순서는 기초부터 놓았다. 1번은 사용자가 예로 든 "함수 선언"이고, 2번은 같은 함수 객체 주제다. 3번은 기존 페이지가 가장 많이 미룬 주제다.
 - order는 모두 중간 삽입이다. 삽입할 때마다 순서 테스트(총수, `navigation.spec.ts`의 순위·이웃 pager·"객체" 검색 순위 배열)를 고친다. 1번(105)은 학습 순서 14번째라 뒤 순위가 많이 밀린다.
@@ -71,3 +71,5 @@
 - 2026-11-19: 1번 `function-definitions` 완료(예제 6개·퀴즈 6개·비교표 4행, 기존 5개 페이지 문구, reviewedAt 2026-11-19). 범위는 iife와 겹치지 않는 기초 페이지로 좁혔고 iife 문단은 새 페이지를 가리키게 줄였다. 다음은 2번 함수의 name(사용자 확인 후 계획).
 - 2026-11-20: 2번 `function-name` 완료(order 257, 예제 5개·퀴즈 5개·비교표 10행, function-definitions name 문장 2곳을 조건을 넣어 고침, reviewedAt 2026-11-20). bind는 this-binding과 겹치지 않는 "bind하는 순간의 name"만 다뤘다. 다음은 3번 객체를 원시 값으로(사용자 확인 후 계획).
 - 2026-11-20: 3번 `to-primitive` 완료(order 305, 예제 6개·시뮬레이터 3시나리오·비교표 9행·퀴즈 6개, 기존 5개 페이지 10곳 연결, reviewedAt 2026-11-20). 다음은 4번 배열 고차 함수(사용자 확인 후 계획).
+- 2026-11-23: 4번 `array-higher-order-functions` 완료(`9f08931`, order 272, 예제 7개·시뮬레이터·퀴즈 7개, reviewedAt 2026-11-23). 진행 기록과 표 상태는 5번 마무리 때 함께 고쳤다.
+- 2026-11-23: 5번 `tagged-templates` 완료(order 292, 학습 순서 46/75, 예제 6개·분해 표 5행·퀴즈 6개, 시뮬레이터 없음, data-types simplifications 연결, reviewedAt 2026-11-23). 로드맵 3의 5개를 모두 마쳤다. 다음 범위는 사용자와 정한다(보류·제외 절의 후보 참고).

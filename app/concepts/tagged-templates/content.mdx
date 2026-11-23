@@ -1,0 +1,294 @@
+태그 함수를 가리키는 식 뒤에 템플릿 리터럴이 오는 식은 함수 호출입니다(둘 사이에 공백이나 줄바꿈이 있어도 됩니다). 태그 함수는 첫 인수로 템플릿의 글자 조각을 담은 배열(명세의 용어로는 템플릿 객체(template object))을, 나머지 인수로 끼운 식의 값을 문자열로 바꾸지 않은 채 받습니다.
+
+같은 템플릿을 두 번 평가하면 태그 함수는 같은 배열을 받을까요, 다른 배열을 받을까요? 명세의 GetTemplateObject는 현재 realm의 `[[TemplateMap]]`에서 `[[Site]]`가 그 템플릿 리터럴과 같은 Parse Node인 항목을 찾습니다. 그래서 `` tag`…` ``가 반복문 안에 있든, 같은 코드에서 만든 여러 함수 안에 있든 소스 코드에서 그 템플릿 리터럴이 쓰인 자리(Parse Node, 이 페이지에서는 위치라고 부릅니다)가 같으면 매번 같은 배열을 받습니다. 글자가 같아도 다른 위치의 템플릿은 다른 배열을 받고, 그 배열은 동결되어 있습니다. 이 페이지는 예제 여섯 개로 이를 확인하고, 이스케이프를 해석한 값과 해석하지 않은 값(cooked와 raw), `String.raw`, 잘못된 이스케이프도 다룹니다.
+
+## 동작 원리
+
+### 태그드 템플릿은 함수 호출이다
+
+`MemberExpression`이나 `CallExpression` 뒤에 템플릿 리터럴(TemplateLiteral)이 오면, 명세는 앞의 식의 값을 함수로 호출합니다. 그 함수가 태그 함수이고, 인수 목록은 명세의 ArgumentListEvaluation이 만듭니다. 첫 인수는 GetTemplateObject가 돌려준 템플릿 객체이고, 이어서 `${}` 안의 식을 왼쪽부터 평가한 값이 차례로 옵니다. 평가 순서는 태그 식, `${}` 식들, 호출입니다. 이 값들에는 GetValue만 적용되고 ToString은 적용되지 않으므로, 태그 함수는 객체를 객체로, 숫자를 숫자로 받습니다.
+
+예제 1의 `inspect`는 `...values`로 나머지 인수를 받습니다([rest 파라미터](/concepts/arrow-functions)). 7번 줄의 `${item}`과 `${item.id + 1}`은 각각 객체 `item`과 숫자 `8`로 전달되어, 3번 줄이 `object number`를 출력합니다. 태그 함수가 돌려준 값이 태그드 템플릿 식의 값이라서 문자열일 필요가 없습니다. 8번 줄이 출력하듯 `result`는 숫자 `2`입니다. 태그가 없는 템플릿 리터럴(9번 줄)은 다릅니다. 이 경우의 Evaluation은 각 값에 ToString을 적용해 이어 붙이므로 객체 `item`이 `[object Object]`가 됩니다. 객체를 문자열로 바꾸는 규칙은 [암묵적 타입 변환](/concepts/type-coercion)과, 뒤에 나오는 [객체를 원시 값으로](/concepts/to-primitive)에서 다룹니다.
+
+13번 줄에서 `` kind`id` ``는 태그드 템플릿이라 `kind`가 글자 조각 배열을 받아 `object`를 돌려주고, ``kind(`id`)``는 괄호 안의 템플릿 리터럴을 먼저 문자열로 평가한 보통 호출이라 `string`입니다. 태그 앞의 식이 프로퍼티 참조이면(`` obj.tag`x` ``) 메서드 호출처럼 `this`가 `obj`입니다([this 바인딩](/concepts/this-binding)).
+
+태그드 템플릿의 문법에는 줄바꿈을 막는 제약이 없어서 태그와 템플릿 리터럴 사이에 공백이나 줄바꿈이 있어도 태그드 템플릿입니다. 그래서 세미콜론 없이 끝난 줄의 다음 줄이 백틱으로 시작하면 세미콜론이 자동으로 삽입되지 않고, 앞 줄 끝의 식이 태그가 됩니다. 태그가 되는 것은 앞 줄 전체가 아니라 끝에 있는 `MemberExpression`·`CallExpression`이라서, `var a = 1 + keep` 다음 줄의 `` `x` ``는 `` 1 + keep`x` ``로 묶이고, 태그 값이 함수가 아니면 TypeError입니다. `return` 바로 뒤처럼 명세가 줄바꿈을 허용하지 않는 자리에서는 세미콜론이 삽입되므로 이 일이 생기지 않습니다(다음 줄이 `(`로 시작할 때와 같은 함정은 [즉시 실행 함수와 모듈 패턴](/concepts/iife-module-pattern)에서 보았습니다).
+
+### 조각은 값보다 하나 많다
+
+명세의 TemplateStrings는 템플릿의 처음 조각(head), 가운데 조각들, 마지막 조각(tail)을 차례로 모은 목록(List)을 만들고, GetTemplateObject가 이 목록으로 배열을 만듭니다. 그러므로 조각 수는 `${}` 식의 수보다 언제나 하나 많습니다. `${}`가 없으면 조각은 하나입니다. 템플릿이 `${}`로 시작하거나 끝나는 자리, 그리고 `${}`가 서로 붙어 있는 자리의 조각은 빈 문자열이고, 이 조각도 배열에서 빠지지 않습니다.
+
+예제 2는 `JSON.stringify`로 조각 배열을 보입니다. 4번 줄의 `` count`plain` ``은 조각 하나에 값 0개이고, 5번 줄의 `` count`${1}` ``은 `${}`의 앞과 뒤로 빈 조각 두 개에 값 1개입니다. 6번 줄의 `${1}${2}`는 시작, 가운데, 끝의 빈 조각 세 개에 값 2개이고, 7번 줄의 `a${1}b`는 조각 `a`와 `b` 두 개에 값 1개입니다.
+
+### 같은 위치면 같은 배열
+
+GetTemplateObject는 현재 realm이 가진 `[[TemplateMap]]`(Record 목록)에서 `[[Site]]`가 그 TemplateLiteral과 같은 Parse Node인 항목을 찾아, 있으면 그 `[[Array]]`를 돌려줍니다. 없으면 템플릿 객체를 만들어 목록에 더합니다. 여기서 위치는 소스 코드에서 그 템플릿 리터럴이 쓰인 자리(Parse Node)를 풀어 쓴 말입니다. GetTemplateObject의 Note 2는 템플릿 객체가 동결되어 있고, 특정 태그드 템플릿을 평가할 때마다 같은 템플릿 객체가 쓰인다고 적습니다. 같은 Note는 템플릿 객체를 그 템플릿 리터럴이 처음 평가될 때 만드는지, 그 전에 미리 만드는지는 구현이 정할 일이고 ECMAScript 코드로는 관찰할 수 없다고 적습니다. 그래서 이 페이지는 만드는 시점을 주장하지 않습니다.
+
+예제 3의 6번 줄 `` keep`x${i}` ``는 반복문에서 세 번 평가되지만 같은 위치라 `seen`의 세 배열이 모두 같습니다(9번 줄 `true true`). 8번 줄의 `` keep`x${i}` ``는 글자가 6번 줄과 똑같지만 다른 위치라 다른 배열입니다(10번 줄 `false`). 11~15번 줄의 `makeTagger`는 호출될 때마다 안쪽 함수 식을 새로 평가하므로([클로저](/concepts/closure)에서 본 것처럼) `f1`과 `f2`는 서로 다른 함수입니다(`f1 === f2`는 `false`). 그래도 두 함수 안의 `` keep`y` ``는 같은 코드, 곧 같은 위치입니다. 그래서 `f1()`과 `f2()`는 같은 배열을 돌려줍니다(18번 줄 `false true`). 위치마다 하나이고, 함수 객체나 글자가 아니라 위치가 기준입니다.
+
+판에 따라 이 기준은 달랐습니다. ES2017판까지의 GetTemplateObject는 `[[TemplateMap]]` 항목의 `[[Strings]]`(ES2015판 표기는 `[[strings]]`)가 그 템플릿의 raw 문자열 목록과 같은 값을 같은 순서로 담고 있으면 그 배열을 돌려주었고, ES2018판부터는 `[[Site]]`가 같은 Parse Node인지 봅니다. 그러므로 "글자(raw 문자열)가 같으면 같은 배열"은 지금의 명세로는 틀린 설명이지만, ES2015~ES2017판 명세 본문의 규칙이었습니다. 이것은 명세의 규칙이고, 당시 엔진이 실제로 어떻게 동작했는지는 이 페이지에서 다루지 않습니다.
+
+### 템플릿 객체는 동결되어 있다
+
+GetTemplateObject는 템플릿 객체의 인덱스 프로퍼티를 `writable: false`, `enumerable: true`, `configurable: false`로 정의합니다. raw 문자열을 담은 배열(`raw`)과 템플릿 객체 자신에 SetIntegrityLevel frozen을 적용하고, `raw` 프로퍼티는 `writable: false`, `enumerable: false`, `configurable: false`입니다. GetTemplateObject의 Note 3은 명세의 앞으로 나올 판이 템플릿 객체에 열거되지 않는 프로퍼티를 더 정의할 수 있다고 적습니다.
+
+예제 4의 6번 줄은 `Object.isFrozen`으로 템플릿 객체와 `raw` 배열이 동결되어 있고 배열임을 보입니다. 쓰기가 막힌 프로퍼티에 대입하면 sloppy mode에서는 조용히 무시되고 strict mode에서는 TypeError입니다([프로퍼티 어트리뷰트와 접근자](/concepts/property-attributes), [strict mode](/concepts/strict-mode)). 이 예제는 첫 줄이 `'use strict';`라서 8번 줄의 `s[0] = 'z';`가 TypeError가 되고, 12번 줄에서 `s[0]`은 그대로 `a`입니다. `raw`는 열거되지 않는 프로퍼티라 `Object.keys`에 나오지 않고 인덱스 `0,1`만 나옵니다.
+
+이 배열은 같은 위치의 모든 평가가 함께 쓰지만 동결되어 있어서, 태그 함수가 조각을 바꾸거나 프로퍼티를 더해 다음 평가가 받는 내용을 달라지게 할 수는 없습니다. 반면 배열이 같다는 것 자체는 관찰할 수 있으므로(예제 3의 `===`), 이 배열을 `WeakMap`의 키로 삼아 위치마다 값을 기억해 두는 것은 막히지 않습니다. `WeakMap`은 [Set과 Map](/concepts/set-map)에서 다룹니다.
+
+### cooked와 raw, String.raw
+
+명세는 템플릿의 조각마다 두 가지 값을 정의합니다. 템플릿 객체의 인덱스 값은 이스케이프를 해석한 값(cooked 문자열, 명세의 TV)이고, `raw` 배열의 값은 이스케이프를 해석하지 않은 값(raw 문자열, 명세의 TRV)입니다. 예제 5의 5번 줄 `` both`a\tb` ``에서 cooked는 탭 문자를 포함한 세 글자(`"a\tb" 3`)이고, raw는 백슬래시와 `t`를 그대로 담은 네 글자(`"a\\tb" 4`)입니다. `JSON.stringify`는 탭 문자를 `\t`로, 백슬래시를 `\\`로 보이므로 출력의 `\t`와 `\\`는 각각 글자 하나입니다.
+
+`String.raw`는 첫 인수의 `raw`를 읽고, 그 raw 문자열 사이에 나머지 인수를 ToString한 값을 끼워 이어 붙이는 함수입니다. 6번 줄의 `` String.raw`a\tb${1 + 1}c` ``는 `a\tb2c`이고, 7번 줄은 raw 문자열이 `'a\\tb'`와 같음을 보입니다. 첫 인수가 템플릿 객체인지는 검사하지 않습니다. 첫 인수에서는 `raw` 프로퍼티만 읽고(인덱스의 cooked 값은 읽지 않습니다), `raw`에서는 `length`로 조각 수를 정하고(LengthOfArrayLike) 각 인덱스의 값을 읽어 ToString합니다. 그래서 8번 줄처럼 `{ raw: [...] }`를 직접 넘길 수도 있는데, 조각이 둘이면 끼우는 자리는 하나라 첫 값 `1`만 쓰이고 둘째 값 `2`는 쓰이지 않아 `x1y`입니다. 반대로 값이 모자라면 남은 자리에는 아무것도 끼우지 않습니다(`String.raw({ raw: ['x', 'y', 'z'] }, 1)`은 `x1yz`). raw 문자열도 줄바꿈 CR·CRLF는 LF로 바뀌므로, 소스에 쓴 글자 그대로라고 할 수는 없습니다.
+
+### 잘못된 이스케이프
+
+`\u` 뒤에 16진수도 `{`도 오지 않거나 `\x` 뒤에 16진수 두 자리가 오지 않는 것처럼 명세의 NotEscapeSequence에 해당하면, 그 조각의 TV는 undefined입니다. 같은 템플릿의 다른 조각은 영향을 받지 않습니다. 태그드 템플릿에서는 이 조각의 cooked 값이 `undefined`이고 raw는 이스케이프를 해석하지 않은 값입니다. 예제 6에서 `` both`\unicode` ``(`\u` 뒤가 `n`)와 `` both`C:\xyz` ``(`\x` 뒤가 `y`)의 `strings[0]`이 모두 `undefined`이고 raw는 각각 `\unicode`와 `C:\xyz`입니다. `String.raw`는 raw만 읽으므로 6번 줄이 `\unicode`를 돌려줍니다.
+
+숫자 이스케이프도 따져 봐야 합니다. `\1`, `\8`, `\01`처럼 `\` 뒤에 숫자가 오면 NotEscapeSequence라서 `` both`C:\123` ``의 cooked 값도 `undefined`입니다. 다만 뒤에 숫자가 오지 않는 `\0`은 유효한 이스케이프입니다. `\q`처럼 특별한 뜻이 없는 글자 앞의 `\`도 잘못된 이스케이프가 아니라, cooked 값이 그 글자(`q`)가 됩니다. 모르는 이스케이프가 모두 `undefined`가 되는 것은 아닙니다.
+
+태그가 없는 템플릿 리터럴에서는 다릅니다. cooked 값에 `undefined`가 있는 템플릿은 조기 오류(SyntaxError)이며, 스크립트가 실행되기 전에 거부됩니다. 같은 스크립트의 앞쪽 줄 출력도 나오지 않습니다. 파일 전체가 실패하므로 이 경우는 예제로 두지 않았습니다.
+
+## 예제
+
+예제의 출력은 Node의 `vm` 모듈에서 스크립트로 실행한 결과입니다. 예제 4는 첫 줄이 `'use strict';`이고 나머지는 지시어가 없는 sloppy mode입니다. 나머지 예제는 첫 줄에 `'use strict';`를 붙여도 출력이 같습니다. `console.log`는 값을 출력하는 호스트 API이며 ECMAScript 언어의 일부가 아닙니다. 여러 줄 출력은 퀴즈에서 ' / '로 이어 적었습니다.
+
+### 예제 1: 태그 함수가 받는 인수
+
+```js file=./examples/tag-arguments.js
+
+```
+
+<PredictQuiz
+  question="예제 1의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '["id:",", next:"] 2 2 / object number / 2 number / id:[object Object], next:8 / object string',
+    '["id:",", next:",""] 3 2 / object number / 2 number / id:[object Object], next:8 / object string',
+    '["id:",", next:",""] 3 2 / string string / 2 number / id:[object Object], next:8 / object string',
+    '["id:",", next:",""] 3 2 / object number / 2 number / id:[object Object], next:8 / object object',
+  ]}
+  answer={1}
+  explanation="조각 수는 끼운 식의 수보다 하나 많아 끝의 빈 문자열까지 세 조각입니다. 태그 함수는 끼운 값을 문자열로 바꾸지 않은 채 받아서 객체와 숫자 그대로이고, 태그 함수의 반환값 2가 식의 값입니다. 태그 없는 템플릿 리터럴은 값을 문자열로 바꾸어 이어 붙입니다. 마지막 줄에서 태그드 템플릿은 배열을 받아 object이고 괄호 안의 템플릿 리터럴은 문자열로 평가되어 string입니다."
+/>
+
+### 예제 2: 조각의 수
+
+```js file=./examples/strings-count.js
+
+```
+
+<PredictQuiz
+  question="예제 2의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '["plain"] 0 / ["",""] 1 / ["","",""] 2 / ["a","b"] 1',
+    '["plain"] 0 / [] 1 / [] 2 / ["a","b"] 1',
+    '[] 0 / [""] 1 / ["",""] 2 / ["a"] 1',
+  ]}
+  answer={0}
+  explanation="조각 수는 끼운 식의 수보다 항상 하나 많고, 빈 문자열인 조각도 배열에서 빠지지 않습니다. 식이 없으면 조각 하나, 식 하나만 있으면 앞과 뒤의 빈 조각 둘, 앞뒤 글자 없이 식 둘만 붙어 있으면 빈 조각 셋입니다."
+/>
+
+### 예제 3: 같은 위치와 다른 위치
+
+```js file=./examples/same-site.js
+
+```
+
+<PredictQuiz
+  question="예제 3의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'false false / false / false false',
+    'true true / true / false true',
+    'true true / false / false false',
+    'true true / false / false true',
+  ]}
+  answer={3}
+  explanation="반복문 안의 같은 위치는 몇 번 평가해도 같은 배열입니다. 8번 줄은 글자가 같아도 다른 위치라 다른 배열입니다. makeTagger를 두 번 불러 만든 두 함수는 서로 다르지만 그 안의 템플릿 리터럴은 같은 코드, 곧 같은 위치라서 같은 배열을 돌려줍니다."
+/>
+
+### 예제 4: 동결된 템플릿 객체
+
+```js file=./examples/frozen-template.js
+
+```
+
+<PredictQuiz
+  question="예제 4의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    'false false true / z 0,1',
+    'true true true / TypeError / a 0,1,raw',
+    'true true true / TypeError / a 0,1',
+    'true true true / a 0,1',
+  ]}
+  answer={2}
+  explanation="템플릿 객체와 raw 배열은 동결되어 있어 strict mode의 대입은 TypeError이고 값은 그대로 a입니다. raw는 열거되지 않는 프로퍼티라 Object.keys에는 인덱스 0과 1만 나옵니다. 대입이 조용히 무시되는 것은 sloppy mode입니다. 이 예제는 첫 줄이 use strict 지시어입니다."
+/>
+
+### 예제 5: cooked, raw, String.raw
+
+```js file=./examples/cooked-raw.js
+
+```
+
+<PredictQuiz
+  question="예제 5의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '"a\\tb" 3 / "a\\tb" 3 / "a\\tb2c" / false / x1y',
+    '"a\\tb" 3 / "a\\\\tb" 4 / "a\\\\tb2c" / true / x1y',
+    '"a\\tb" 3 / "a\\\\tb" 4 / "a\\\\tb2c" / true / x1y2',
+  ]}
+  answer={1}
+  explanation="인덱스 값은 이스케이프를 해석한 값이라 탭 문자를 포함한 세 글자이고, raw는 해석하지 않은 값이라 백슬래시와 t를 담은 네 글자입니다. String.raw는 raw 문자열을 쓰고, 조각 사이의 빈자리 수만큼만 값을 끼우므로 둘째 값 2는 쓰이지 않습니다."
+/>
+
+### 예제 6: 잘못된 이스케이프
+
+```js file=./examples/invalid-escape.js
+
+```
+
+<PredictQuiz
+  question="예제 6의 출력은 무엇일까요? (여러 줄은 ' / '로 이어 적었습니다.)"
+  choices={[
+    '아무것도 출력되지 않고 SyntaxError로 실행이 멈춥니다',
+    '\\unicode "\\\\unicode" / C:\\xyz "C:\\\\xyz" / \\unicode',
+    'undefined "\\\\unicode" / undefined "C:\\\\xyz" / \\unicode',
+  ]}
+  answer={2}
+  explanation="태그가 있으면 잘못된 이스케이프가 든 조각의 cooked 값만 undefined가 되고 raw는 이스케이프를 해석하지 않은 값입니다. 조기 오류로 SyntaxError가 되는 것은 태그가 없는 템플릿 리터럴입니다. String.raw는 raw만 읽으므로 마지막 줄은 해석하지 않은 문자열을 그대로 돌려줍니다."
+/>
+
+## 결과와 이유
+
+### 예제 1
+
+첫 줄 `["id:",", next:",""] 3 2`는 조각 세 개와 값 두 개입니다. 둘째 줄 `object number`는 `values[0]`이 객체이고 `values[1]`이 숫자라는 뜻이며 문자열로 바뀌지 않았습니다. `values[0]`이 `item` 그 자체라는 것은 아래 분해 표에서 확인합니다. 셋째 줄 `2 number`는 태그 함수의 반환값이 식의 값이 된 결과입니다. 넷째 줄 `id:[object Object], next:8`은 태그가 없는 템플릿 리터럴이 각 값을 ToString한 결과이고, 다섯째 줄 `object string`은 `` kind`id` ``가 배열을, ``kind(`id`)``가 문자열을 받았다는 뜻입니다.
+
+### 예제 2
+
+`["plain"] 0`은 `${}`가 없으면 조각 하나에 값 0개라는 것을, `["",""] 1`과 `["","",""] 2`는 맨 앞·맨 뒤·붙어 있는 자리의 빈 문자열 조각이 배열에 남는다는 것을 보입니다. `["a","b"] 1`은 조각이 값보다 하나 많은 가장 흔한 꼴입니다.
+
+### 예제 3
+
+첫 줄 `true true`는 반복문 안의 같은 위치가 세 번 평가되어도 같은 배열을 받았다는 뜻입니다. 둘째 줄 `false`는 글자가 똑같은 `` keep`x${i}` ``여도 8번 줄은 다른 위치라 다른 배열을 받았다는 뜻입니다. 셋째 줄 `false true`는 두 함수 `f1`과 `f2`는 서로 다른 함수 객체이지만 같은 코드 안의 같은 위치 `` keep`y` ``가 같은 배열을 돌려주었다는 뜻입니다.
+
+### 예제 4
+
+`true true true`는 템플릿 객체와 `raw` 배열이 동결되어 있고 템플릿 객체가 배열이라는 뜻입니다. `TypeError`는 strict mode에서 막힌 대입이 던진 오류이고, `a 0,1`은 값이 바뀌지 않았고 열거되는 키가 인덱스뿐이라는 뜻입니다.
+
+### 예제 5
+
+첫 줄 `"a\tb" 3`은 cooked 문자열이 탭 문자를 포함한 세 글자라는 뜻입니다(`\t`는 `JSON.stringify`의 표기). 둘째 줄 `"a\\tb" 4`는 raw 문자열이 백슬래시와 `t`를 포함한 네 글자라는 뜻입니다. 셋째 줄은 `String.raw`가 `a\tb`와 `2`, `c`를 이어 붙인 결과를 `JSON.stringify`로 보인 것이고, 넷째 줄 `true`는 `` String.raw`a\tb` ``와 `'a\\tb'`가 같다는 뜻입니다. 다섯째 줄 `x1y`는 끼우는 자리가 하나라서 `2`가 쓰이지 않은 결과입니다.
+
+### 예제 6
+
+`undefined "\\unicode"`와 `undefined "C:\\xyz"`는 cooked 값이 `undefined`이고 raw가 해석하지 않은 값이라는 뜻입니다. 마지막 줄 `\unicode`는 `String.raw`가 raw만 읽은 결과입니다.
+
+### 분해 표
+
+표의 `strings`와 `strings.raw` 칸은 `JSON.stringify` 표기이고, `undefined`만 `[undefined]`로 썼습니다. `t`는 받은 인수를 그대로 기록하는 태그 함수이고, 칸은 각 행의 템플릿을 실제로 평가한 결과와 대조합니다. 마지막 칸은 근거가 되는 예제 번호입니다.
+
+<div
+  className="my-6 overflow-x-auto"
+  tabIndex={0}
+  role="region"
+  aria-label="태그드 템플릿 분해 표(좁은 화면에서는 가로로 스크롤할 수 있습니다)"
+>
+  <table className="w-full border-collapse text-left">
+    <thead>
+      <tr>
+        <th className="border-border border px-3 py-2">템플릿</th>
+        <th className="border-border border px-3 py-2">strings</th>
+        <th className="border-border border px-3 py-2">strings.raw</th>
+        <th className="border-border border px-3 py-2">나머지 인수</th>
+        <th className="border-border border px-3 py-2">예제</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'t`plain`'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'["plain"]'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'["plain"]'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">없음</td>
+        <td className="border-border border px-3 py-2">2</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'t`${1}${2}`'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'["","",""]'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'["","",""]'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>1</code>, <code>2</code>
+        </td>
+        <td className="border-border border px-3 py-2">2</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'t`id:${item}, next:${item.id + 1}`'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'["id:",", next:",""]'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'["id:",", next:",""]'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>item</code> 그 자체(<code>===</code>), <code>8</code>
+        </td>
+        <td className="border-border border px-3 py-2">1</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'t`a\\tb`'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'["a\\tb"]'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'["a\\\\tb"]'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">없음</td>
+        <td className="border-border border px-3 py-2">5</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'t`\\unicode`'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'[undefined]'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'["\\\\unicode"]'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">없음</td>
+        <td className="border-border border px-3 py-2">6</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+### 흔한 오해
+
+<Callout type="misconception" title="태그 함수는 완성된 문자열을 받는다">
+
+태그 함수가 받는 것은 이어 붙인 문자열이 아니라 글자 조각 배열과, 문자열로 바꾸지 않은 끼운 값입니다. 예제 1에서 `${item}`은 객체 그대로 전달되었고(`object number`), 이어 붙인 문자열은 태그가 없는 템플릿 리터럴(`id:[object Object], next:8`)에서만 만들어집니다.
+
+</Callout>
+
+<Callout type="misconception" title="글자가 같은 템플릿은 같은 배열을 받는다 / 함수를 새로 만들면 새 배열을 받는다">
+
+기준은 글자도 함수 객체도 아니고 소스 코드의 위치입니다. 예제 3에서 글자가 같아도 다른 위치이면 다른 배열이고(`false`), 같은 위치이면 서로 다른 함수가 평가해도 같은 배열입니다(`false true`의 뒤쪽). "글자(raw 문자열)가 같으면 같은 배열"은 ES2015~ES2017판 명세의 규칙이었고(당시 엔진의 실제 동작은 다루지 않습니다), ES2018판부터는 위치를 기준으로 합니다.
+
+</Callout>
