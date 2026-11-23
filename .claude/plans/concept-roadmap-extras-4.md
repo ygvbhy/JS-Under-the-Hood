@@ -35,7 +35,7 @@
 | # | 개념 (가제) | 책 범위 | 핵심 오해 포인트 (실행으로 확인한 결과) | 런타임 | order (안) | 시각화 (안) | 상태 |
 | - | - | - | - | - | - | - | - |
 | 1 | 세미콜론 자동 삽입: return 다음 줄의 객체는 왜 반환되지 않을까 | 5장 | `return` 다음 줄에 `{ a: 1 };`를 쓴 함수는 `undefined`. `var a = b` 다음 줄 `++c`는 `++`가 다음 줄에 붙어 `a, b, c`가 `1 1 3`. `var s = [1, 2]` 다음 줄 `[0, 1].forEach(...)`는 앞 줄에 이어져 TypeError (Node) | ecmascript | 105 (`function-calls` 100과 `hoisting` 110 사이, 계획 때 6에서 변경) | 표 + 퀴즈 | 완료 |
-| 2 | 프로미스를 반환하는 then: 왜 다른 체인보다 두 번 늦을까 | 45장 | A 체인 첫 콜백이 `Promise.resolve()`를 반환하고 B 체인은 값만 반환하면 순서는 `A1 B1 B2 B3 A2 B4 B5` (Node) | ecmascript | 443 (`promise-static-methods` 442와 `fetch` 445 사이) | 단계 시뮬레이터 또는 표 (계획 때 결정) | 대기 |
+| 2 | 프로미스를 반환하는 then: 왜 다른 체인보다 두 번 늦을까 | 45장 | A 체인 첫 콜백이 `Promise.resolve()`를 반환하고 B 체인은 값만 반환하면 순서는 `A1 B1 B2 B3 A2 B4 B5` (Node) | ecmascript | 443 (`promise-static-methods` 442와 `fetch` 445 사이) | 단계 시뮬레이터 또는 표 (계획 때 결정) | 제외 |
 | 3 | 잡히지 않은 예외: 한 script에서 예외가 나도 다음 script는 왜 실행될까 | 47장 | 첫 script가 `null.x`에서 예외를 던지면 그 뒤 줄(`s1 end`)은 실행되지 않고 전역 `error` 이벤트가 먼저 오고, 다음 script는 실행된다(`s2 runs`). 거부를 처리하지 않은 프로미스는 그 script가 끝난 뒤에 `unhandledrejection` (Chromium) | browser | 472 (`error-handling` 470과 `async-generator` 475 사이) | 표 + 퀴즈 | 대기 |
 | 4 | MutationObserver: 세 번 바꿨는데 콜백은 왜 한 번만 불릴까 | 39장 근처 (책에 장 없음) | 관찰 중인 `ul`에 `li`를 세 번 붙이면 동기 코드가 끝난 뒤 콜백이 한 번 불리고 레코드는 3개(`mo 3 3`). 첫 번째와 두 번째 `appendChild` 사이에 등록한 `then`보다 콜백이 먼저, `setTimeout(fn, 0)`보다도 먼저 실행(`sync end 3`, `mo 3 3`, `then`, `timeout`). 속성을 두 번 바꾼 뒤 `takeRecords()`로 2개를 꺼내면 콜백에는 그 뒤의 변경 1개만 온다(`taken 2`, `cb 1`) (Chromium) | browser | 444 (`fetch` 445 앞, 2번이 443) | 표 + 퀴즈 (단계 시뮬레이터는 계획 때 결정) | 대기 |
 | 5 | Math: Math.max()는 왜 -Infinity일까 | 29장 | `Math.max()`는 `-Infinity`, `Math.min()`은 `Infinity`, `Math.max([2])`는 `2`인데 `Math.max([1, 2])`는 `NaN`, `Math.max(...[])`는 `-Infinity`, `Math.round(-0.4)`는 -0 (Node) | ecmascript | 278 (`date` 277과 `regexp-lastindex` 280 사이) | 표 + 퀴즈 | 대기 |
@@ -83,6 +83,8 @@
 
 ## 보류·제외
 
+- 2번 프로미스를 반환하는 then(2026-11-23 사용자 결정으로 제외): 계획 조사에서 `async-await`의 "이행된 프로미스를 return하면 늦어진다" 절·예제 5(tick 체인과 섞여 늦어지는 순서, `await p`는 Job이 끼지 않는 이유)와 `promise`의 thenable 절·예제 5·시뮬레이터 시나리오가 같은 절차를 이미 다룬다는 것을 확인했다. 추천 때는 grep으로 hit만 보고 절을 읽지 않아 놓쳤다. 새 페이지 대신 `microtask-queue`의 "그 경우의 순서는 다루지 않음" 문장(본문·simplifications)을 async/await로 연결했다(then 콜백 반환값과 async 함수의 return은 둘 다 promiseCapability.[[Resolve]]를 부르는 같은 resolve 절차).
+
 - 이벤트 핸들러 어트리뷰트의 스코프와 지연 컴파일: 원래 4번 후보였다. 어트리뷰트·프로퍼티 동일 핸들러와 `return false`는 `event-propagation-delegation`·`prevent-default-stop-propagation`이 이미 다뤄 남는 범위가 좁다. 사용자 결정으로 MutationObserver로 바꿨다(2026-11-23). 실행 확인: form 안 버튼의 `onclick="console.log(nick.value, typeof title)"`은 `kim string`, 문법 오류 `onclick`은 `click()`할 때 SyntaxError가 `error` 이벤트로 보고되고 그 뒤 프로퍼티는 `null` (Chromium).
 - 옵셔널 체이닝 나머지(`?.()`, `?.[]`, `(a?.b).c`, 대입 대상 금지): `short-circuit-evaluation`이 `?.` 체인 단축을 이미 다뤄 남는 범위가 좁다.
 - Proxy와 Reflect: 책에 장이 없다. 여러 페이지가 "다루지 않음"으로 언급한다. 다음 로드맵 후보다.
@@ -95,3 +97,4 @@
 - 2026-11-23: 사용자 결정으로 4번을 MutationObserver(order 444)로 바꿨다. 원래 4번은 보류·제외로 옮겼다. MutationObserver 결과는 Chromium으로 실행해 확인했다.
 - 2026-11-23: 사용자가 초안(Math order 278 포함)을 확정했다. 다음은 1번 세미콜론 자동 삽입(사용자 확인 후 계획).
 - 2026-11-23: 1번 `automatic-semicolon-insertion` 완료(제목은 "return 다음 줄의 값은 왜 반환되지 않을까"로 바꿈. `{ a: 1 }`은 세미콜론이 들어간 뒤 블록이라 "객체"가 틀린 표현. order 105·15번째/76, 예제 4개·규칙 표 8행·퀴즈 4개, expressions-statements·iife-module-pattern·tagged-templates 연결, strict-mode는 지시어 사례를 다루지 않아 연결 안 함, reviewedAt 2026-11-23). 다음은 2번 프로미스를 반환하는 then(사용자 확인 후 계획).
+- 2026-11-23: 2번 계획 조사에서 기존 페이지와의 중복을 발견해 사용자 결정으로 제외했다(보류·제외 절). 대신 microtask-queue 문장을 async/await로 연결했다. 로드맵 4는 4개로 진행하고, 다음은 3번 잡히지 않은 예외(사용자 확인 후 계획).

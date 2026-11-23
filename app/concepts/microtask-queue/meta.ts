@@ -30,7 +30,7 @@ export const concept = {
     { label: '이벤트 루프와 태스크 큐', slug: 'event-loop' },
     { label: '프로미스', slug: 'promise' },
   ],
-  related: ['event-loop', 'promise', 'timers', 'request-animation-frame'],
+  related: ['event-loop', 'promise', 'timers', 'request-animation-frame', 'async-await'],
   examples: [
     {
       id: 'basic',
@@ -112,7 +112,7 @@ export const concept = {
     '렌더링 갱신과 MutationObserver는 다루지 않습니다. requestAnimationFrame은 requestAnimationFrame 개념에서 다룹니다.',
     'try...catch와 전역 에러 이벤트는 try/catch/finally 개념에서 다루고, async/await는 async/await 개념에서 다룹니다.',
     '이 페이지의 테스트는 브라우저의 입력 경로를 거치는 사용자 입력(클릭 등)을 만들지 않습니다. 사용자 입력 이벤트에서 리스너마다 체크포인트가 일어난다는 것은 표준 서술을 근거로 설명하며, 이 페이지의 테스트로 확인하지 않았습니다.',
-    '예제 4의 설명(앞 콜백의 Job이 끝날 때 곧바로 다음 then의 Job이 들어감)은 콜백이 프로미스(thenable)가 아닌 값을 반환하는 경우입니다. 콜백이 프로미스를 반환하면 프로미스의 채택 절차 때문에 다음 Job이 들어가는 때가 달라지며, 이 페이지는 그 경우의 순서를 다루지 않습니다.',
+    '예제 4의 설명(앞 콜백의 Job이 끝날 때 곧바로 다음 then의 Job이 들어감)은 콜백이 프로미스(thenable)가 아닌 값을 반환하는 경우입니다. 콜백이 프로미스를 반환하면 프로미스의 채택 절차 때문에 다음 Job이 들어가는 때가 달라집니다. async 함수가 프로미스를 return할 때와 같은 절차이며, 그 순서는 async/await 개념에서 다룹니다.',
     '마이크로태스크 콜백이 끝나 스택이 빌 때도 정리 단계가 체크포인트를 부르지만, 이미 체크포인트를 하는 중이면 바로 돌아갑니다(재진입 방지). 그림은 이를 하나의 체크포인트로 그립니다.',
     '예제 3은 정확한 시간을 주장하지 않고 실행 순서만 확인합니다.',
     '예제 4(two-chains)를 뺀 예제의 실행 결과는 Chromium에서 실행한 값이며, 다른 브라우저는 이 페이지에서 확인하지 않았습니다. 예제 4는 타이머·DOM 같은 호스트의 스케줄링 API 없이(출력용 console.log만 사용) Node의 vm에서 ECMAScript 코드로 실행한 값이고, 그 순서는 ECMAScript가 정하는 부분입니다. 그 밖에 Node.js의 이벤트 루프와 큐는 다루지 않습니다. setTimeout, queueMicrotask, console, postMessage, DOM은 ECMAScript 언어가 아니라 호스트가 제공하는 API입니다.',
