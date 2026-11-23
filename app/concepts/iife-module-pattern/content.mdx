@@ -34,7 +34,7 @@ IIFE라고 해서 안에서 전역에 아무것도 만들 수 없는 것은 아�
 
 ### 앞 줄의 세미콜론
 
-자동 세미콜론 삽입(ASI, Automatic Semicolon Insertion) 때문에 생기는 함정도 있습니다. 명세는 식으로 끝나는 줄 다음 줄이 `(`로 시작하면 세미콜론을 직접 써야 하는 경우로 꼽습니다. 이때는 세미콜론이 자동으로 삽입되지 않아, 두 줄이 함께 하나의 호출식(CallExpression)으로 처리됩니다. 예제 6의 2번 줄 `var label = 'start'`에는 세미콜론이 없고 3번 줄이 `(`로 시작하므로, 두 줄은 `'start'(function () {…})()`처럼 이어집니다. 즉 `label`의 초기화식 전체가 하나의 호출식입니다. 문자열 `'start'`는 함수가 아니라서 이 호출식을 평가하는 도중 TypeError가 나고, catch가 `TypeError`를 출력합니다. 초기화식의 평가가 끝나지 않았으므로 `label`에 값을 대입하는 단계까지 가지 않습니다. `label`은 `var` 선언 처리 때 `undefined`로 만들어진 그대로여서 9번 줄의 `typeof label`은 `'undefined'`입니다. 11번 줄처럼 `(`로 시작하는 줄 맨 앞에 `;`를 두면 앞 줄이 확실히 끝나 IIFE가 정상으로 실행됩니다.
+자동 세미콜론 삽입(ASI, Automatic Semicolon Insertion) 때문에 생기는 함정도 있습니다. 명세는 식으로 끝나는 줄 다음 줄이 `(`로 시작하면 세미콜론을 직접 써야 하는 경우로 꼽습니다. 이때는 세미콜론이 자동으로 삽입되지 않아, 두 줄이 함께 하나의 호출식(CallExpression)으로 처리됩니다. 예제 6의 2번 줄 `var label = 'start'`에는 세미콜론이 없고 3번 줄이 `(`로 시작하므로, 두 줄은 `'start'(function () {…})()`처럼 이어집니다. 즉 `label`의 초기화식 전체가 하나의 호출식입니다. 문자열 `'start'`는 함수가 아니라서 이 호출식을 평가하는 도중 TypeError가 나고, catch가 `TypeError`를 출력합니다. 초기화식의 평가가 끝나지 않았으므로 `label`에 값을 대입하는 단계까지 가지 않습니다. `label`은 `var` 선언 처리 때 `undefined`로 만들어진 그대로여서 9번 줄의 `typeof label`은 `'undefined'`입니다. 11번 줄처럼 `(`로 시작하는 줄 맨 앞에 `;`를 두면 앞 줄이 확실히 끝나 IIFE가 정상으로 실행됩니다. 세미콜론이 들어가는 규칙은 [세미콜론 자동 삽입](/concepts/automatic-semicolon-insertion)에서 다룹니다.
 
 ### 모듈 패턴
 

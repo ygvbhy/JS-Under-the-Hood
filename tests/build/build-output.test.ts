@@ -1467,6 +1467,31 @@ describe('프리렌더 (tagged-templates)', () => {
   })
 })
 
+// automatic-semicolon-insertion: 규칙 표와 퀴즈가 프리렌더 HTML에 정적으로 있어야 한다.
+describe('프리렌더 (automatic-semicolon-insertion)', () => {
+  const html = read('concepts/automatic-semicolon-insertion/index.html')
+  const text = htmlToText(html)
+
+  it('규칙 표 region이 HTML에 있다', () => {
+    expect(html).toMatch(
+      /role="region"[^>]*aria-label="세미콜론 자동 삽입 규칙 표\(좁은 화면에서는 가로로 스크롤할 수 있습니다\)"/,
+    )
+  })
+
+  it('규칙 표 칸이 렌더된 표기로 보인다', () => {
+    expect(text).toContain("['size']")
+    expect(text).toContain("var copy = box['size'];")
+    expect(text).toContain('return; a + b;')
+  })
+
+  it('퀴즈 정답이 <details>로 4개 이상 프리렌더되고 각 정답이 있다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(4)
+    for (const answer of ['undefined 3', 'number 7', '1 1 2', '[00][10]']) {
+      expect(text).toContain(answer)
+    }
+  })
+})
+
 // 추가 게시글(request-animation-frame): 시뮬레이터의 첫 단계와 퀴즈가 프리렌더 HTML에 정적으로 있어야 한다.
 describe('프리렌더 (request-animation-frame)', () => {
   const html = read('concepts/request-animation-frame/index.html')

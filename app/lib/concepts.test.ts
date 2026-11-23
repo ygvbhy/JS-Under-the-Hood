@@ -101,22 +101,22 @@ describe('getAdjacentConcepts', () => {
     expect(adj.prev).toBeNull()
     expect(adj.next?.slug).toBe('expressions-statements')
     expect(adj.position).toBe(1)
-    expect(adj.total).toBe(75)
+    expect(adj.total).toBe(76)
   })
 
   it('마지막 개념은 다음이 없다', () => {
     const adj = getAdjacentConcepts('es-modules')
     expect(adj.prev?.slug).toBe('async-generator')
     expect(adj.next).toBeNull()
-    expect(adj.position).toBe(75)
-    expect(adj.total).toBe(75)
+    expect(adj.position).toBe(76)
+    expect(adj.total).toBe(76)
   })
 
   it('중간 개념은 앞뒤 개념을 돌려준다', () => {
     const adj = getAdjacentConcepts('hoisting')
-    expect(adj.prev?.slug).toBe('function-calls')
+    expect(adj.prev?.slug).toBe('automatic-semicolon-insertion')
     expect(adj.next?.slug).toBe('scope-chain')
-    expect(adj.position).toBe(15)
+    expect(adj.position).toBe(16)
   })
 
   it('없는 슬러그는 오류를 던진다', () => {

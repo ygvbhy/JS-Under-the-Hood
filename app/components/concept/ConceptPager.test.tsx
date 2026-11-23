@@ -15,7 +15,7 @@ function renderPager(slug: string) {
 describe('ConceptPager', () => {
   it('첫 개념은 이전 없이 다음 링크만 있다', () => {
     const nav = renderPager('variable-declaration')
-    expect(within(nav).getByText('학습 순서 1 / 75')).toBeInTheDocument()
+    expect(within(nav).getByText('학습 순서 1 / 76')).toBeInTheDocument()
     expect(within(nav).queryByText('이전 개념')).not.toBeInTheDocument()
     const links = within(nav).getAllByRole('link')
     expect(links).toHaveLength(1)
@@ -25,7 +25,7 @@ describe('ConceptPager', () => {
 
   it('마지막 개념은 다음 없이 이전 링크만 있다', () => {
     const nav = renderPager('es-modules')
-    expect(within(nav).getByText('학습 순서 75 / 75')).toBeInTheDocument()
+    expect(within(nav).getByText('학습 순서 76 / 76')).toBeInTheDocument()
     expect(within(nav).queryByText('다음 개념')).not.toBeInTheDocument()
     const links = within(nav).getAllByRole('link')
     expect(links).toHaveLength(1)
@@ -38,6 +38,6 @@ describe('ConceptPager', () => {
     const hrefs = within(nav)
       .getAllByRole('link')
       .map((a) => a.getAttribute('href'))
-    expect(hrefs).toEqual(['/concepts/function-calls', '/concepts/scope-chain'])
+    expect(hrefs).toEqual(['/concepts/automatic-semicolon-insertion', '/concepts/scope-chain'])
   })
 })

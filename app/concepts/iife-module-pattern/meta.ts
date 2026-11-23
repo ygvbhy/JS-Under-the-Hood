@@ -41,6 +41,7 @@ export const concept = {
     'error-handling',
     'es-modules',
     'function-definitions',
+    'automatic-semicolon-insertion',
   ],
   examples: [
     {

@@ -40,6 +40,7 @@ export const concept = {
     'closure',
     'string-utf16',
     'this-binding',
+    'automatic-semicolon-insertion',
   ],
   examples: [
     {
