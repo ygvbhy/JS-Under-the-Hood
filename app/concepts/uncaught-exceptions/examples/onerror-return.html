@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"></head>
+<body>
+<script>
+window.onerror = function (message, source, line, column, error) {
+  console.log('onerror ' + arguments.length + ' ' + error.name);
+  return true;
+};
+window.addEventListener('error', function (event) {
+  console.log('취소됨 ' + event.defaultPrevented);
+  event.preventDefault();
+});
+</script>
+<script>
+null.x;
+</script>
+<script>
+window.onerror = function () {
+  console.log('onerror false 반환');
+  return false;
+};
+</script>
+<script>
+null.y;
+</script>
+</body>
+</html>

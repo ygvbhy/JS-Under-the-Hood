@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"></head>
+<body>
+<script>
+window.addEventListener('error', function (event) { console.log('error 이벤트'); event.preventDefault(); });
+window.addEventListener('unhandledrejection', function (event) { console.log('unhandledrejection ' + event.reason.name); event.preventDefault(); });
+Promise.resolve().then(function () { console.log('then 1'); null.x; console.log('then 1 끝'); });
+Promise.resolve().then(function () { console.log('then 2'); });
+console.log('끝');
+</script>
+</body>
+</html>

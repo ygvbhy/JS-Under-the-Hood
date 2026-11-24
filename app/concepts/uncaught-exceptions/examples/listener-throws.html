@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"></head>
+<body>
+<button id="save">저장</button>
+<script>
+window.addEventListener('error', function (event) {
+  console.log('error 이벤트 ' + event.error.name);
+  event.preventDefault();
+});
+var button = document.getElementById('save');
+button.addEventListener('click', function () {
+  console.log('리스너 1');
+  null.x;
+  console.log('리스너 1 끝');
+});
+button.addEventListener('click', function () {
+  console.log('리스너 2');
+});
+button.click();
+console.log('click 뒤');
+</script>
+</body>
+</html>

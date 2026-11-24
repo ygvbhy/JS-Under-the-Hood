@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"></head>
+<body>
+<script>
+window.addEventListener('error', function (event) {
+  console.log('error 이벤트 ' + event.error.name);
+  event.preventDefault();
+});
+</script>
+<script>
+console.log('1 시작');
+function inBroken() {}
+var = ;
+</script>
+<script>
+console.log('2 실행', typeof inBroken);
+</script>
+</body>
+</html>

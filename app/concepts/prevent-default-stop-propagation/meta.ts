@@ -31,7 +31,7 @@ export const concept = {
     { label: '이벤트 전파와 위임', slug: 'event-propagation-delegation' },
     { label: 'HTML 어트리뷰트와 DOM 프로퍼티', slug: 'html-attribute-dom-property' },
   ],
-  related: ['event-propagation-delegation', 'html-attribute-dom-property'],
+  related: ['event-propagation-delegation', 'html-attribute-dom-property', 'uncaught-exceptions'],
   examples: [
     {
       id: 'checkbox-prevent',
@@ -140,7 +140,7 @@ export const concept = {
     '체크박스의 click 동작만 다루고 라디오 버튼의 legacy 동작은 다루지 않습니다.',
     'touchstart, touchmove, wheel 같은 이벤트를 window, document, html, body에 등록할 때 passive 기본값이 true가 되는 규칙은 한 줄만 언급하고 따로 확인하지 않았습니다.',
     'signal 옵션, handleEvent 메서드를 가진 객체 리스너, returnValue와 cancelBubble의 setter는 다루지 않습니다.',
-    'beforeunload와 error 이벤트 핸들러의 반환값 예외, 이벤트 핸들러 어트리뷰트의 스코프는 다루지 않습니다.',
+    '전역 error 이벤트 핸들러의 반환값 예외는 잡히지 않은 예외 개념에서 다룹니다. beforeunload의 반환값 예외와 이벤트 핸들러 어트리뷰트의 스코프는 다루지 않습니다.',
     'Shadow DOM과 composed는 다루지 않습니다.',
     'dispatchEvent의 반환값으로 흉내 낸 기본 동작(예: 메모 패널 닫기)은 브라우저의 기본 동작이 아니라 코드가 반환값을 보고 정한 동작입니다.',
     '예제의 console은 ECMAScript 언어가 아니라 호스트가 제공하는 API입니다.',

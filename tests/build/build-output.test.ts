@@ -1492,6 +1492,36 @@ describe('프리렌더 (automatic-semicolon-insertion)', () => {
   })
 })
 
+// uncaught-exceptions: 비교표와 퀴즈가 프리렌더 HTML에 정적으로 있어야 한다.
+describe('프리렌더 (uncaught-exceptions)', () => {
+  const html = read('concepts/uncaught-exceptions/index.html')
+  const text = htmlToText(html)
+
+  it('비교표 region이 HTML에 있다', () => {
+    expect(html).toMatch(
+      /role="region"[^>]*aria-label="잡히지 않은 예외 비교표\(좁은 화면에서는 가로로 스크롤할 수 있습니다\)"/,
+    )
+  })
+
+  it('비교표 칸의 핵심 문구가 렌더된다', () => {
+    expect(text).toContain('파서가 실행하는 스크립트')
+    expect(text).toContain('앞 스크립트가 선언한 let을 다시 선언')
+    expect(text).toContain('같은 체크포인트의 다음 마이크로태스크')
+  })
+
+  it('퀴즈 정답이 <details>로 6개 이상 프리렌더되고 각 정답이 있다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(6)
+    for (const answer of [
+      '1 시작 / error 이벤트 TypeError / then / 2 실행',
+      'error 이벤트 SyntaxError / 2 실행 undefined',
+      'onerror 5 TypeError / 취소됨 true / onerror false 반환 / 취소됨 false',
+      '끝 / then 1 / then 2 / unhandledrejection TypeError',
+    ]) {
+      expect(text).toContain(answer)
+    }
+  })
+})
+
 // 추가 게시글(request-animation-frame): 시뮬레이터의 첫 단계와 퀴즈가 프리렌더 HTML에 정적으로 있어야 한다.
 describe('프리렌더 (request-animation-frame)', () => {
   const html = read('concepts/request-animation-frame/index.html')

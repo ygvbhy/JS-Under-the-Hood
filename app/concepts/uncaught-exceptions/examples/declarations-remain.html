@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"></head>
+<body>
+<script>
+window.addEventListener('error', function (event) {
+  console.log('error 이벤트 ' + event.error.name);
+  event.preventDefault();
+});
+</script>
+<script>
+var before = 1;
+null.x;
+var after = 2;
+function later() {}
+let late = 3;
+</script>
+<script>
+console.log(before, after, typeof later);
+try {
+  late;
+} catch (e) {
+  console.log('late: ' + e.name);
+}
+</script>
+<script>
+var fresh = 1;
+let late = 4;
+console.log('다시 선언함');
+</script>
+<script>
+console.log('다음 스크립트', typeof fresh);
+</script>
+</body>
+</html>

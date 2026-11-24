@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"></head>
+<body>
+<script>
+window.addEventListener('error', function (event) {
+  console.log('error 이벤트 ' + event.error.name);
+  event.preventDefault();
+});
+</script>
+<script>
+console.log('1 시작');
+Promise.resolve().then(function () {
+  console.log('then');
+});
+null.x;
+console.log('1 끝');
+</script>
+<script>
+console.log('2 실행');
+</script>
+</body>
+</html>

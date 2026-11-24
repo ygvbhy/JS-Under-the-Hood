@@ -43,6 +43,7 @@ export const concept = {
     'timers',
     'async-await',
     'event-loop',
+    'uncaught-exceptions',
   ],
   examples: [
     {
@@ -137,7 +138,7 @@ export const concept = {
     'Error의 cause, AggregateError, stack(ECMAScript 표준이 아닌 비표준 속성), 사용자 정의 에러 클래스는 다루지 않습니다.',
     'instanceof는 같은 realm의 내장 에러와 기본 동작(프로토타입 체인 확인)만 다룹니다. 다른 realm에서 만든 에러나 Symbol.hasInstance를 정의한 경우는 결과가 다를 수 있습니다.',
     'catch 매개변수의 구조 분해가 던지는 경우(catch 블록이 평가되지 않음)는 다루지 않습니다.',
-    '스크립트 최상위에서 잡히지 않은 예외와 onerror 핸들러 속성, 다른 출처 스크립트의 Script error., 워커의 에러, Node.js의 process 이벤트, 최상위 await는 다루지 않습니다.',
+    '스크립트 최상위에서 잡히지 않은 예외와 onerror 핸들러 속성은 잡히지 않은 예외 개념에서 다룹니다. 다른 출처 스크립트의 Script error., 워커의 에러, Node.js의 process 이벤트, 최상위 await는 다루지 않습니다.',
     '명세 링크는 현재 초안을 가리키고, 인용은 ES2026판과 현재 초안에 똑같이 있는 문장만 씁니다. TryStatement와 throw 문의 평가 단계는 판마다 변수 이름과 문장이 다르므로 인용하지 않고 풀어서 설명합니다. HTML 표준은 현재 판에서 인용합니다.',
     'try, catch, finally, throw와 Error는 ECMAScript 언어의 동작이고, error·unhandledrejection·rejectionhandled 이벤트, 타이머, console은 호스트가 제공하는 API입니다. 언어 예제 9개는 Node.js의 vm에서, 브라우저 예제 4개는 Chromium에서 실행한 값이며 다른 브라우저는 확인하지 않았습니다.',
     '브라우저 예제의 출력 순서는 각 예제에서 순서가 표준으로 정해지는 근거(같은 지연의 타이머는 등록 순서, 이벤트 리스너 안에서 예약한 타이머 등)로 구성한 것이며, 다른 태스크 소스 사이의 순서를 일반 규칙으로 주장하지 않습니다.',
