@@ -12,7 +12,7 @@
 
 단항 `-`와 `~`는 ToNumeric이라 BigInt를 받아 BigInt를 돌려줍니다. 예제 2의 9번 줄에서 `-1n`은 `-1n`, `~1n`은 `-2n`(`-x - 1`)이고 `typeof`는 `bigint`입니다. 반면 단항 `+`는 ToNumeric이 아니라 ToNumber를 하므로 BigInt이면 던집니다. 10번 줄의 `+1n`이 `TypeError`입니다. 단항 `-`와 달리 단항 `+`는 BigInt에 쓸 수 없습니다.
 
-인수에 ToNumber를 하는 함수도 같습니다. 11번 줄의 `Math.max(1n, 2n)`과 전역 `isNaN(1n)`은 `TypeError`입니다. 다만 "내장 함수는 BigInt를 받지 못한다"로 넓히면 틀립니다. 12번 줄의 `Number.isInteger(1n)`과 `Number.isNaN(1n)`은 변환하지 않고 값이 Number인지부터 보므로 `false`이고, `parseInt(1n)`은 ToNumber가 아니라 문자열 `'1'`로 바꾸어 읽으므로 Number `1`입니다. BigInt를 돌려주는 것이 아니어서 큰 값은 Number로 반올림됩니다(`parseInt(9007199254740993n)`은 `9007199254740992`). 어떤 함수가 인수를 ToNumber하는지에 달려 있습니다. 이 페이지는 Math 객체를 따로 다루지 않으므로 함수 이름으로만 씁니다.
+인수에 ToNumber를 하는 함수도 같습니다. 11번 줄의 `Math.max(1n, 2n)`과 전역 `isNaN(1n)`은 `TypeError`입니다. 다만 "내장 함수는 BigInt를 받지 못한다"로 넓히면 틀립니다. 12번 줄의 `Number.isInteger(1n)`과 `Number.isNaN(1n)`은 변환하지 않고 값이 Number인지부터 보므로 `false`이고, `parseInt(1n)`은 ToNumber가 아니라 문자열 `'1'`로 바꾸어 읽으므로 Number `1`입니다. BigInt를 돌려주는 것이 아니어서 큰 값은 Number로 반올림됩니다(`parseInt(9007199254740993n)`은 `9007199254740992`). 어떤 함수가 인수를 ToNumber하는지에 달려 있습니다. `Math.max`가 인수를 바꾸는 순서와 인수가 없을 때의 값은 [Math](/concepts/math)에서 다룹니다.
 
 ### 증감과 복합 대입
 

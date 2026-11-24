@@ -34,7 +34,14 @@ export const concept = {
     { label: '숫자 타입', slug: 'number-type' },
     { label: '원시 값의 메서드', slug: 'primitive-methods' },
   ],
-  related: ['number-type', 'equality-operators', 'type-coercion', 'global-object', 'bigint'],
+  related: [
+    'number-type',
+    'equality-operators',
+    'type-coercion',
+    'global-object',
+    'bigint',
+    'math',
+  ],
   examples: [
     {
       id: 'stored-value',

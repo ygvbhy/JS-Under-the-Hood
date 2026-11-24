@@ -44,6 +44,7 @@ export const concept = {
     'json',
     'error-handling',
     'to-primitive',
+    'math',
   ],
   examples: [
     {
@@ -133,7 +134,7 @@ export const concept = {
     'Number로 바꾼 값의 출력은 Number::toString이 고른 가장 짧은 자릿수 표기입니다. 자릿수 후보가 여럿인 값(예: 2의 64제곱)은 마지막 자리를 명세가 하나로 정하지 않아 예제에 쓰지 않았습니다.',
     '명세의 수학적 값(ℝ)과 𝔽(가장 가까운 Number 값으로 반올림)은 풀어 쓴 표현입니다.',
     '정렬에서 비교 함수가 몇 번, 어떤 순서로 불리는지는 명세가 정하지 않으므로 다루지 않습니다.',
-    'Math는 뒤의 장에서 다루는 내장 객체입니다. 이 페이지는 Math.max가 인수에 ToNumber를 한다는 것만 씁니다.',
+    'Math.max의 나머지 규칙(인수가 없을 때의 값, NaN, +0과 -0, 인수를 바꾸는 순서)은 Math 개념에서 다룹니다. 이 페이지는 Math.max가 인수에 ToNumber를 한다는 것만 씁니다.',
     'BigInt 리터럴의 문법 오류(1.5n 등), toString(radix)·toLocaleString, BigInt64Array·DataView, 성능과 내부 표현은 다루지 않습니다. JSON.stringify가 BigInt에서 던지는 TypeError는 JSON 개념에서 다룹니다.',
     "이 페이지의 예제는 Node의 vm 모듈에서 스크립트로 실행한 결과를 기준으로 합니다. 모든 예제는 맨 앞에 지시어 'use strict';를 붙여도 출력이 같습니다.",
   ],

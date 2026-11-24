@@ -57,6 +57,7 @@ import {
   TAGGED_TEMPLATES_PATH,
   AUTOMATIC_SEMICOLON_INSERTION_PATH,
   MUTATION_OBSERVER_PATH,
+  MATH_PATH,
   UNCAUGHT_EXCEPTIONS_PATH,
   ARROW_FUNCTIONS_PATH,
   ARRAY_INDEX_LENGTH_PATH,
@@ -922,6 +923,13 @@ for (const colorScheme of ['light', 'dark'] as const) {
 
     test('개념 페이지: MutationObserver', async ({ page }) => {
       await page.goto(MUTATION_OBSERVER_PATH)
+      await waitForHydration(page)
+      await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
+      await expectNoSeriousViolations(page)
+    })
+
+    test('개념 페이지: Math', async ({ page }) => {
+      await page.goto(MATH_PATH)
       await waitForHydration(page)
       await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
       await expectNoSeriousViolations(page)

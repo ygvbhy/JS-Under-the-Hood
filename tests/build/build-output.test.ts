@@ -1552,6 +1552,39 @@ describe('프리렌더 (mutation-observer)', () => {
   })
 })
 
+// math: 정수 함수 표, 규칙 표, 퀴즈가 프리렌더 HTML에 정적으로 있어야 한다.
+describe('프리렌더 (math)', () => {
+  const html = read('concepts/math/index.html')
+  const text = htmlToText(html)
+
+  it('정수 함수 표와 규칙 표 region이 HTML에 있다', () => {
+    expect(html).toMatch(
+      /role="region"[^>]*aria-label="정수 함수 표\(좁은 화면에서는 가로로 스크롤할 수 있습니다\)"/,
+    )
+    expect(html).toMatch(
+      /role="region"[^>]*aria-label="Math\.max·Math\.min 규칙 표\(좁은 화면에서는 가로로 스크롤할 수 있습니다\)"/,
+    )
+  })
+
+  it('표 칸의 핵심 문구가 렌더된다', () => {
+    expect(text).toContain('Math.round')
+    expect(text).toContain('그 예외가 그대로 나가고 뒤 인수는 변환되지 않습니다')
+    expect(text).toContain('0의 부호가 바뀌지 않고 그대로 남습니다')
+  })
+
+  it('퀴즈 정답이 <details>로 4개 이상 프리렌더되고 각 정답이 있다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(4)
+    for (const answer of [
+      '-Infinity Infinity / -Infinity Infinity / true',
+      '0 NaN 10 number / NaN a,b,c',
+      '0 0 / -0 -0 / -0 -0 0 0',
+      '-0.5 -1 -0 -0 -0',
+    ]) {
+      expect(text).toContain(answer)
+    }
+  })
+})
+
 // 추가 게시글(request-animation-frame): 시뮬레이터의 첫 단계와 퀴즈가 프리렌더 HTML에 정적으로 있어야 한다.
 describe('프리렌더 (request-animation-frame)', () => {
   const html = read('concepts/request-animation-frame/index.html')

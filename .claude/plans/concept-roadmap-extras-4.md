@@ -1,6 +1,6 @@
 # 추가 게시글 로드맵 4 (미뤄 둔 주제 5개)
 
-- 상태: 승인
+- 상태: 완료
 - 작성일: 2026-11-23
 - 기준: `main` @ `3ab9dab`
 
@@ -20,7 +20,7 @@
 | 2 | 프로미스를 반환하는 then | `promise`가 thenable 채택 Job(NewPromiseResolveThenableJob)이 있다는 것과 결과 값을 다룬다. `microtask-queue`는 "콜백이 프로미스를 반환하면 다음 Job이 들어가는 때가 달라지며 그 경우의 순서는 다루지 않음"이라 밝혔다. `error-handling`은 `return await`와 `return p`의 try·finally 차이만 다룬다 | 다른 체인과 섞였을 때의 순서(Job 두 개만큼 늦어짐), 채택 Job과 then 반응 Job의 단계, async 함수의 `return p`와 `return await p`의 순서 차이 |
 | 3 | 잡히지 않은 예외와 전역 error 이벤트 | `error-handling`은 "스크립트 최상위에서 잡히지 않은 예외와 onerror 핸들러 속성은 다루지 않음"이라 밝혔고, report an exception과 unhandledrejection은 문장으로만 언급한다 | script 요소마다 따로 실행되어 앞 script의 예외가 뒤 script를 막지 않는 것, 예외가 난 script의 나머지 줄은 실행되지 않는 것, 전역 `error` 이벤트와 `preventDefault`, `unhandledrejection`이 발생하는 시점 |
 | 4 | MutationObserver | `microtask-queue`의 simplifications와 본문이 "렌더링 갱신과 MutationObserver는 다루지 않음"이라 밝혔다. 다른 페이지는 언급하지 않는다 | 콜백이 변경마다가 아니라 마이크로태스크 하나로 묶여 불리는 것(레코드 여러 개), 첫 변경 때 마이크로태스크가 들어가서 그 뒤에 등록한 `then`보다 먼저 불리는 것, `takeRecords`로 꺼낸 레코드는 콜백에 오지 않는 것, 관찰 옵션(childList·attributes·subtree) |
-| 5 | Math | `bigint`가 `Math.max`의 ToNumber만, `number-pitfalls`가 `Math.round`의 가운데 규칙만 다룬다. `bigint`의 simplifications는 "Math는 뒤의 장에서 다루는 내장 객체"라 밝혔다 | 인수 없는 `Math.max()`·`Math.min()`의 값(-Infinity·Infinity), 배열을 넘기면 ToNumber 때문에 생기는 결과(`[2]`는 2, `[1, 2]`는 NaN), 스프레드와 빈 배열, `NaN`이 섞이면 `NaN`, `Math.round`·`Math.floor`·`Math.trunc`의 음수와 -0 |
+| 5 | Math | `bigint`가 `Math.max`의 ToNumber만, `number-pitfalls`가 `Math.round`의 가운데 규칙만 다룬다. `bigint`의 simplifications는 "Math는 뒤의 장에서 다루는 내장 객체"라 밝혔다 | 인수 없는 `Math.max()`·`Math.min()`의 값(-Infinity·Infinity), 배열을 넘기면 ToNumber 때문에 생기는 결과(`[2]`는 2, `[1, 2]`는 NaN), 스프레드와 빈 배열, `NaN`이 섞이면 `NaN`, `Math.round`·`Math.floor`·`Math.trunc`의 음수와 -0 (계획 때 배열 인수 결과와 스프레드는 `spread-destructuring`, 빈 배열 reduce는 `array-method-pitfalls`가 이미 다뤄 제외) |
 
 "다루지 않는다"고 밝힌 페이지(연결 대상 후보):
 
@@ -38,7 +38,7 @@
 | 2 | 프로미스를 반환하는 then: 왜 다른 체인보다 두 번 늦을까 | 45장 | A 체인 첫 콜백이 `Promise.resolve()`를 반환하고 B 체인은 값만 반환하면 순서는 `A1 B1 B2 B3 A2 B4 B5` (Node) | ecmascript | 443 (`promise-static-methods` 442와 `fetch` 445 사이) | 단계 시뮬레이터 또는 표 (계획 때 결정) | 제외 |
 | 3 | 잡히지 않은 예외: 한 스크립트에서 예외가 나도 다음 스크립트는 왜 실행될까 | 47장 | 첫 script가 `null.x`에서 예외를 던지면 그 뒤 줄(`s1 end`)은 실행되지 않고 전역 `error` 이벤트가 먼저 오고, 다음 script는 실행된다(`s2 runs`). 거부를 처리하지 않은 프로미스는 그 script가 끝난 뒤에 `unhandledrejection` (Chromium) | browser | 472 (`error-handling` 470과 `async-generator` 475 사이) | 표 + 퀴즈 | 완료 |
 | 4 | MutationObserver: 세 번 바꿨는데 콜백은 왜 한 번만 불릴까 | 39장 근처 (책에 장 없음) | 관찰 중인 `ul`에 `li`를 세 번 붙이면 동기 코드가 끝난 뒤 콜백이 한 번 불리고 레코드는 3개(`mo 3 3`). 첫 번째와 두 번째 `appendChild` 사이에 등록한 `then`보다 콜백이 먼저, `setTimeout(fn, 0)`보다도 먼저 실행(`sync end 3`, `mo 3 3`, `then`, `timeout`). 속성을 두 번 바꾼 뒤 `takeRecords()`로 2개를 꺼내면 콜백에는 그 뒤의 변경 1개만 온다(`taken 2`, `cb 1`) (Chromium) | browser | 444 (`fetch` 445 앞, 2번이 443) | 표 + 퀴즈 (단계 시뮬레이터는 계획 때 결정) | 완료 |
-| 5 | Math: Math.max()는 왜 -Infinity일까 | 29장 | `Math.max()`는 `-Infinity`, `Math.min()`은 `Infinity`, `Math.max([2])`는 `2`인데 `Math.max([1, 2])`는 `NaN`, `Math.max(...[])`는 `-Infinity`, `Math.round(-0.4)`는 -0 (Node) | ecmascript | 278 (`date` 277과 `regexp-lastindex` 280 사이) | 표 + 퀴즈 | 대기 |
+| 5 | Math: Math.max()는 왜 -Infinity일까 | 29장 | `Math.max()`는 `-Infinity`, `Math.min()`은 `Infinity`, `Math.max([2])`는 `2`인데 `Math.max([1, 2])`는 `NaN`, `Math.max(...[])`는 `-Infinity`, `Math.round(-0.4)`는 -0 (Node) | ecmascript | 278 (`date` 277과 `regexp-lastindex` 280 사이) | 표 + 퀴즈 | 완료 |
 
 - 순서는 책 장 순서가 아니라 추천 순서다. 1번은 미뤄 둔 페이지가 가장 많다. 2·3·4번은 비동기·에러 페이지가 범위를 밝혀 둔 빈자리다. 4번은 책에 장이 없지만 사용자가 원래 4번(이벤트 핸들러 어트리뷰트) 대신 골랐다.
 - order는 모두 중간 삽입이다. 삽입할 때마다 순서 테스트를 고친다. 총수, `navigation.spec.ts`의 순위·이웃 pager·"객체" 검색 순위 배열이 대상이다.
@@ -100,3 +100,4 @@
 - 2026-11-23: 2번 계획 조사에서 기존 페이지와의 중복을 발견해 사용자 결정으로 제외했다(보류·제외 절). 대신 microtask-queue 문장을 async/await로 연결했다. 로드맵 4는 4개로 진행하고, 다음은 3번 잡히지 않은 예외(사용자 확인 후 계획).
 - 2026-11-24: 3번 `uncaught-exceptions` 완료(order 472·75번째/77, browser 예제 6개·퀴즈 6개·비교표 6행, 시뮬레이터 없음, error-handling 본문 링크·prevent-default-stop-propagation simplifications 연결, reviewedAt 2026-11-24). 리스너의 예외와 전역 onerror의 return true, 예외 뒤 남는 바인딩까지 다뤘다. 다음은 4번 MutationObserver(사용자 확인 후 계획).
 - 2026-11-24: 4번 `mutation-observer` 완료(order 444·71번째/78, browser 예제 8개·퀴즈 8개·비교표 7행, 시뮬레이터 없음, category async, microtask-queue 본문 링크·simplifications·related 연결, reviewedAt 2026-11-24). 묶음 호출과 순서, takeRecords·disconnect, 관찰 옵션, 여러 관찰자와 콜백 안 변경을 다뤘고, 여러 관찰자의 호출 순서는 현재 판 표준(생성 순서)과 2023-06~2026-06 Review Draft(레코드 순서)의 차이를 밝혔다. 다음은 5번 Math(사용자 확인 후 계획).
+- 2026-11-24: 5번 `math` 완료(order 278·45번째/79, category fundamentals, ecmascript 예제 4개·퀴즈 4개·표 2개(정수 함수 5행, max·min 규칙 8행), 시뮬레이터 없음, bigint 본문 링크·simplifications와 number-pitfalls 본문 링크, reviewedAt 2026-11-24). 남은 범위 중 배열 인수 결과(`[2]`→2, `[1, 2]`→NaN)와 `Math.max(...[])`는 spread-destructuring이 이미 다뤄 빼고, 빈 배열은 apply로 보였다. 로드맵 4 완료(2번은 제외). 다음 범위는 사용자에게 확인한다.

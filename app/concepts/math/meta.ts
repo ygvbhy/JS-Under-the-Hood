@@ -1,0 +1,111 @@
+import type { ConceptMeta } from '~/lib/concepts'
+
+const SPEC = 'https://tc39.es/ecma262/#'
+const MDN = 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/'
+
+export const concept = {
+  slug: 'math',
+  title: 'Math: Math.max()는 왜 -Infinity일까',
+  summary:
+    '인수가 없으면 Math.max()는 -Infinity, Math.min()은 Infinity입니다. 인수는 왼쪽부터 숫자로 바뀌고 예외가 없으면 NaN 하나로 결과가 NaN이며, +0을 -0보다 크다고 봅니다. 음수에서는 floor와 trunc가 갈리고 0 근처에서 -0이 나옵니다.',
+  category: 'fundamentals',
+  order: 278,
+  tags: [
+    'Math',
+    'Math.max',
+    'Math.min',
+    'Math.floor',
+    'Math.ceil',
+    'Math.trunc',
+    'Math.round',
+    '-Infinity',
+    'Infinity',
+    'NaN',
+    '-0',
+    '음의 0',
+    '올림',
+    '내림',
+    '반올림',
+    '소수점 버리기',
+  ],
+  goals: [
+    '인수가 없을 때 Math.max()가 -Infinity, Math.min()이 Infinity인 것을, 명세의 알고리즘이 모든 인수를 ToNumber로 바꾼 뒤 -∞(min은 +∞)에서 시작해 비교하는 것으로 설명할 수 있다.',
+    '인수에 NaN이 있으면 변환이 예외 없이 끝날 때 결과가 NaN이지만, NaN이 나와도 뒤 인수의 ToNumber가 왼쪽부터 끝까지 불리고, 변환 중 예외가 나면 그 뒤 인수는 변환되지 않는다는 것을 예측할 수 있다.',
+    'Math.max와 Math.min이 +0과 -0을 다루는 특례를 설명하고, +0을 -0보다 크다고 보는 이 규칙이 > 나 >= 하나로 짠 최댓값 함수와 다른 결과를 내는 경우를 예측할 수 있다.',
+    'floor·ceil·trunc·round가 음수와 0 근처에서 어느 쪽으로 정수를 고르고 어떤 구간에서 -0을 돌려주는지, round와 floor(x + 0.5)가 어떤 입력에서 갈리는지 예측할 수 있다.',
+  ],
+  prerequisites: [
+    { label: '타입 변환', slug: 'type-coercion' },
+    { label: '동등 비교 연산자', slug: 'equality-operators' },
+    { label: '숫자의 함정', slug: 'number-pitfalls' },
+    { label: 'this 바인딩', slug: 'this-binding' },
+    { label: 'BigInt', slug: 'bigint' },
+  ],
+  related: [
+    'spread-destructuring',
+    'array-method-pitfalls',
+    'to-primitive',
+    'number-type',
+    'new-operator',
+    'error-handling',
+  ],
+  examples: [
+    {
+      id: 'empty-args',
+      file: 'empty-args.js',
+      runtime: 'ecmascript',
+      expectedOutput: ['-Infinity Infinity', '-Infinity Infinity', 'true', '3 3'],
+    },
+    {
+      id: 'nan-and-coercion',
+      file: 'nan-and-coercion.js',
+      runtime: 'ecmascript',
+      expectedOutput: ['0 NaN 10 number', 'NaN a,b,c', 'RangeError a,t', 'TypeError'],
+    },
+    {
+      id: 'signed-zero',
+      file: 'signed-zero.js',
+      runtime: 'ecmascript',
+      expectedOutput: ['0 0', '-0 -0', '-0 -0 0 0', '-0 0'],
+    },
+    {
+      id: 'to-integer',
+      file: 'to-integer.js',
+      runtime: 'ecmascript',
+      expectedOutput: [
+        '-1.5 -2 -1 -1 -1',
+        '-0.5 -1 -0 -0 -0',
+        '-0.4 -1 -0 -0 -0',
+        '0.4 0 1 0 0',
+        '1.5 1 2 1 2',
+        '-0 0',
+      ],
+    },
+  ],
+  simplifications: [
+    "예제는 sloppy mode 스크립트이고 첫 줄에 'use strict';를 붙여도 출력이 같습니다. console은 ECMAScript가 아니라 호스트가 제공하는 API입니다.",
+    'String(-0)은 "0"이어서 -0은 문자열로 바꾸면 +0과 구분되지 않습니다. 예제는 Object.is로 -0을 가려내는 show 함수의 출력만 보이며, console이 -0을 어떻게 찍는지는 호스트 API의 출력 형식이라 다루지 않습니다.',
+    '스프레드(Math.max(...nums))와 배열 하나를 인수로 넘길 때의 변환은 스프레드와 디스트럭처링 개념에서 다룹니다. 이 페이지는 인수 목록을 apply로 넘깁니다.',
+    '빈 배열에 초기값 없이 reduce를 부르면 TypeError가 나는 동작은 배열 메서드의 함정 개념에서 다룹니다.',
+    '예제 2의 valueOf를 가진 값은 ToNumber가 값을 숫자로 바꾸는 시점을 기록하려는 용도입니다. 변환 메서드를 고르는 순서는 객체를 원시 값으로 개념에서 다룹니다.',
+    'Math.round가 두 정수의 정확히 가운데(소수 부분이 .5)일 때 어느 쪽을 고르는지와 toFixed와의 차이, 0.49999999999999994는 숫자의 함정 개념에서 자세히 다룹니다.',
+    '예제 2의 try…catch는 던져진 오류를 보이려는 용도입니다. 자세한 규칙은 try/catch/finally 개념에서 다룹니다.',
+    'Math.random, sin·pow 같은 근삿값 함수, Math 상수, Math.sumPrecise, 인수가 아주 많을 때의 한계는 다루지 않습니다.',
+  ],
+  references: [
+    { label: 'ECMAScript 명세 — Math.max', url: `${SPEC}sec-math.max` },
+    { label: 'ECMAScript 명세 — Math.min', url: `${SPEC}sec-math.min` },
+    { label: 'ECMAScript 명세 — Math.round', url: `${SPEC}sec-math.round` },
+    { label: 'ECMAScript 명세 — Math.floor', url: `${SPEC}sec-math.floor` },
+    { label: 'ECMAScript 명세 — Math.ceil', url: `${SPEC}sec-math.ceil` },
+    { label: 'ECMAScript 명세 — Math.trunc', url: `${SPEC}sec-math.trunc` },
+    {
+      label: 'ECMAScript 명세 — Function.prototype.apply',
+      url: `${SPEC}sec-function.prototype.apply`,
+    },
+    { label: 'MDN — Math.max', url: `${MDN}Math/max` },
+    { label: 'MDN — Math.round', url: `${MDN}Math/round` },
+    { label: 'MDN — Object.is', url: `${MDN}Object/is` },
+  ],
+  reviewedAt: '2026-11-24',
+} satisfies ConceptMeta
