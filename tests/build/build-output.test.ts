@@ -1522,6 +1522,36 @@ describe('프리렌더 (uncaught-exceptions)', () => {
   })
 })
 
+// mutation-observer: 비교표와 퀴즈가 프리렌더 HTML에 정적으로 있어야 한다.
+describe('프리렌더 (mutation-observer)', () => {
+  const html = read('concepts/mutation-observer/index.html')
+  const text = htmlToText(html)
+
+  it('비교표 region이 HTML에 있다', () => {
+    expect(html).toMatch(
+      /role="region"[^>]*aria-label="MutationObserver 콜백 비교표\(좁은 화면에서는 가로로 스크롤할 수 있습니다\)"/,
+    )
+  })
+
+  it('비교표 칸의 핵심 문구가 렌더된다', () => {
+    expect(text).toContain('동기 코드에서 세 번 추가')
+    expect(text).toContain('알림 때까지 쌓인 2개(then 등록 뒤 변경 포함)')
+    expect(text).toContain('그때 들어간 새 알림 마이크로태스크에서(이미 큐에 있던 then 다음)')
+  })
+
+  it('퀴즈 정답이 <details>로 8개 이상 프리렌더되고 각 정답이 있다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(8)
+    for (const answer of [
+      '동기 코드 끝 4 / 콜백 1 레코드 3',
+      '스크립트 1 끝 / 콜백 레코드 2 / then 1 / 스크립트 2 끝 / then 2 / 콜백 레코드 2',
+      '동기 코드 끝 / A 콜백 1 / error 이벤트 TypeError / B 콜백 1 / then',
+      '콜백 1 레코드 1 / then / 콜백 2 레코드 1 / 콜백이 넣은 then',
+    ]) {
+      expect(text).toContain(answer)
+    }
+  })
+})
+
 // 추가 게시글(request-animation-frame): 시뮬레이터의 첫 단계와 퀴즈가 프리렌더 HTML에 정적으로 있어야 한다.
 describe('프리렌더 (request-animation-frame)', () => {
   const html = read('concepts/request-animation-frame/index.html')

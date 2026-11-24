@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"></head>
+<body>
+<ul id="list"><li>첫째</li></ul>
+<script>
+const list = document.getElementById('list');
+try {
+  new MutationObserver(function () {}).observe(list, {});
+} catch (e) {
+  console.log('빈 옵션', e.name);
+}
+try {
+  new MutationObserver(function () {}).observe(list, { childList: true, attributes: false, attributeOldValue: true });
+} catch (e) {
+  console.log('attributes false와 attributeOldValue', e.name);
+}
+const observer = new MutationObserver(function (records) {
+  const oldValues = records.map(function (r) {
+    return r.oldValue;
+  });
+  console.log('레코드', records.length, JSON.stringify(oldValues));
+});
+observer.observe(list, { attributeOldValue: true });
+list.setAttribute('data-a', '1');
+list.setAttribute('data-a', '2');
+list.setAttribute('data-a', '2');
+</script>
+</body>
+</html>

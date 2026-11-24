@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"></head>
+<body>
+<ul id="list"><li id="item">첫째</li></ul>
+<script>
+const list = document.getElementById('list');
+const item = document.getElementById('item');
+function describe(records) {
+  return records.map(function (r) {
+    return r.type + ':' + r.target.id;
+  }).join(' ');
+}
+const childOnly = new MutationObserver(function (records) {
+  console.log('childList만', records.length, describe(records));
+});
+childOnly.observe(list, { childList: true });
+const withSubtree = new MutationObserver(function (records) {
+  console.log('subtree까지', records.length, describe(records));
+});
+withSubtree.observe(list, { childList: true, attributes: true, subtree: true });
+list.setAttribute('data-a', '1');
+item.setAttribute('data-b', '1');
+item.appendChild(document.createTextNode('!'));
+list.appendChild(document.createElement('li'));
+</script>
+</body>
+</html>

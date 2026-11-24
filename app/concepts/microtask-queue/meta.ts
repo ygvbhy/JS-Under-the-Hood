@@ -30,7 +30,14 @@ export const concept = {
     { label: '이벤트 루프와 태스크 큐', slug: 'event-loop' },
     { label: '프로미스', slug: 'promise' },
   ],
-  related: ['event-loop', 'promise', 'timers', 'request-animation-frame', 'async-await'],
+  related: [
+    'event-loop',
+    'promise',
+    'timers',
+    'request-animation-frame',
+    'async-await',
+    'mutation-observer',
+  ],
   examples: [
     {
       id: 'basic',
@@ -109,7 +116,7 @@ export const concept = {
     '스크립트 실행을 "스크립트 태스크" 하나로 그립니다. 표준은 HTML 파서가 바이트를 처리하는 일을 대개(typically) 태스크라고 서술하며, 이 페이지는 그 서술을 단순화했습니다.',
     'HTML 파서가 script 종료 태그를 처리할 때처럼, 표준에는 이 페이지가 설명한 두 곳(스크립트·콜백 뒤 정리 단계, 처리 모델) 말고도 마이크로태스크 체크포인트를 하는 곳이 있습니다. 이 페이지의 예제는 두 곳으로 설명할 수 있어 나머지는 다루지 않습니다.',
     '체크포인트 안에서 일어나는 처리되지 않은 거부 알림, IndexedDB 트랜잭션 정리, ClearKeptObjects 단계와, 이벤트 루프를 돌려 마이크로태스크가 태스크 큐로 옮겨지는 경우는 다루지 않습니다.',
-    '렌더링 갱신과 MutationObserver는 다루지 않습니다. requestAnimationFrame은 requestAnimationFrame 개념에서 다룹니다.',
+    '렌더링 갱신은 다루지 않습니다. MutationObserver는 MutationObserver 개념에서 다룹니다. requestAnimationFrame은 requestAnimationFrame 개념에서 다룹니다.',
     'try...catch와 전역 에러 이벤트는 try/catch/finally 개념에서 다루고, async/await는 async/await 개념에서 다룹니다.',
     '이 페이지의 테스트는 브라우저의 입력 경로를 거치는 사용자 입력(클릭 등)을 만들지 않습니다. 사용자 입력 이벤트에서 리스너마다 체크포인트가 일어난다는 것은 표준 서술을 근거로 설명하며, 이 페이지의 테스트로 확인하지 않았습니다.',
     '예제 4의 설명(앞 콜백의 Job이 끝날 때 곧바로 다음 then의 Job이 들어감)은 콜백이 프로미스(thenable)가 아닌 값을 반환하는 경우입니다. 콜백이 프로미스를 반환하면 프로미스의 채택 절차 때문에 다음 Job이 들어가는 때가 달라집니다. async 함수가 프로미스를 return할 때와 같은 절차이며, 그 순서는 async/await 개념에서 다룹니다.',

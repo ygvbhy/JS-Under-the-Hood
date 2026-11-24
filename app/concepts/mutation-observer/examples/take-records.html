@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"></head>
+<body>
+<ul id="list"><li>첫째</li></ul>
+<script>
+const list = document.getElementById('list');
+const observer = new MutationObserver(function (records) {
+  console.log('콜백 레코드', records.length, records[0].attributeName);
+});
+observer.observe(list, { attributes: true });
+list.setAttribute('data-a', '1');
+list.setAttribute('data-b', '2');
+console.log('꺼낸 레코드', observer.takeRecords().length);
+list.setAttribute('data-c', '3');
+console.log('동기 코드 끝');
+</script>
+</body>
+</html>

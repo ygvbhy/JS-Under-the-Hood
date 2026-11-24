@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"></head>
+<body>
+<ul id="list"><li>첫째</li></ul>
+<script>
+const list = document.getElementById('list');
+const observer = new MutationObserver(function (records) {
+  console.log('콜백 레코드', records.length);
+});
+observer.observe(list, { childList: true });
+list.appendChild(document.createElement('li'));
+Promise.resolve().then(function () {
+  console.log('then 1');
+});
+list.appendChild(document.createElement('li'));
+console.log('스크립트 1 끝');
+</script>
+<script>
+Promise.resolve().then(function () {
+  console.log('then 2');
+});
+list.appendChild(document.createElement('li'));
+list.appendChild(document.createElement('li'));
+console.log('스크립트 2 끝');
+</script>
+</body>
+</html>

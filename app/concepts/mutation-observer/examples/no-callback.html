@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"></head>
+<body>
+<ul id="list"><li>첫째</li></ul>
+<script>
+const list = document.getElementById('list');
+const first = new MutationObserver(function (records) {
+  console.log('first 콜백', records.length);
+});
+first.observe(list, { attributes: true });
+const second = new MutationObserver(function (records) {
+  console.log('second 콜백', records.length);
+});
+second.observe(list, { childList: true });
+list.setAttribute('data-a', '1');
+console.log('first에서 꺼낸 레코드', first.takeRecords().length);
+list.appendChild(document.createElement('li'));
+second.disconnect();
+console.log('second에 남은 레코드', second.takeRecords().length);
+Promise.resolve().then(function () {
+  console.log('then');
+});
+console.log('동기 코드 끝');
+</script>
+</body>
+</html>

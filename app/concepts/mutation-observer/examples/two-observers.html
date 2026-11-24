@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"></head>
+<body>
+<ul id="list-a"><li>첫째</li></ul>
+<ul id="list-b"><li>첫째</li></ul>
+<script>
+window.addEventListener('error', function (event) {
+  console.log('error 이벤트 ' + event.error.name);
+  event.preventDefault();
+});
+const listA = document.getElementById('list-a');
+const listB = document.getElementById('list-b');
+const observerA = new MutationObserver(function (records) {
+  console.log('A 콜백', records.length);
+  null.x;
+});
+const observerB = new MutationObserver(function (records) {
+  console.log('B 콜백', records.length);
+});
+observerB.observe(listB, { childList: true });
+observerA.observe(listA, { childList: true });
+listB.appendChild(document.createElement('li'));
+Promise.resolve().then(function () {
+  console.log('then');
+});
+listA.appendChild(document.createElement('li'));
+console.log('동기 코드 끝');
+</script>
+</body>
+</html>

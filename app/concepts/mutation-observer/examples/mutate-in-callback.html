@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"></head>
+<body>
+<ul id="list"><li>첫째</li></ul>
+<script>
+const list = document.getElementById('list');
+let calls = 0;
+new MutationObserver(function (records) {
+  calls++;
+  console.log('콜백', calls, '레코드', records.length);
+  if (calls === 1) {
+    list.appendChild(document.createElement('li'));
+    Promise.resolve().then(function () {
+      console.log('콜백이 넣은 then');
+    });
+  }
+}).observe(list, { childList: true });
+list.appendChild(document.createElement('li'));
+Promise.resolve().then(function () {
+  console.log('then');
+});
+</script>
+</body>
+</html>

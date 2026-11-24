@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"></head>
+<body>
+<ul id="list"><li>첫째</li></ul>
+<script>
+const list = document.getElementById('list');
+let calls = 0;
+const observer = new MutationObserver(function (records) {
+  calls++;
+  console.log('콜백', calls, '레코드', records.length);
+});
+observer.observe(list, { childList: true });
+list.appendChild(document.createElement('li'));
+list.appendChild(document.createElement('li'));
+list.appendChild(document.createElement('li'));
+console.log('동기 코드 끝', list.children.length);
+</script>
+</body>
+</html>
