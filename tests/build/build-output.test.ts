@@ -1647,6 +1647,38 @@ describe('프리렌더 (switch-let)', () => {
   })
 })
 
+// array-subclass: 결과 표·생성 경로 표와 퀴즈가 프리렌더 HTML에 정적으로 있어야 한다.
+describe('프리렌더 (array-subclass)', () => {
+  const html = read('concepts/array-subclass/index.html')
+  const text = htmlToText(html)
+
+  it('결과 표와 생성 경로 표 region이 HTML에 있다', () => {
+    expect(html).toMatch(
+      /role="region"[^>]*aria-label="예제 결과 표\(좁은 화면에서는 가로로 스크롤할 수 있습니다\)"/,
+    )
+    expect(html).toMatch(
+      /role="region"[^>]*aria-label="생성 경로 표\(좁은 화면에서는 가로로 스크롤할 수 있습니다\)"/,
+    )
+    expect(text).toContain('MyArr를 부르지 않음')
+    expect(text).toContain('a.constructor[Symbol.species]')
+    expect(html.match(/<tr\b/g)?.length).toBeGreaterThanOrEqual(19)
+  })
+
+  it('퀴즈 정답이 <details>로 6개 이상 프리렌더되고 각 정답이 있다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(6)
+    for (const answer of [
+      'true / true / MyArr / true / true',
+      'true / false / true / false true',
+      'true / false / false / true / true',
+      'old true false 2 / class true true 6',
+      'work / 3 / 0 / ["a","c"] 2 / 2',
+      'true / false / false / true',
+    ]) {
+      expect(text).toContain(answer)
+    }
+  })
+})
+
 // 추가 게시글(request-animation-frame): 시뮬레이터의 첫 단계와 퀴즈가 프리렌더 HTML에 정적으로 있어야 한다.
 describe('프리렌더 (request-animation-frame)', () => {
   const html = read('concepts/request-animation-frame/index.html')

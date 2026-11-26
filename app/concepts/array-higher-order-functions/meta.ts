@@ -46,6 +46,7 @@ export const concept = {
     'live-html-collection',
     'set-map',
     'async-await',
+    'array-subclass',
   ],
   examples: [
     {
@@ -98,7 +99,7 @@ export const concept = {
     },
   ],
   simplifications: [
-    '`thisArg`, 유사 배열에 빌려 쓰는 범용성, `Symbol.species`와 ArraySpeciesCreate가 하위 클래스에서 하는 일은 다루지 않습니다.',
+    '`thisArg`, 유사 배열에 빌려 쓰는 범용성은 다루지 않습니다. 하위 클래스 배열에서 `Symbol.species`와 ArraySpeciesCreate가 하는 일은 내장 생성자 상속 개념에서 다룹니다.',
     '구멍 설명은 `Array.prototype`과 `Object.prototype`에 인덱스 프로퍼티가 없는 보통의 경우를 전제합니다. HasProperty와 Get은 프로토타입 체인까지 봅니다.',
     '`reduce`·`reduceRight`도 시작할 때 length를 한 번 읽고 HasProperty로 건너뛰지만, 초기값과 구멍은 배열 메서드의 함정 개념에서 다루므로 예제를 두지 않습니다. `findLast`·`findLastIndex`(ES2023, 뒤에서부터 같은 FindViaPredicate)는 다루지 않습니다.',
     '`for...of`가 length를 매번 다시 읽는 것은 이터러블과 for...of 개념에서 다룹니다.',

@@ -45,6 +45,7 @@ export const concept = {
     'json',
     'structured-clone',
     'array-higher-order-functions',
+    'array-subclass',
   ],
   examples: [
     {
@@ -99,7 +100,7 @@ export const concept = {
   simplifications: [
     '정렬 알고리즘과 비교 함수를 부르는 순서·횟수는 명세가 정하지 않는 구현 정의 사항이라 다루지 않습니다. 비교 함수가 일관된 비교자가 아니면(예: 불리언을 반환하면) 결과 순서도 명세가 정하지 않으므로 출력 예제를 두지 않고 문장으로만 설명합니다.',
     'filter·some·every·find·flat·flatMap 같은 고차 함수의 사용법은 배열 고차 함수 개념에서 다룹니다. thisArg는 다루지 않습니다. 이 페이지의 콜백 메서드는 구멍을 만났을 때의 forEach·map과 초기값 없는 reduce만 살펴봅니다.',
-    'Symbol.species와 ArraySpeciesCreate에 따른 하위 클래스의 동작, 배열 메서드를 유사 배열에 빌려 쓰는 경우는 다루지 않습니다. forEach·map·filter·find의 콜백 안에서 배열을 바꾸는 경우는 배열 고차 함수 개념에서 다룹니다. reduce 콜백이나 sort 비교 함수 안에서 배열을 바꾸는 경우는 다루지 않습니다.',
+    'Symbol.species와 ArraySpeciesCreate에 따른 하위 클래스 배열의 동작은 내장 생성자 상속 개념에서 다루고, 배열 메서드를 유사 배열에 빌려 쓰는 경우는 다루지 않습니다. forEach·map·filter·find의 콜백 안에서 배열을 바꾸는 경우는 배열 고차 함수 개념에서 다룹니다. reduce 콜백이나 sort 비교 함수 안에서 배열을 바꾸는 경우는 다루지 않습니다.',
     '구멍 설명은 Array.prototype과 Object.prototype에 인덱스 프로퍼티가 없는 보통의 경우를 전제합니다. 명세의 HasProperty와 Get은 프로토타입 체인까지 보므로, 그곳에 같은 인덱스가 있으면 구멍에서도 콜백이 불리고 그 값을 읽습니다.',
     'localeCompare·Intl.Collator에 의한 언어별 정렬과 유니코드 정규화는 다루지 않습니다. 기본 sort의 문자열 비교는 코드 유닛 순서입니다.',
     '스프레드는 스프레드와 디스트럭처링 개념, Array.from과 이터러블은 이터러블과 for...of 개념에서 다루는 주제라 예제에 쓰지 않습니다. 깊은 복사는 JSON 개념과 structuredClone 개념에서 다룹니다.',

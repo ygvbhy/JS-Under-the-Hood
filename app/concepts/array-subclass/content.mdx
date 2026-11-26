@@ -1,0 +1,385 @@
+`class MyArr extends Array {}`로 만든 클래스의 `map`은 왜 `Array`가 아니라 `MyArr` 인스턴스를 돌려줄까요? 하위 클래스를 만든 적이 없는 `map` 구현이 어떻게 그 클래스를 알고 있는 것일까요? 이 페이지는 `class extends Array`의 인스턴스가 진짜 배열인 이유와, 배열 메서드가 결과 배열의 생성자를 고르는 규칙(명세의 ArraySpeciesCreate)을 다룹니다. 결과의 생성자를 호출한 배열의 `constructor` 프로퍼티에서 얻는 단계, `Symbol.species`로 그 선택을 바꾸는 방법, 생성자에 넘어가는 인수, `Array.from`·`Array.of`가 species가 아니라 `this`를 쓰는 경로를 실행 결과로 확인합니다. 클래스 상속은 [클래스 상속과 super](/concepts/class-inheritance)에서, 배열 메서드는 [배열 고차 함수](/concepts/array-higher-order-functions)에서 다룹니다.
+
+## 동작 원리
+
+### class extends Array의 인스턴스는 진짜 배열이다
+
+파생 클래스의 생성자는 스스로 객체를 만들지 않고 `super()`가 부모 생성자를 불러 객체를 얻습니다([클래스 상속과 super](/concepts/class-inheritance)). 생성자를 생략하면 기본 생성자가 받은 인수를 그대로 `super`에 넘깁니다. 부모가 `Array`이면 `Array` 생성자가 `new`로 부른 쪽(NewTarget, 여기서는 하위 클래스)의 `prototype`을 프로토타입으로 삼아 배열 이그조틱 객체(Array Exotic Object)를 만듭니다. 그래서 하위 클래스의 인스턴스는 `length`가 인덱스 대입에 맞춰 움직이는 진짜 배열이고 `Array.isArray`가 true입니다.
+
+옛 방식은 다릅니다. `OldArr.prototype = Object.create(Array.prototype)`([프로토타입 체인](/concepts/prototype-chain))으로 이으면 `new OldArr()`는 일반 객체를 만듭니다. 생성자 안의 `Array.call(this)`도 `old`를 배열로 만들지 못합니다. `Array`는 받은 `this`를 쓰지 않고 늘 새 배열을 만들어 돌려주고, `new` 없이 불러 NewTarget이 없으므로 그 새 배열의 프로토타입은 `Array.prototype`입니다. 돌려받은 배열은 버려지고 `this`는 일반 객체 그대로입니다. `instanceof`는 프로토타입 체인만 보므로 두 방식 모두 `instanceof Array`가 true이고, 진짜 배열인지는 `Array.isArray`와 인덱스 대입 뒤의 `length`로 드러납니다. 옛 방식 객체의 `length` 2는 범용 메서드인 `push`가 `Array.prototype`이 자기 프로퍼티로 가진 `length`(값 0)를 상속으로 읽은 뒤, 객체에 자기 프로퍼티 `length`를 써 넣은 결과입니다. `old`는 일반 객체라 인덱스를 정의할 때 `length`를 고치는 배열의 [[DefineOwnProperty]]가 없으므로, 인덱스 5에 대입해도 `length`는 2 그대로입니다([배열은 객체다](/concepts/array-index-length), 예제 4).
+
+### 결과 배열의 생성자는 호출한 배열에서 얻는다
+
+`map`·`filter`·`slice`·`splice`·`concat`·`flat`·`flatMap`은 결과 배열을 ArraySpeciesCreate로 만듭니다. 이 페이지에서 호출한 배열은 메서드의 `this` 값, 곧 `a.map(…)`의 `a`를 말합니다. 단계는 이렇습니다. `this` 값이 배열이 아니면 생성자를 부르지 않고 보통 배열을 바로 만듭니다(명세의 ArrayCreate). 배열이면 `constructor` 프로퍼티를 읽습니다. 인스턴스에는 보통 자기 `constructor`가 없어서 프로토타입 체인에서 `MyArr.prototype.constructor`(값 `MyArr`)를 찾고, 예제 2의 대입은 인스턴스에 자기 프로퍼티를 만들어 이를 가립니다. 읽은 값이 객체이면 그 객체의 `Symbol.species`를 읽고, 그 값이 `null`이면 `undefined`로 칩니다. 결과가 `undefined`이면 역시 생성자를 부르지 않고 보통 배열을 만듭니다. 생성자가 아닌 값이면 TypeError입니다. 생성자이면 길이 인수 하나로 `new`합니다. 그래서 결과의 클래스를 정하는 것은 원본이 어떤 클래스로 만들어졌는지가 아니라 지금 읽히는 `constructor` 프로퍼티입니다(예제 1·2).
+
+### Array의 Symbol.species는 this를 돌려준다
+
+`Array`에는 정적 접근자 `get [Symbol.species]`가 있고 `this` 값을 돌려줍니다. `MyArr`에는 자기 `Symbol.species`가 없어서 클래스 쪽 프로토타입 체인(`MyArr`의 [[Prototype]]이 `Array`)에서 이 접근자를 찾고, 이때 `this`가 `MyArr`라 `MyArr`를 돌려줍니다([클래스의 getter와 setter](/concepts/class-accessors)의 static 접근자, 예제 2의 셋째·넷째 줄). 하위 클래스가 `static get [Symbol.species]() { return Array; }`를 정의하면 배열 메서드의 결과만 `Array`가 됩니다(예제 3). 심벌은 [심벌](/concepts/symbol)에서 다룹니다.
+
+### 생성자에는 길이 인수 하나만 넘긴다
+
+`map`은 원본 길이를, `filter`·`concat`·`flat`·`flatMap`은 0을, `slice`는 잘라 낼 개수를, `splice`는 지운 개수를 생성자에 넘기고, 요소는 그 뒤 메서드가 하나씩 넣습니다. `Array` 생성자는 Number 하나를 받으면 그 수를 `length`로 씁니다([배열은 객체다](/concepts/array-index-length)). 생성자의 첫 매개변수를 다른 뜻으로 바꾼 하위 클래스는 그 자리에 이 수를 받습니다(예제 5). `of`·`from`도 아래 생성 경로 표처럼 이 생성자에 길이 하나를 넘기거나 인수 없이 부릅니다. 생성자 시그니처를 그대로 둔 채 배열 메서드의 결과만 보통 배열로 받으려면 예제 3처럼 species를 `Array`로 돌려줄 수 있습니다. 다만 `TodoList.of`·`TodoList.from`은 species와 무관하게 이 생성자를 부르므로 같은 문제가 남습니다. 생성자를 생략해 `Array`와 같은 형태로 두고 이름은 정적 메서드에서 따로 정하면, 배열 메서드와 `of`·`from`이 넘기는 수가 이름 자리에 들어가지 않습니다(이때 만들어진 결과 배열에는 이름이 없습니다). 또 `Symbol.species`에 의존하는 것은 MDN도 권하지 않습니다(아래 "이 글에서 단순화한 부분").
+
+### species를 쓰지 않는 경로와 호출한 배열을 따르는 concat
+
+`Array.from`·`Array.of`는 species가 아니라 `this`로 결과를 만듭니다. `this`가 생성자이면 그 생성자로 만들고, 생성자가 아니면 생성자를 부르지 않고 보통 배열을 만듭니다. `Array.from(mine)`은 `this`가 `Array`라 `Array`이고, `MyArr.from([0])`은 `MyArr`입니다. `concat`은 species를 쓰지만 생성자를 인수가 아니라 호출한 배열에서 얻으므로 `[0].concat(mine)`은 `Array`입니다(예제 6). 스프레드 문법으로 만든 배열은 늘 `Array`이며 [스프레드와 디스트럭처링](/concepts/spread-destructuring)에서 다룹니다.
+
+### 예제가 쓰는 도구
+
+예제는 Node의 `vm`에서 실행한 스크립트이고 `console.log`는 호스트가 제공하는 API입니다. 인스턴스는 `new MyArr(…)` 대신 `MyArr.of(…)`로 만듭니다. `new Array(3)`은 길이가 3인 빈 배열이지만 `Array.of(3)`은 요소가 3 하나인 배열이라는 차이는 [배열은 객체다](/concepts/array-index-length)에서 다룹니다. `MyArr.of`가 `MyArr` 인스턴스를 만드는 이유는 위 "species를 쓰지 않는 경로와 호출한 배열을 따르는 concat" 절에서 봅니다. `hasOwnProperty`는 그 키가 객체 자기 프로퍼티인지 확인합니다.
+
+## 예제
+
+예제의 출력은 Node의 `vm` 모듈에서 스크립트로 실행한 결과입니다. 모든 예제는 파일 첫 줄에 `'use strict';`를 붙여도 출력이 같습니다. `console.log`는 값을 출력하는 호스트 API이며 ECMAScript 언어의 일부가 아닙니다.
+
+### 예제 1: 메서드의 결과 클래스
+
+```js file=./examples/species-basic.js
+
+```
+
+<PredictQuiz
+  question="예제 1의 출력은 무엇일까요?"
+  choices={[
+    'true / false / Array / false / false',
+    'true / true / MyArr / false / false',
+    'false / false / Array / false / false',
+    'true / true / MyArr / true / true',
+  ]}
+  answer={3}
+  explanation="map·filter·slice·concat은 모두 호출한 배열의 constructor인 MyArr에서 얻은 생성자로 결과를 만들어 MyArr 인스턴스를 돌려주므로 마지막 선택지가 정답입니다. 배열 메서드는 늘 Array를 돌려준다고 보는 모델은 첫 번째 선택지, 콜백을 받는 메서드만 하위 클래스를 돌려준다고 보는 모델은 slice·concat이 false인 두 번째 선택지, MyArr.of도 Array의 메서드라 늘 Array를 만든다고 보는 모델은 첫 줄이 false인 세 번째 선택지가 됩니다."
+/>
+
+### 예제 2: constructor 프로퍼티
+
+```js file=./examples/constructor-property.js
+
+```
+
+<PredictQuiz
+  question="예제 2의 출력은 무엇일까요?"
+  choices={[
+    'true / false / true / false true',
+    'false / true / true / false true',
+    'false / false / true / false true',
+    'true / false / true / true true',
+  ]}
+  answer={0}
+  explanation="평범한 배열이라도 constructor 프로퍼티를 MyArr로 바꾸면 map의 결과가 MyArr이고, MyArr 인스턴스라도 constructor를 Array로 바꾸면 Array입니다. 셋째·넷째 줄을 함께 보면 Symbol.species는 MyArr가 아니라 Array의 자기 프로퍼티이고, MyArr는 그 접근자를 상속해 this인 MyArr를 돌려받습니다. 원본의 [[Prototype]]을 직접 보고 결과를 만든다고 보는 모델은 두 번째 선택지, 늘 Array라고 보는 모델은 첫 줄이 false인 세 번째 선택지, 하위 클래스마다 자기 species가 있다고 보는 모델은 마지막 줄이 true true인 네 번째 선택지가 됩니다."
+/>
+
+### 예제 3: species 재정의
+
+```js file=./examples/species-override.js
+
+```
+
+<PredictQuiz
+  question="예제 3의 출력은 무엇일까요?"
+  choices={[
+    'false / false / false / false / false',
+    'true / false / false / true / true',
+    'true / true / true / true / true',
+    'false / false / false / false / true',
+  ]}
+  answer={1}
+  explanation="species를 Array로 돌려주면 map과 filter의 결과만 Array가 되고, Plain.of와 Plain.from은 species를 읽지 않고 this인 Plain으로 만들고, new Plain()은 Plain 생성자를 직접 불러 만들므로 셋 다 Plain 인스턴스입니다. species가 그 클래스의 모든 생성을 바꾼다고 보는 모델은 모두 false인 첫 번째 선택지, species 재정의가 아무 효과가 없다고 보는 모델은 모두 true인 세 번째 선택지, species가 from과 of까지 바꾼다고 보는 모델은 마지막 줄만 true인 네 번째 선택지가 됩니다."
+/>
+
+### 예제 4: 옛 방식과 class
+
+```js file=./examples/old-vs-class.js
+
+```
+
+<PredictQuiz
+  question="예제 4의 출력은 무엇일까요?"
+  choices={[
+    'old true false 2 / class true false 2',
+    'old true true 6 / class true true 6',
+    'old true false 2 / class true true 6',
+    'old false false 2 / class true true 6',
+  ]}
+  answer={2}
+  explanation="instanceof는 프로토타입 체인만 보므로 둘 다 true이지만, class 인스턴스는 배열 이그조틱 객체라 isArray가 true이고 인덱스 5 대입으로 length가 6이 됩니다. 옛 방식 객체는 일반 객체라 isArray가 false이고 length는 push가 쓴 2에 머뭅니다. class도 옛 방식과 같다고 보는 모델은 첫 번째 선택지, 부모 생성자를 불렀으니 옛 방식도 배열이라고 보는 모델은 두 번째 선택지, instanceof Array가 진짜 배열에만 true라고 보는 모델은 첫 줄이 old false인 네 번째 선택지가 됩니다."
+/>
+
+### 예제 5: 바꾼 생성자 시그니처
+
+```js file=./examples/constructor-signature.js
+
+```
+
+<PredictQuiz
+  question="예제 5의 출력은 무엇일까요?"
+  choices={[
+    'work / work / work / ["a","c"] 2 / work',
+    'work / undefined / undefined / ["a","c"] 2 / undefined',
+    'work / 3 / 2 / ["a","c"] 2 / 2',
+    'work / 3 / 0 / ["a","c"] 2 / 2',
+  ]}
+  answer={3}
+  explanation="배열 메서드는 생성자에 길이 인수 하나를 넘기므로 name에는 map이 넘긴 원본 길이 3, filter가 넘긴 0, slice가 넘긴 개수 2가 들어갑니다. 요소는 메서드가 넣고, 결과가 배열이라 인덱스를 정의할 때 length도 따라 늘어나 넷째 줄은 정상입니다. 원본의 생성자 인수를 다시 넘긴다고 보는 모델은 첫 번째 선택지, 인수 없이 부른다고 보는 모델은 두 번째 선택지, filter에도 결과 길이를 넘긴다고 보는 모델은 셋째 줄이 2인 세 번째 선택지가 됩니다."
+/>
+
+### 예제 6: 호출한 배열과 this
+
+```js file=./examples/receiver-and-this.js
+
+```
+
+<PredictQuiz
+  question="예제 6의 출력은 무엇일까요?"
+  choices={[
+    'true / true / true / true',
+    'true / false / false / true',
+    'false / false / false / true',
+    'true / false / true / true',
+  ]}
+  answer={1}
+  explanation="concat은 생성자를 호출한 배열에서 얻으므로 mine.concat은 MyArr이고 [0].concat(mine)은 Array입니다. Array.from은 this인 Array로, MyArr.from은 this인 MyArr로 만듭니다. 인수에 하위 클래스가 있으면 결과도 하위 클래스라고 보는 모델은 첫 번째 선택지, concat은 species를 쓰지 않는다고 보는 모델은 첫 줄이 false인 세 번째 선택지, Array.from이 원본의 클래스를 유지한다고 보는 모델은 셋째 줄이 true인 네 번째 선택지가 됩니다."
+/>
+
+## 결과와 이유
+
+### 결과 표
+
+예제마다 출력 줄을 `/`로 이은 결과입니다. 칸은 모두 예제를 실제로 실행한 결과와 같습니다.
+
+<div
+  className="my-6 overflow-x-auto"
+  tabIndex={0}
+  role="region"
+  aria-label="예제 결과 표(좁은 화면에서는 가로로 스크롤할 수 있습니다)"
+>
+  <table className="w-full border-collapse text-left">
+    <thead>
+      <tr>
+        <th scope="col" className="border-border border px-3 py-2">
+          {'예제'}
+        </th>
+        <th scope="col" className="border-border border px-3 py-2">
+          {'결과'}
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td className="border-border border px-3 py-2">{'예제 1: 메서드의 결과 클래스'}</td>
+        <td className="border-border border px-3 py-2">{'true / true / MyArr / true / true'}</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">{'예제 2: constructor 프로퍼티'}</td>
+        <td className="border-border border px-3 py-2">{'true / false / true / false true'}</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">{'예제 3: species 재정의'}</td>
+        <td className="border-border border px-3 py-2">{'true / false / false / true / true'}</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">{'예제 4: 옛 방식과 class'}</td>
+        <td className="border-border border px-3 py-2">{'old true false 2 / class true true 6'}</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">{'예제 5: 바꾼 생성자 시그니처'}</td>
+        <td className="border-border border px-3 py-2">{'work / 3 / 0 / ["a","c"] 2 / 2'}</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">{'예제 6: 호출한 배열과 this'}</td>
+        <td className="border-border border px-3 py-2">{'true / false / false / true'}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+### 예제 1
+
+둘째·넷째·다섯째 줄의 true와 셋째 줄의 `MyArr`는 `map`·`slice`·`concat`·`filter`의 결과가 모두 `MyArr`라는 것을 보입니다. 이 줄들이 배열 메서드는 늘 `Array`를 돌려준다는 모델을 가려내고, 넷째·다섯째 줄(`slice`·`concat`)이 콜백을 받는 메서드만 하위 클래스를 돌려준다는 모델을 가려냅니다. 첫 줄 true는 `MyArr.of`가 `MyArr` 인스턴스를 만든다는 것으로, 이유는 예제 3·6에서 `this`를 쓰는 경로로 확인합니다.
+
+### 예제 2
+
+첫 줄은 평범한 배열인데도 `constructor` 프로퍼티를 `MyArr`로 바꾸자 결과가 `MyArr`이고, 둘째 줄은 `MyArr` 인스턴스인데 `constructor`를 `Array`로 바꾸자 결과가 `Array`입니다. 이 두 줄이 결과 클래스를 원본의 [[Prototype]]을 직접 보거나 원본이 만들어진 클래스로 정한다는 모델을 가려냅니다. 프로토타입은 `constructor`를 찾는 경로라 결과에 간접적으로만 영향을 줍니다. 셋째 줄 true만으로는 `MyArr`가 자기 `Symbol.species`를 가졌는지 상속했는지 가리지 못합니다. 넷째 줄 `false true`와 함께 보면, `Symbol.species`는 `MyArr`가 아니라 `Array`의 자기 프로퍼티이고 `MyArr`는 그 접근자를 상속해 `this`인 `MyArr`를 돌려받는다는 것이 드러납니다.
+
+### 예제 3
+
+첫 줄은 `Plain.of`가 `Plain` 인스턴스를 만든다는 것이고, 둘째·셋째 줄은 species가 `Array`를 돌려주므로 `map`·`filter`의 결과가 `Array`라는 것입니다. 넷째·다섯째 줄 true는 평범한 배열 `[1, 2]`를 받은 `Plain.from`이 species도 인수도 아닌 `this`인 `Plain`으로 만들고, `new Plain()`도 species와 상관없이 `Plain` 인스턴스를 만든다는 증거입니다. species는 배열 메서드가 결과를 만들 때만 읽힙니다.
+
+### 예제 4
+
+두 줄 모두 `instanceof Array`가 true라서 `instanceof`로는 둘을 구별하지 못합니다. 구별하는 것은 `Array.isArray`(`false` 대 `true`)와 인덱스 5 대입 뒤의 `length`(2 대 6)입니다. 옛 방식의 생성자가 `Array.call(this)`를 부르는데도 `old`는 배열이 아닙니다. 불러서 만들어진 배열은 돌려받아 버려지고 `this`는 일반 객체 그대로입니다.
+
+### 예제 5
+
+둘째 줄의 3은 `map`이 원본 길이를 생성자에 넘긴다는 것이고, 셋째 줄의 0은 `filter`가 결과 길이(2)가 아니라 0을 넘긴다는 것입니다. 다섯째 줄의 2는 `slice(1)`이 잘라 낼 개수를 넘긴다는 것입니다. 이 줄들이 원본의 생성자 인수를 다시 넘긴다는 모델, 인수 없이 부른다는 모델, 결과 길이를 넘긴다는 모델을 가려냅니다. 넷째 줄은 생성자가 받은 수를 `name`으로만 쓰고 버려도 결과가 정상이라는 것을 보입니다. 요소는 메서드가 넣고, 결과가 배열이라 인덱스를 정의할 때 `length`도 따라 늘어납니다. 예제 3처럼 `Symbol.species`를 `Array`로 돌려주면 배열 메서드는 이 생성자를 부르지 않지만, `TodoList.of`·`TodoList.from`은 여전히 부르므로 이것만으로 함정이 다 사라지지는 않습니다(위 "생성자에는 길이 인수 하나만 넘긴다" 절).
+
+### 예제 6
+
+첫 줄과 둘째 줄의 차이가 `concat`이 생성자를 호출한 배열에서 얻는다는 증거입니다. 인수에 `MyArr`가 있어도 호출한 배열이 `[0]`이면 결과는 `Array`입니다. 셋째·넷째 줄은 `Array.from`이 `this`인 `Array`로, `MyArr.from`이 `this`인 `MyArr`로 만든다는 증거입니다.
+
+### 생성 경로 표
+
+`a`는 행마다 새로 만든 `MyArr.of(1, 2, 3)`입니다. 표는 생성자를 기록하는 하위 클래스로 실행해 확인한 값입니다.
+
+<div
+  className="my-6 overflow-x-auto"
+  tabIndex={0}
+  role="region"
+  aria-label="생성 경로 표(좁은 화면에서는 가로로 스크롤할 수 있습니다)"
+>
+  <table className="w-full border-collapse text-left [&_code]:whitespace-nowrap">
+    <thead>
+      <tr>
+        <th scope="col" className="border-border border px-3 py-2">
+          {'호출'}
+        </th>
+        <th scope="col" className="border-border border px-3 py-2">
+          {'생성자를 얻는 곳'}
+        </th>
+        <th scope="col" className="border-border border px-3 py-2">
+          {'생성자에 넘기는 인수'}
+        </th>
+        <th scope="col" className="border-border border px-3 py-2">
+          {'결과가 MyArr인가'}
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'a.map((x) => x)'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'a.constructor[Symbol.species]'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'3'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">{'예'}</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'a.filter((x) => x > 1)'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'a.constructor[Symbol.species]'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'0'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">{'예'}</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'a.slice(1)'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'a.constructor[Symbol.species]'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'2'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">{'예'}</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'a.concat([4])'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'a.constructor[Symbol.species]'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'0'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">{'예'}</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'a.flat()'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'a.constructor[Symbol.species]'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'0'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">{'예'}</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'a.flatMap((x) => [x])'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'a.constructor[Symbol.species]'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'0'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">{'예'}</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'a.splice(0, 2)'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'a.constructor[Symbol.species]'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'2'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">{'예'}</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'MyArr.of(7, 8)'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">{'this(MyArr)'}</td>
+        <td className="border-border border px-3 py-2">
+          <code>{'2'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">{'예'}</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'MyArr.from({ length: 2 })'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">{'this(MyArr)'}</td>
+        <td className="border-border border px-3 py-2">
+          <code>{'2'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">{'예'}</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'MyArr.from([1, 2])'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">{'this(MyArr)'}</td>
+        <td className="border-border border px-3 py-2">{'인수 없음'}</td>
+        <td className="border-border border px-3 py-2">{'예'}</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'Array.from(a)'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">{'this(Array)'}</td>
+        <td className="border-border border px-3 py-2">{'MyArr를 부르지 않음'}</td>
+        <td className="border-border border px-3 py-2">{'아니요'}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+9·10행의 차이는 `Array.from`이 인수를 순회할 수 있는지에 따른 것이며 [이터러블과 for...of](/concepts/iterable-for-of)에서 다룹니다.
+
+### 흔한 오해
+
+<Callout type="misconception" title="map 결과의 클래스는 원본이 만들어진 클래스로 정해진다">
+
+결과의 클래스는 원본이 어떤 클래스로 만들어졌는지가 아니라 호출 시점에 읽히는 `constructor` 프로퍼티와 그 값의 `Symbol.species`로 정해집니다. 평범한 배열도 `constructor`를 `MyArr`로 바꾸면 `map`의 결과가 `MyArr`이고, `MyArr` 인스턴스도 `constructor`를 `Array`로 바꾸면 `Array`입니다(예제 2의 첫 두 줄).
+
+</Callout>
+
+<Callout type="misconception" title="Symbol.species를 Array로 바꾸면 그 클래스는 자기 인스턴스를 만들지 못한다">
+
+species는 배열 메서드가 결과를 만들 때만 읽힙니다. `Plain`이 species를 `Array`로 돌려줘도 `Plain.of`·`Plain.from`·`new Plain()`은 `Plain` 인스턴스를 만듭니다(예제 3의 첫째·넷째·다섯째 줄).
+
+</Callout>
