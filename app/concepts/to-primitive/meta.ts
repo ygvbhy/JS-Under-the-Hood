@@ -43,6 +43,7 @@ export const concept = {
     'expressions-statements',
     'json',
     'error-handling',
+    'relational-comparison',
   ],
   examples: [
     {
@@ -87,7 +88,7 @@ export const concept = {
     'Date의 다른 변환(시각 값, toString 형식)은 Date 개념에서 다룹니다. 명세가 정의한 객체 중 기본 동작을 바꾸는 것은 Date와 Symbol 객체뿐이며 Symbol 객체는 다루지 않습니다.',
     '원시 값끼리의 변환 규칙은 암묵적 타입 변환 개념에서, ToPrimitive가 BigInt를 돌려준 뒤의 연산은 BigInt 개념에서 다룹니다.',
     '`==`의 나머지 단계(null·undefined, 객체끼리, 불리언의 숫자 변환)는 동등 비교 개념에서 다룹니다.',
-    '`a > b`는 IsLessThan이 두 피연산자의 순서를 바꿔 계산하며, 이 페이지는 그 결과의 힌트(number)만 씁니다.',
+    '명세에서 `a > b`는 피연산자 순서를 바꿔 IsLessThan(b, a, false)로 계산하며, 이 페이지는 그 결과의 힌트(number)만 씁니다. 이 순서 바꿈은 관계 비교 개념에서 다룹니다.',
     'Array.prototype.toString은 join을 부르며 join의 세부(null·undefined 요소, 중첩 배열)는 다루지 않습니다. `Symbol.toStringTag`로 태그를 바꾼 객체는 심벌 개념에서 다룹니다.',
     '`{} + []`처럼 `{}`가 문 맨 앞에 오면 블록으로 읽혀 결과가 달라지므로, 이 페이지는 `{}`가 앞에 오는 형태를 다루지 않습니다(표현식과 문 개념).',
     '예제의 메서드는 객체 리터럴에 직접 정의한 자기 프로퍼티입니다. `Object.prototype`의 메서드를 바꾸는 방법은 다루지 않습니다. `JSON.stringify`는 빈 문자열을 보이려는 출력 용도이며 JSON 개념에서 다룹니다.',

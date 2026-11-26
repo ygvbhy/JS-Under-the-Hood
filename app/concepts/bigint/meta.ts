@@ -45,6 +45,7 @@ export const concept = {
     'error-handling',
     'to-primitive',
     'math',
+    'relational-comparison',
   ],
   examples: [
     {
@@ -128,7 +129,7 @@ export const concept = {
     '예제의 console은 ECMAScript 언어가 아니라 호스트가 제공하는 API입니다. BigInt는 String()으로 바꿔 넘겼고, Node의 출력 서식이 정하는 1n 같은 표기에 기대지 않았습니다.',
     '예제는 오류의 이름을 보이려고 try…catch를 씁니다. 오류 처리는 try/catch/finally 개념에서 다룹니다.',
     '객체 피연산자(래퍼 객체, valueOf를 정의한 객체)를 원시 값으로 바꾸는 과정(ToPrimitive)은 객체를 원시 값으로 개념에서 다루며, ToPrimitive가 BigInt를 돌려준 뒤의 연산은 다루지 않습니다.',
-    'a > b와 a <= b는 명세에서 IsLessThan의 인수 순서를 바꿔 계산하지만, 본문은 왼쪽과 오른쪽을 그대로 비교하는 것으로 설명합니다(암묵적 타입 변환 페이지와 같은 단순화).',
+    'a > b와 a <= b는 명세에서 IsLessThan의 인수 순서를 바꿔 계산하지만, 본문은 왼쪽과 오른쪽을 그대로 비교하는 것으로 설명합니다(암묵적 타입 변환 페이지와 같은 단순화). 이 순서 바꿈은 관계 비교 개념에서 다룹니다.',
     'BigInt()와 ==, 관계 비교(<, > 등)에 Symbol 값을 넘기는 경우는 다루지 않습니다(관계 비교는 BigInt와 비교해도 TypeError입니다). Symbol은 뒤의 개념입니다.',
     'Number 비트 연산의 세부(피연산자의 ToInt32·ToUint32, 시프트 횟수를 32로 나눈 나머지)는 다루지 않고 1 << 31과의 대비에 필요한 만큼만 씁니다.',
     'Number로 바꾼 값의 출력은 Number::toString이 고른 가장 짧은 자릿수 표기입니다. 자릿수 후보가 여럿인 값(예: 2의 64제곱)은 마지막 자리를 명세가 하나로 정하지 않아 예제에 쓰지 않았습니다.',

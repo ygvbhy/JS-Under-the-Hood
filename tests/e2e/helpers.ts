@@ -70,6 +70,7 @@ export const AUTOMATIC_SEMICOLON_INSERTION_PATH = '/concepts/automatic-semicolon
 export const UNCAUGHT_EXCEPTIONS_PATH = '/concepts/uncaught-exceptions'
 export const MUTATION_OBSERVER_PATH = '/concepts/mutation-observer'
 export const MATH_PATH = '/concepts/math'
+export const RELATIONAL_COMPARISON_PATH = '/concepts/relational-comparison'
 export const NUMBER_PITFALLS_PATH = '/concepts/number-pitfalls'
 export const NUMBER_PITFALLS_VIEW_NAME = '반올림 판정 보기'
 export const BIGINT_PATH = '/concepts/bigint'

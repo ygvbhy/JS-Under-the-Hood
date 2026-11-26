@@ -1585,6 +1585,35 @@ describe('프리렌더 (math)', () => {
   })
 })
 
+// relational-comparison: 값 쌍 표와 퀴즈가 프리렌더 HTML에 정적으로 있어야 한다(표 머리의 `a < b`는 HTML에서 이스케이프된다).
+describe('프리렌더 (relational-comparison)', () => {
+  const html = read('concepts/relational-comparison/index.html')
+  const text = htmlToText(html)
+
+  it('값 쌍 표 region과 머리·행이 HTML에 있다', () => {
+    expect(html).toMatch(
+      /role="region"[^>]*aria-label="값 쌍 비교 결과 표\(좁은 화면에서는 가로로 스크롤할 수 있습니다\)"/,
+    )
+    expect(html).toContain('a &lt; b')
+    expect(text).toContain('a <= b')
+    expect(html.match(/<tr\b/g)?.length).toBeGreaterThanOrEqual(9)
+    expect(text).toContain('undefined')
+  })
+
+  it('퀴즈 정답이 <details>로 5개 이상 프리렌더되고 각 정답이 있다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(5)
+    for (const answer of [
+      'false false true / true true false',
+      'false false false false / false false false false',
+      'true false true / false false true',
+      'true false true true / true false true false',
+      'false abAB / true abAB',
+    ]) {
+      expect(text).toContain(answer)
+    }
+  })
+})
+
 // 추가 게시글(request-animation-frame): 시뮬레이터의 첫 단계와 퀴즈가 프리렌더 HTML에 정적으로 있어야 한다.
 describe('프리렌더 (request-animation-frame)', () => {
   const html = read('concepts/request-animation-frame/index.html')
