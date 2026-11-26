@@ -68,6 +68,7 @@ import {
   MUTATION_OBSERVER_PATH,
   MATH_PATH,
   RELATIONAL_COMPARISON_PATH,
+  SWITCH_LET_PATH,
   UNCAUGHT_EXCEPTIONS_PATH,
   NUMBER_PITFALLS_VIEW_NAME,
   ITERABLE_FOR_OF_PATH,
@@ -1573,6 +1574,16 @@ test(`${RELATIONAL_COMPARISON_PATH}: 가로 스크롤이 없다`, async ({ page 
   expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
 })
 
+test(`${SWITCH_LET_PATH}: 가로 스크롤이 없다`, async ({ page }) => {
+  await page.goto(SWITCH_LET_PATH)
+  await waitForHydration(page)
+  const { scrollWidth, innerWidth } = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    innerWidth: window.innerWidth,
+  }))
+  expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
+})
+
 test(`${GENERATOR_PATH}: 가로 스크롤이 없다`, async ({ page }) => {
   await page.goto(GENERATOR_PATH)
   await waitForHydration(page)
@@ -1870,7 +1881,7 @@ test('Promise 정적 메서드 개념 페이지: 두 시나리오를 끝까지 �
 test('홈 학습 순서 보기: 가로 스크롤이 없다', async ({ page }) => {
   await page.goto('/?view=order')
   await waitForHydration(page)
-  await expect(page.getByRole('article')).toHaveCount(80)
+  await expect(page.getByRole('article')).toHaveCount(81)
   const { scrollWidth, innerWidth } = await page.evaluate(() => ({
     scrollWidth: document.documentElement.scrollWidth,
     innerWidth: window.innerWidth,

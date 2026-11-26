@@ -1614,6 +1614,39 @@ describe('프리렌더 (relational-comparison)', () => {
   })
 })
 
+// switch-let: 결과 표·선언 종류 표와 퀴즈가 프리렌더 HTML에 정적으로 있어야 한다.
+describe('프리렌더 (switch-let)', () => {
+  const html = read('concepts/switch-let/index.html')
+  const text = htmlToText(html)
+
+  it('결과 표와 선언 종류 표 region이 HTML에 있다', () => {
+    expect(html).toMatch(
+      /role="region"[^>]*aria-label="예제 결과 표\(좁은 화면에서는 가로로 스크롤할 수 있습니다\)"/,
+    )
+    expect(html).toMatch(
+      /role="region"[^>]*aria-label="선언 종류 표\(좁은 화면에서는 가로로 스크롤할 수 있습니다\)"/,
+    )
+    expect(text).toContain('SyntaxError / ok / ok / SyntaxError')
+    expect(text).toContain('함수 선언(sloppy, 웹 호환 규칙)')
+    expect(html.match(/<tr\b/g)?.length).toBeGreaterThanOrEqual(15)
+  })
+
+  it('퀴즈 정답이 <details>로 7개 이상 프리렌더되고 각 정답이 있다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(7)
+    for (const answer of [
+      'SyntaxError / ok / ok / SyntaxError',
+      'low / ReferenceError / none',
+      'A / ReferenceError',
+      'zero / one / one / outer',
+      'var-var, function',
+      'function / true / false',
+      'v / ReferenceError',
+    ]) {
+      expect(text).toContain(answer)
+    }
+  })
+})
+
 // 추가 게시글(request-animation-frame): 시뮬레이터의 첫 단계와 퀴즈가 프리렌더 HTML에 정적으로 있어야 한다.
 describe('프리렌더 (request-animation-frame)', () => {
   const html = read('concepts/request-animation-frame/index.html')

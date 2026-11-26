@@ -42,6 +42,7 @@ export const concept = {
     'es-modules',
     'function-definitions',
     'automatic-semicolon-insertion',
+    'switch-let',
   ],
   examples: [
     {
@@ -113,7 +114,7 @@ export const concept = {
   ],
   simplifications: [
     '이름 충돌 예제는 한 파일 안에 두 라이브러리 구간을 이어 붙여 여러 script를 흉내 낸 것입니다. 실제로 script가 둘로 나뉘면 앞 script가 실행되는 동안에는 앞의 함수가 쓰이고, 이 차이는 본문에서 설명합니다.',
-    '블록 안 함수 선언(부록 B)은 웹 브라우저 호스트에서 필수이고 다른 호스트에서는 선택입니다. 같은 이름의 let이 있을 때나 switch의 case 안 같은 세부 조건은 다루지 않습니다.',
+    '블록 안 함수 선언(부록 B)은 웹 브라우저 호스트에서 필수이고 다른 호스트에서는 선택입니다. 같은 이름의 let이 있을 때의 세부 조건은 다루지 않고, switch의 case 안 함수 선언은 switch와 let 개념에서 다룹니다.',
     'ES 모듈, CommonJS, AMD, 번들러 같은 모듈 체계는 다루지 않고 ES 모듈은 ES 모듈 개념에서 다룹니다.',
     '비교표의 "전역에 남는 이름"은 이 페이지의 예제 기준입니다. 같은 방법이라도 코드에 따라 전역에 남는 이름은 달라질 수 있습니다.',
     '예제의 console은 ECMAScript 언어가 아니라 호스트가 제공하는 API입니다.',
