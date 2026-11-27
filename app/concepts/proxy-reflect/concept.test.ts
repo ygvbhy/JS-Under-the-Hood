@@ -600,11 +600,11 @@ describe('메타와 본문 조건', () => {
     expect(filterConcepts([concept], '객체').map((c) => c.slug)).toEqual(['proxy-reflect'])
   })
 
-  it('order는 307이고 summary는 160자 이하이며 category는 objects, reviewedAt은 null이다', () => {
+  it('order는 307이고 summary는 160자 이하이며 category는 objects, reviewedAt은 2026-11-27이다', () => {
     expect(concept.order).toBe(307)
     expect(concept.summary.length).toBeLessThanOrEqual(160)
     expect(concept.category).toBe('objects')
-    expect(concept.reviewedAt).toBeNull()
+    expect(concept.reviewedAt).toBe('2026-11-27')
   })
 
   it('goals에 백틱이 없고 simplifications가 7개이다', () => {

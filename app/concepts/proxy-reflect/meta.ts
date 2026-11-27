@@ -154,5 +154,5 @@ export const concept = {
     { label: 'MDN — Proxy.revocable()', url: `${MDN}Global_Objects/Proxy/revocable` },
     { label: 'MDN — handler.get()', url: `${MDN}Global_Objects/Proxy/Proxy/get` },
   ],
-  reviewedAt: null,
+  reviewedAt: '2026-11-27',
 } satisfies ConceptMeta
