@@ -62,6 +62,7 @@ import {
   SWITCH_LET_PATH,
   ARRAY_SUBCLASS_PATH,
   ERROR_OBJECTS_PATH,
+  PROXY_REFLECT_PATH,
   UNCAUGHT_EXCEPTIONS_PATH,
   ARROW_FUNCTIONS_PATH,
   ARRAY_INDEX_LENGTH_PATH,
@@ -962,6 +963,13 @@ for (const colorScheme of ['light', 'dark'] as const) {
 
     test('개념 페이지: 에러 객체', async ({ page }) => {
       await page.goto(ERROR_OBJECTS_PATH)
+      await waitForHydration(page)
+      await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
+      await expectNoSeriousViolations(page)
+    })
+
+    test('개념 페이지: Proxy와 Reflect', async ({ page }) => {
+      await page.goto(PROXY_REFLECT_PATH)
       await waitForHydration(page)
       await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
       await expectNoSeriousViolations(page)

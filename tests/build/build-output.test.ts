@@ -1711,6 +1711,39 @@ describe('프리렌더 (error-objects)', () => {
   })
 })
 
+// proxy-reflect: 결과 표·연산과 트랩 대응 표·실패 알림 비교 표와 퀴즈가 프리렌더 HTML에 정적으로 있어야 한다.
+describe('프리렌더 (proxy-reflect)', () => {
+  const html = read('concepts/proxy-reflect/index.html')
+  const text = htmlToText(html)
+
+  it('결과 표와 연산과 트랩 대응 표, 실패 알림 비교 표 region이 HTML에 있다', () => {
+    for (const name of ['예제 결과 표', '연산과 트랩 대응 표', '실패 알림 비교 표']) {
+      expect(html).toMatch(
+        new RegExp(
+          `role="region"[^>]*aria-label="${name}\\(좁은 화면에서는 가로로 스크롤할 수 있습니다\\)"`,
+        ),
+      )
+    }
+  })
+
+  it('퀴즈 정답이 <details>로 9개 이상 프리렌더되고 각 정답이 있다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(9)
+    for (const answer of [
+      '1 2 / true a,b / false',
+      '1000 -1 undefined / false',
+      'true true / TypeError / 0 / TypeError / 0',
+      'TypeError / increment / 1 2',
+      'a base',
+      '1 undefined / false / TypeError / false / TypeError',
+      'TypeError / 2 / 1 / 2 2',
+      'false name,_token / true name {"name":"kim"} / abc abc true',
+      '1 / true false object / TypeError / TypeError / undefined',
+    ]) {
+      expect(text).toContain(answer)
+    }
+  })
+})
+
 // 추가 게시글(request-animation-frame): 시뮬레이터의 첫 단계와 퀴즈가 프리렌더 HTML에 정적으로 있어야 한다.
 describe('프리렌더 (request-animation-frame)', () => {
   const html = read('concepts/request-animation-frame/index.html')

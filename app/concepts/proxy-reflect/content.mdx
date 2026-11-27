@@ -1,0 +1,529 @@
+`new Proxy(new Date(0), {})`로 감싼 객체에서 `getTime()`을 부르면 TypeError가 납니다. 트랩이 하나도 없는 프록시는 내부 메서드 호출을 모두 대상으로 넘기는데도 왜 대상과 똑같이 동작하지 않을까요? 이 페이지는 세 가지 질문으로 `Proxy`와 `Reflect`를 설명합니다. 이 연산은 어떤 내부 메서드를 부르고 그 트랩이 있는가, 읽어 온 함수를 부를 때 `this`가 무엇인가, 트랩이 돌려준 결과는 어떤 검사를 거치는가입니다. 빈 핸들러, `get` 트랩, `Date`와 private 필드의 TypeError, `Reflect.get`의 receiver, `set` 트랩이 `false`를 돌려줄 때, 불변 조건, `has`와 `ownKeys`로 숨기기, 취소 가능한 프록시를 Node에서 실행한 결과로 확인합니다. 예외를 잡는 `try…catch`는 [예외 처리](/concepts/error-handling)에서, `JSON.stringify`는 [JSON](/concepts/json)에서 다룹니다.
+
+## 동작 원리
+
+### 프록시는 연산을 트랩으로 받는다
+
+프로퍼티 읽기, 쓰기, `in`, 자기 키 목록 얻기 같은 연산은 명세에서 객체의 내부 메서드로 정의되어 있습니다. 읽기는 `[[Get]]`, 쓰기는 `[[Set]]`, `in`은 `[[HasProperty]]`, 자기 키 목록은 `[[OwnPropertyKeys]]`입니다. 일반 객체는 이 메서드를 명세의 기본 알고리즘으로 구현하고, 프록시는 이렇게 정의됩니다.
+
+> A Proxy object is an exotic object whose essential internal methods are partially implemented using ECMAScript code.
+
+`new Proxy(target, handler)`가 만든 프록시의 내부 메서드는 `handler`에서 그 내부 메서드에 대응하는 트랩(`[[Get]]`은 `get`, `[[Set]]`은 `set`, `[[HasProperty]]`는 `has`, `[[OwnPropertyKeys]]`는 `ownKeys` 등)을 찾아 있으면 그 함수를 부릅니다. 트랩이 없으면 대상(`target`)의 같은 내부 메서드를 부릅니다. 명세도 핸들러에 모든 트랩이 있을 필요가 없다고 씁니다.
+
+> A proxy's handler object does not necessarily have a method corresponding to every essential internal method.
+
+그래서 빈 핸들러 `{}`로 만든 프록시는 모든 내부 메서드 호출을 대상으로 넘깁니다. 내부 메서드를 거치지 않는 private 접근과 내부 슬롯 확인은 넘어가지 않습니다(예외인 배열 판정과 함께 아래 내부 슬롯 절에서 다룹니다). 예제 1에서 `proxy.b = 2`가 `target`에 `b`를 만들고, `Object.keys(proxy)`가 대상의 키를 돌려줍니다. 그렇다고 프록시가 대상의 복사본인 것은 아닙니다. 프록시에 한 대입이 대상에 보이기 때문입니다. 프록시가 대상 자신인 것도 아닙니다. `proxy === target`은 `false`입니다. 프록시는 `[[ProxyTarget]]`과 `[[ProxyHandler]]` 슬롯으로 대상과 핸들러를 가리키는 별개의 객체입니다. 예제 3의 `proxy instanceof Date`가 `true`인 것도 같은 방식으로 설명됩니다. `instanceof`가 프록시의 `[[GetPrototypeOf]]`를 부르고, 그 트랩이 없어 대상으로 넘어가기 때문입니다.
+
+트랩이 있어도 그 트랩이 바꾸는 것은 대응하는 내부 메서드뿐입니다. 예제 2에서 `get` 트랩이 돌려준 `-1`은 읽기의 결과일 뿐 대상에 저장되지 않고, `'banana' in proxy`는 `[[HasProperty]]`를 부르므로 `get` 트랩을 거치지 않습니다.
+
+### Reflect는 기본 동작을 함수로 부른다
+
+`Reflect.get`, `Reflect.set`, `Reflect.has`, `Reflect.ownKeys`는 위의 내부 메서드를 직접 부르는 함수입니다. `Reflect.get(target, key, receiver)`는 `target.[[Get]](key, receiver)`이고, `Reflect.set`은 `[[Set]]`, `Reflect.has`는 `[[HasProperty]]`, `Reflect.ownKeys`는 `[[OwnPropertyKeys]]`를 부릅니다. 트랩 안에서 기본 동작을 그대로 하고 싶을 때 이 함수를 씁니다(예제 2의 `Reflect.get(target, key, receiver)`). `Reflect.get`에 receiver를 생략하면 대상이 receiver입니다. `Reflect.set`과 `Reflect.defineProperty`는 내부 메서드가 돌려준 Boolean을 그대로 돌려줍니다.
+
+### receiver는 getter의 this가 된다
+
+`[[Get]]`과 `[[Set]]`은 키 외에 receiver를 받습니다. 접근자 프로퍼티의 getter는 자기 것이든 상속한 것이든 이 receiver를 `this`로 받아 불립니다(getter와 setter는 [클래스의 getter와 setter](/concepts/class-accessors)와 [프로퍼티 어트리뷰트와 접근자](/concepts/property-attributes)에서 다룹니다). 예제 5의 `Reflect.get(base, 'name')`은 receiver가 생략되어 getter의 `this`가 `base`이고, 세 번째 인수로 `{ _name: 'other' }`를 주면 getter가 그 객체의 `_name`을 읽습니다.
+
+체인 안에 프록시가 있으면 receiver가 달라집니다. `a = Object.create(viaReflect)`의 프로토타입은 프록시입니다. `a._name = 'a'`는 `a`에 `_name`이 없어 프로토타입인 프록시의 `[[Set]]`(receiver는 `a`)로 이어지고, 트랩이 없으므로 대상 `base`의 `[[Set]]`으로 넘어가 결국 `a`에 자기 프로퍼티 `_name`이 만들어집니다. 이 대입도 프록시의 `[[Set]]`을 거칩니다. `a.name`을 읽으면 `a`에 `name`이 없어 프록시의 `[[Get]]`(receiver는 `a`)이 불립니다. `get` 트랩이 `Reflect.get(target, key, receiver)`로 넘기면 getter의 `this`가 `a`가 되어 `a._name`인 `'a'`를 읽고, `target[key]`로 넘기면 getter가 대상 `base`를 `this`로 받아 `'base'`를 읽습니다. `target[key]`는 트랩이 받은 receiver 대신 대상 자신을 receiver로 하는 읽기이기 때문입니다.
+
+### 내부 슬롯과 private 요소는 대상에 있다
+
+`Date.prototype.getTime`은 `this` 값에 내부 슬롯 `[[DateValue]]`가 있는지 확인합니다(명세의 RequireInternalSlot). `new Date(0)`이 만든 객체에는 있고, 프록시에는 없습니다. 명세의 ProxyCreate가 프록시를 `[[ProxyHandler]]`와 `[[ProxyTarget]]` 슬롯(모든 객체에 있는 `[[PrivateElements]]`는 비어 있음)으로 만들 뿐 `[[DateValue]]`는 붙이지 않기 때문입니다. 예제 3에서 `proxy.getTime`은 `[[Get]]`이 대상으로 넘어가 `Date.prototype.getTime` 함수 자체를 읽습니다(첫 줄의 두 번째 `true`). 하지만 `proxy.getTime()`이 부르는 이 함수의 `this`는 점 앞의 값인 프록시이므로 TypeError입니다. `this` 값의 내부 슬롯을 확인하는 내장 메서드라면 `Date`가 아니어도 같은 이유로 실패합니다. `Reflect.get(target, key, receiver)`로 넘기는 `get` 트랩이 있어도 호출의 `this`는 여전히 점 앞의 프록시이므로 결과가 같습니다. receiver는 접근자 프로퍼티의 getter가 받는 `this`를 정하는 값이고, 읽은 함수를 부를 때의 `this`를 바꾸지 않습니다.
+
+고치려면 트랩에서 함수 값을 대상에 `bind`해 돌려주면 됩니다(예제 3의 `bound`). 이것은 메서드 호출의 `this`만 대상으로 바꾸는 최소 형태입니다. 읽을 때마다 새 함수를 만들고, 그 함수는 다른 `this`로 부를 수 없게 됩니다. [this 바인딩](/concepts/this-binding)에서 다룬 `bind`와 같은 동작입니다. 또 동결한 객체 리터럴의 메서드처럼 그 함수가 대상의 자기 프로퍼티이고 쓰기 불가이면서 설정 불가이면, `bind`가 만든 새 함수는 대상의 값과 다른 값이므로 아래 불변 조건(예제 7)에 걸려 읽기부터 TypeError입니다. 프로토타입에서 상속한 메서드는 대상의 자기 프로퍼티가 아니므로 대상을 동결해도 이 조건에 걸리지 않습니다. 그래서 일반적인 해법으로 단정하지 않습니다.
+
+private 필드도 같은 이유로 실패합니다. `this.#count` 같은 private 접근은 `[[Get]]`을 부르지 않고, `this` 값의 `[[PrivateElements]]`에서 그 private 이름을 직접 찾습니다(명세의 PrivateGet). 프록시의 `[[PrivateElements]]`에는 `#count`가 없으므로 `proxy.increment()` 안의 `this.#count`는 TypeError입니다. 예제 4의 둘째 줄 `increment`는 `get` 트랩이 받은 키가 `increment` 하나뿐이었다는 것, 곧 `this.#count` 접근이 트랩을 부르지 않았다는 것을 보입니다. private 요소는 객체 자신에게 있는 것만 본다는 점은 [클래스의 getter와 setter](/concepts/class-accessors)에서 본 규칙(프로토타입 체인으로 찾지 않는다)과 같은 성질입니다.
+
+트랩에서 함수를 `bind`하는 방법은 메서드 호출만 고칩니다. `get count() { return this.#count; }`처럼 private 필드를 읽는 getter는 트랩 안의 `Reflect.get(target, key, receiver)`가 receiver인 프록시를 `this`로 해서 실행하므로, 트랩이 값을 받아 `bind`하기 전에 TypeError가 납니다. 내부 슬롯을 확인하는 내장 getter도 같습니다. 이런 getter를 대상에서 실행하려면 receiver 자리에 대상을 넘겨야 하고(`Reflect.get(target, key, target)`), 그러면 예제 5처럼 프록시를 프로토타입으로 둔 객체의 getter가 그 객체를 `this`로 받는 동작을 잃습니다.
+
+모든 종류 확인이 대상으로 넘어가지 않는 것은 아닙니다. 배열인지 판정하는 `Array.isArray`(명세의 IsArray)는 예외로, 인수가 프록시이면 그 대상을 다시 판정하도록 정해져 있어 `Array.isArray(new Proxy([], {}))`는 `true`입니다. `JSON.stringify`도 이 판정으로 배열을 알아보므로 `JSON.stringify(new Proxy([1, 2], {}))`는 `[1,2]`입니다.
+
+### 트랩 결과는 검사를 거친다
+
+`set` 트랩의 반환값을 불리언으로 변환한 값이 `false`이면 프록시의 `[[Set]]`은 `false`를 돌려줍니다. 이때 예외는 아직 없습니다. 그 `false`를 어떻게 다루는지는 부른 쪽이 정합니다. 대입 표현식은 명세의 PutValue가 strict mode 코드일 때만 TypeError를 던지고 아니면 무시합니다. `Reflect.set`은 Boolean을 그대로 돌려줍니다. 새 프로퍼티를 정의하는 쪽도 비슷합니다. `Reflect.defineProperty`는 `[[DefineOwnProperty]]`의 Boolean을 돌려주고, `Object.defineProperty`는 `false`이면 TypeError를 던집니다(명세의 DefinePropertyOrThrow). 아래 실패 알림 비교 표에 정리합니다.
+
+`set` 트랩의 반환값은 불리언으로 변환해 판정하므로, 명시적인 `false`뿐 아니라 `return`을 빠뜨려 `undefined`를 돌려준 트랩도 실패로 처리됩니다. 트랩 안에서 대상에 값을 이미 저장했어도 마찬가지입니다. 그래서 기본 동작을 넘기는 `set` 트랩은 `return Reflect.set(target, key, value, receiver)`처럼 결과를 돌려줍니다.
+
+트랩은 아무 값이나 돌려줄 수 있는 것이 아닙니다. 명세는 프록시가 객체의 불변 조건을 깨지 않도록 트랩의 결과를 대상의 상태와 대조해 검사한다고 씁니다.
+
+> ECMAScript Proxy objects maintain these invariants by means of runtime checks on the result of traps invoked on the [[ProxyHandler]] object.
+
+이 검사가 지키는 규칙을 불변 조건(invariant)이라 합니다. 이 페이지는 `get` 트랩의 데이터 프로퍼티 조건 하나만 실행으로 보입니다.
+
+> The value reported for a property must be the same as the value of the corresponding target object property if the target object property is a non-writable, non-configurable own data property.
+
+예제 7의 네 경우가 이 조건의 범위를 보입니다. 대상의 프로퍼티가 쓰기 불가이면서 설정 불가인데 트랩이 다른 값을 돌려주면 TypeError이고(첫 줄), 같은 값이면 통과합니다(셋째 줄). 같은 값인지는 `===`가 아니라 SameValue로 판단하므로, 대상의 값이 `NaN`일 때 `NaN`을 돌려주면 통과하고 대상의 값이 `0`일 때 `-0`을 돌려주면 TypeError입니다([프로퍼티 어트리뷰트와 접근자](/concepts/property-attributes)에서 본 재정의 규칙과 같은 기준입니다). 둘 중 하나만 해당하면 다른 값도 통과하고(넷째 줄), 대상에 없는 키도 통과합니다(둘째 줄). `has`, `ownKeys`, `set`에도 불변 조건이 있지만 이 페이지는 실행으로 확인하지 않았습니다.
+
+### has와 ownKeys는 서로 다른 연산을 바꾼다
+
+`in`은 `[[HasProperty]]`를 부르므로 `has` 트랩만 거칩니다. `Object.keys`와 `JSON.stringify`는 `[[OwnPropertyKeys]]`로 키 목록을 얻으므로 `ownKeys` 트랩의 영향을 받습니다. 둘 다 키마다 `[[GetOwnProperty]]`로 열거 가능한지도 보기 때문에 결과가 `ownKeys` 트랩의 결과와 같다고 단정하지 않습니다. 값을 읽는 `proxy._token`은 `[[Get]]`이고, `Object.hasOwn`은 `[[GetOwnProperty]]`이므로 둘 다 `has`와 `ownKeys` 트랩이 바꾸지 못합니다. 예제 8에서 `in`·`Object.keys`·`JSON.stringify`에서 안 보이게 된 프로퍼티도 값 읽기와 `Object.hasOwn`에서는 그대로 보입니다. 그래서 이 두 트랩만으로는 프로퍼티를 숨겼다고 할 수 없습니다.
+
+### 취소한 프록시
+
+`Proxy.revocable(target, handler)`는 `{ proxy, revoke }` 객체를 돌려줍니다. `revoke()`를 부르면 그 프록시의 `[[ProxyTarget]]`과 `[[ProxyHandler]]` 슬롯이 `null`이 되고 `undefined`를 돌려줍니다. 프록시 값은 그대로입니다. 변수 `proxy`가 `null`이 되는 것이 아니라 같은 프록시 객체를 가리키므로 `proxy === pair.proxy`는 `true`이고 `proxy === null`은 `false`입니다. 그 뒤 내부 메서드를 부르는 연산(`proxy.a`의 `[[Get]]`, `'a' in proxy`의 `[[HasProperty]]`)은 취소 여부를 확인하는 ValidateNonRevokedProxy에서 TypeError입니다. 프록시의 내부 메서드를 부르지 않는 위의 `Array.isArray`도 이 확인을 거쳐 TypeError입니다. `typeof`는 `[[Call]]` 유무만 보고 내부 메서드를 부르지도 취소 여부를 확인하지도 않으므로, 취소한 뒤에도 취소 전과 같은 값(대상이 함수가 아닌 이 예제에서는 `'object'`)입니다. 이미 취소한 프록시에 `revoke()`를 다시 불러도 아무 일도 하지 않고 `undefined`를 돌려줍니다.
+
+### 이 페이지가 다루지 않는 것
+
+`get`, `set`, `has`, `ownKeys` 밖의 트랩(`getPrototypeOf`, `setPrototypeOf`, `isExtensible`, `preventExtensions`, `deleteProperty`, `apply`, `construct`), `Reflect.apply`와 `Reflect.construct`, 함수 프록시, 다른 realm, Proxy를 쓴 반응형 패턴, `ownKeys` 결과의 순서, 심벌 키, 성능은 다루지 않습니다. `getOwnPropertyDescriptor`와 `defineProperty` 트랩은 아래 대응 표에서 함께 불리는 이름으로만 나옵니다.
+
+## 예제
+
+예제의 출력은 Node의 `vm` 모듈에서 스크립트로 실행한 결과입니다. 예제 6을 뺀 모든 예제는 파일 첫 줄에 `'use strict';`를 붙여도 출력이 같습니다. 예제 6은 sloppy mode를 전제로 하며, strict mode 코드나 ES 모듈에서는 8번 줄의 대입이 TypeError를 던집니다. `console.log`는 값을 출력하는 호스트 API이며 ECMAScript 언어의 일부가 아닙니다.
+
+### 예제 1: 빈 핸들러는 대상으로 넘긴다
+
+```js file=./examples/forward.js
+
+```
+
+<PredictQuiz
+  question="예제 1의 전체 출력은 무엇일까요?"
+  choices={['1 undefined / false a,b / false', '1 2 / true a,b / false', '1 2 / true a,b / true']}
+  answer={1}
+  explanation="빈 핸들러의 프록시는 대입을 대상으로 넘겨 target에 b가 생기고, 프록시와 대상은 서로 다른 객체입니다. 프록시가 대상의 복사본이라고 보는 모델은 target.b가 undefined인 첫 번째 선택지, 프록시가 대상 자신이라고 보는 모델은 마지막 값이 true인 세 번째 선택지가 됩니다."
+/>
+
+### 예제 2: get 트랩
+
+```js file=./examples/get-trap.js
+
+```
+
+<PredictQuiz
+  question="예제 2의 전체 출력은 무엇일까요?"
+  choices={['1000 -1 undefined / false', '1000 -1 undefined / true', '1000 -1 -1 / true']}
+  answer={0}
+  explanation="get 트랩이 돌려준 값은 읽기의 결과일 뿐 대상에 저장되지 않고, in은 HasProperty를 부르므로 get 트랩을 거치지 않습니다. in도 get 트랩의 결과를 따른다고 보는 모델은 마지막 값이 true인 두 번째 선택지, 트랩이 돌려준 값이 대상에 저장된다고 보는 모델은 prices.banana가 -1인 세 번째 선택지가 됩니다."
+/>
+
+### 예제 3: 내부 슬롯과 this
+
+```js file=./examples/date-slot.js
+
+```
+
+<PredictQuiz
+  question="예제 3의 전체 출력은 무엇일까요?"
+  choices={[
+    'true true / 0 / 0 / 0 / 0',
+    'true true / TypeError / 0 / 0 / 0',
+    'true true / TypeError / 0 / TypeError / 0',
+  ]}
+  answer={2}
+  explanation="getTime의 this가 프록시이면 DateValue 슬롯이 없어 TypeError이고, Reflect.get으로 넘기는 트랩이 있어도 호출의 this는 점 앞의 프록시이며, 트랩에서 bind한 경우에만 대상의 시간 값 0이 나옵니다. 프록시가 대상과 똑같이 동작한다고 보는 모델은 TypeError가 없는 첫 번째 선택지, Reflect.get으로 넘기면 해결된다고 보는 모델은 네 번째 줄이 0인 두 번째 선택지가 됩니다."
+/>
+
+### 예제 4: private 필드
+
+```js file=./examples/private-field.js
+
+```
+
+<PredictQuiz
+  question="예제 4의 전체 출력은 무엇일까요?"
+  choices={['1 / increment / 2 3', 'TypeError / increment / 1 2', '1 / 빈 줄 / 2 3']}
+  answer={1}
+  explanation="this.#count는 this 값의 private 요소를 직접 찾으므로 this가 프록시이면 TypeError이고, get 트랩은 increment만 받습니다. get 트랩이 메서드를 대상에 묶어 준다고 보는 모델(메서드 호출이 대상에서처럼 성공한다고 보는 모델도 같은 출력)은 첫 번째 선택지, 핸들러를 무시하고 대상 자체를 다룬다고 보는 모델은 트랩이 한 번도 불리지 않아 둘째 줄이 빈 줄인 세 번째 선택지가 됩니다."
+/>
+
+### 예제 5: receiver가 getter의 this를 정한다
+
+```js file=./examples/receiver.js
+
+```
+
+<PredictQuiz
+  question="예제 5의 마지막 출력 줄(a.name과 b.name)은 무엇일까요?"
+  choices={['a b', 'base base', 'a base']}
+  answer={2}
+  explanation="Reflect.get으로 receiver를 넘기면 getter의 this가 a이고, target[key]는 트랩이 받은 receiver를 쓰지 않아 getter의 this가 대상 base입니다. target[key]도 트랩이 받은 receiver를 쓴다고 보는 모델은 첫 번째 선택지, receiver를 빼도 같다고 보는 모델(receiver가 늘 프록시라고 보는 모델도 같은 출력)은 두 번째 선택지가 됩니다."
+/>
+
+### 예제 6: set 트랩의 false와 Reflect의 boolean
+
+```js file=./examples/set-false.js
+
+```
+
+<PredictQuiz
+  question="예제 6의 전체 출력은 무엇일까요?"
+  choices={[
+    '1 undefined / false / TypeError / false / TypeError',
+    '1 1 / false / TypeError / false / TypeError',
+    '아무것도 출력하지 않고 8번 줄에서 TypeError로 멈춘다',
+  ]}
+  answer={0}
+  explanation="이 예제는 sloppy mode라 8번 줄의 대입은 false를 조용히 무시하고, strict 함수 안의 대입과 Object.defineProperty만 TypeError를 던지며 Reflect 함수는 false를 돌려줍니다. false이면 늘 TypeError라고 보는 모델은 8번 줄에서 멈추는 세 번째 선택지, false여도 대입은 이루어진다고 보는 모델은 readonly.x가 1인 두 번째 선택지가 됩니다."
+/>
+
+### 예제 7: 불변 조건
+
+```js file=./examples/invariant.js
+
+```
+
+<PredictQuiz
+  question="예제 7의 전체 출력은 무엇일까요?"
+  choices={[
+    '2 / 2 / 1 / 2 2',
+    'TypeError / 2 / 1 / 2 2',
+    'TypeError / 2 / 1 / 그다음 줄에서 TypeError로 멈춘다',
+  ]}
+  answer={1}
+  explanation="대상의 프로퍼티가 쓰기 불가이면서 설정 불가일 때만 다른 값이 TypeError이고, 같은 값이거나 한쪽 조건만 해당하거나 대상에 없는 키이면 통과합니다. 트랩은 아무 값이나 돌려줄 수 있다고 보는 모델은 첫 번째 선택지, 설정 불가이면 쓰기 가능 여부와 무관하게 걸린다고 보는 모델은 마지막 줄에서 멈추는 세 번째 선택지가 됩니다."
+/>
+
+### 예제 8: has와 ownKeys로 숨기기
+
+```js file=./examples/hide.js
+
+```
+
+<PredictQuiz
+  question="예제 8의 전체 출력은 무엇일까요?"
+  choices={[
+    'false name / true name {"name":"kim"} / abc abc true',
+    'false name,_token / false name {"name":"kim"} / abc abc true',
+    'false name,_token / true name {"name":"kim"} / abc abc true',
+    'false name,_token / true name {"name":"kim"} / undefined undefined true',
+  ]}
+  answer={2}
+  explanation="이 예제의 연산 가운데 has 트랩은 in의 결과를, ownKeys 트랩은 Object.keys와 JSON.stringify의 키 목록을 바꾸고, 값 읽기와 Object.hasOwn은 두 트랩 모두 바꾸지 않습니다. has 트랩이 Object.keys에도 적용된다고 보는 모델은 첫 번째 선택지, ownKeys 트랩이 in에도 적용된다고 보는 모델은 두 번째 선택지, 숨기면 값도 읽을 수 없다고 보는 모델은 세 번째 줄이 undefined인 네 번째 선택지가 됩니다."
+/>
+
+### 예제 9: 취소 가능한 프록시
+
+```js file=./examples/revocable.js
+
+```
+
+<PredictQuiz
+  question="예제 9의 전체 출력은 무엇일까요?"
+  choices={[
+    '1 / true false object / 1 / true / undefined',
+    '1 / true false object / TypeError / TypeError / undefined',
+    '1 / false true object / TypeError / TypeError / undefined',
+  ]}
+  answer={1}
+  explanation="revoke는 프록시의 대상과 핸들러 슬롯을 비울 뿐 프록시 값은 그대로이고, 그 뒤 읽기와 in은 TypeError이며 typeof는 내부 메서드를 부르지 않아 object입니다. revoke가 대상으로 넘기는 것을 막지 않는다고 보는 모델은 첫 번째 선택지, revoke하면 프록시가 null이 된다고 보는 모델은 둘째 줄이 false true object인 세 번째 선택지가 됩니다."
+/>
+
+## 결과와 이유
+
+이 절에서 "첫 줄", "둘째 줄"처럼 쓴 것은 출력의 줄이고, "N번 줄"은 코드의 줄 번호입니다.
+
+### 결과 표
+
+예제마다 출력 줄을 `/`로 이은 결과입니다. 칸은 모두 예제를 실제로 실행한 결과와 같습니다.
+
+<div
+  className="my-6 overflow-x-auto"
+  tabIndex={0}
+  role="region"
+  aria-label="예제 결과 표(좁은 화면에서는 가로로 스크롤할 수 있습니다)"
+>
+  <table className="w-full border-collapse text-left">
+    <thead>
+      <tr>
+        <th scope="col" className="border-border border px-3 py-2">
+          {'예제'}
+        </th>
+        <th scope="col" className="border-border border px-3 py-2">
+          {'결과'}
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td className="border-border border px-3 py-2">{'예제 1: 빈 핸들러는 대상으로 넘긴다'}</td>
+        <td className="border-border border px-3 py-2">{'1 2 / true a,b / false'}</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">{'예제 2: get 트랩'}</td>
+        <td className="border-border border px-3 py-2">{'1000 -1 undefined / false'}</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">{'예제 3: 내부 슬롯과 this'}</td>
+        <td className="border-border border px-3 py-2">
+          {'true true / TypeError / 0 / TypeError / 0'}
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">{'예제 4: private 필드'}</td>
+        <td className="border-border border px-3 py-2">{'TypeError / increment / 1 2'}</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          {'예제 5: receiver가 getter의 this를 정한다'}
+        </td>
+        <td className="border-border border px-3 py-2">{'base other / a base'}</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          {'예제 6: set 트랩의 false와 Reflect의 boolean'}
+        </td>
+        <td className="border-border border px-3 py-2">
+          {'1 undefined / false / TypeError / false / TypeError'}
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">{'예제 7: 불변 조건'}</td>
+        <td className="border-border border px-3 py-2">{'TypeError / 2 / 1 / 2 2'}</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">{'예제 8: has와 ownKeys로 숨기기'}</td>
+        <td className="border-border border px-3 py-2">
+          {'false name,_token / true name {"name":"kim"} / abc abc true'}
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">{'예제 9: 취소 가능한 프록시'}</td>
+        <td className="border-border border px-3 py-2">
+          {'1 / true false object / TypeError / TypeError / undefined'}
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+### 예제 1
+
+첫 줄 `1 2`는 `proxy.a`가 트랩 없이 대상으로 넘어가 `1`이고, `proxy.b = 2`가 만든 `b`가 `target.b`로 보인다는 것입니다. 프록시가 대상의 복사본이라면 `target.b`는 `undefined`일 것이므로 복사본 모델이 가려집니다. 둘째 줄 `true a,b`에서 `'b' in target`이 `true`인 것도 같은 사실이고, `Object.keys(proxy)`는 대상의 키 목록 `a,b`를 돌려줍니다. 셋째 줄 `false`는 `proxy === target`이 아니라는 것이고, 프록시가 대상 자신이라는 모델이 가려집니다. `proxy.b = 2`가 대상에 `b`를 만드는 경로는 아래 대응 표에서 설명합니다.
+
+### 예제 2
+
+첫 줄 `1000 -1 undefined`에서 `proxy.apple`은 `key in target`이 `true`라 `Reflect.get`으로 기본 동작을 하고, `proxy.banana`는 트랩이 `-1`을 돌려줍니다. `prices.banana`가 `undefined`인 것은 트랩이 돌려준 값이 대상에 저장되지 않는다는 것을 보입니다. 둘째 줄 `false`는 `'banana' in proxy`가 `get` 트랩이 아니라 `has`(없으므로 대상의 `[[HasProperty]]`)로 처리된다는 것입니다. `in`이 `get` 트랩의 결과를 따른다면 `proxy.banana`가 `-1`이라 `true`가 됩니다.
+
+### 예제 3
+
+첫 줄 `true true`는 `proxy instanceof Date`가 `true`이고, `proxy.getTime`이 `Date.prototype.getTime`과 같은 함수라는 것입니다. 프록시를 통한 읽기는 대상의 `[[Get]]`으로 넘어가 성공합니다. 둘째 줄 `TypeError`는 그 함수를 `this`가 프록시인 채로 불렀기 때문입니다. 셋째 줄 `0`은 `this`를 대상 `date`로 바꾸면 같은 함수가 동작한다는 것입니다. 넷째 줄 `TypeError`는 `Reflect.get(target, key, receiver)`로 넘기는 `get` 트랩이 있어도 메서드 호출의 `this`가 프록시라는 것을 보이고, 트랩을 두면 해결된다는 모델이 가려집니다. 다섯째 줄 `0`은 트랩에서 함수를 대상에 `bind`해 돌려줄 때입니다. 프록시가 대상과 똑같이 동작한다면 둘째·넷째 줄도 `0`일 것입니다. 이 `bind`는 메서드 호출의 `this`만 대상으로 바꾸는 최소 형태이고 읽을 때마다 새 함수를 만듭니다.
+
+### 예제 4
+
+첫 줄 `TypeError`는 `this.#count`가 프록시의 private 요소에서 `#count`를 찾지 못해서입니다. 이 프록시는 빈 핸들러가 아니라 `Reflect.get`으로 넘기는 `get` 트랩이 있는데도 TypeError입니다. 둘째 줄 `increment`는 `get` 트랩이 받은 키가 `increment` 하나라는 것입니다. `this.#count` 접근이 트랩을 부르지 않았다는 증거입니다. 핸들러를 무시하고 대상 자체를 다룬다고 보는 모델이라면 트랩이 한 번도 불리지 않아 이 줄이 빈 줄일 것입니다. 셋째 줄 `1 2`는 첫 줄의 실패가 카운터의 값을 바꾸지 않았고, 프록시를 거쳐 읽은 `increment`를 `call(counter)`로 부르면 대상에서 동작한다는 것입니다. 트랩에서 함수를 `bind`하는 모델이나 메서드 호출이 대상에서처럼 성공한다고 보는 모델이라면 첫 줄이 `1`이 됩니다.
+
+### 예제 5
+
+첫 줄 `base other`는 `Reflect.get`의 receiver를 생략하면 getter의 `this`가 대상 `base`이고, 세 번째 인수를 주면 그 객체가 `this`가 된다는 것입니다. 마지막 줄 `a base`에서 `a.name`의 `a`는 `get` 트랩이 받은 receiver가 `a`라는 것을 보입니다. `receiver`를 빼도 같다는 모델과 receiver가 늘 프록시라는 모델은 모두 `base`를 내므로 이 값이 두 모델을 가려냅니다. `b.name`의 `base`는 `target[key]`가 getter를 대상으로 부른다는 것이고, `target[key]`도 receiver를 쓴다는 모델이 가려집니다.
+
+### 예제 6
+
+첫 줄 `1 undefined`는 sloppy mode의 대입이 `set` 트랩을 한 번 부르고(`calls`가 `1`), 트랩이 `false`를 돌려주면 조용히 무시되어 `readonly.x`가 `undefined`라는 것입니다. 트랩이 `false`를 돌려주고도 대입이 이루어지는 모델이라면 `1 1`일 것입니다. 둘째 줄 `false`는 `Reflect.set`이 `[[Set]]`의 결과를 그대로 돌려준다는 것이고, 셋째 줄 `TypeError`는 strict mode 함수 안의 같은 대입이 TypeError를 던진다는 것입니다. 넷째 줄 `false`와 다섯째 줄 `TypeError`는 동결한 객체에 새 프로퍼티를 정의하려는 같은 시도를 `Reflect.defineProperty`는 `false`로, `Object.defineProperty`는 TypeError로 알린다는 것입니다. 이 예제는 sloppy mode를 전제로 하며, strict mode 코드나 ES 모듈에서는 8번 줄의 대입이 TypeError를 던져 아무것도 출력하지 않고 멈춥니다. 퀴즈의 세 번째 선택지는 이 예제를 strict mode로 실행한 결과입니다.
+
+### 예제 7
+
+첫 줄 `TypeError`는 동결한 대상의 `level`이 쓰기 불가이면서 설정 불가인데 `get` 트랩이 `2`를 돌려주었기 때문입니다. 둘째 줄 `2`는 대상에 없는 키 `other`는 트랩이 마음대로 돌려줄 수 있다는 것입니다. 셋째 줄 `1`은 같은 값이면 통과한다는 것이고, 마지막 줄 `2 2`는 쓰기 가능하지만 설정 불가인 경우와 쓰기 불가이지만 설정 가능한 경우 모두 다른 값을 돌려줄 수 있다는 것입니다. 이 네 경우 밖의 조건(접근자 프로퍼티, `has`, `ownKeys`, `set`의 불변 조건)은 이 예제로 보이지 않습니다. 설정 불가이면 쓰기 가능 여부와 무관하게 걸린다는 모델은 넷째 줄을 출력하지 못하고 TypeError로 멈춥니다.
+
+### 예제 8
+
+첫 줄 `false name,_token`은 `has` 트랩이 `in`의 결과는 바꾸지만 `Object.keys`는 그대로라는 것입니다. 둘째 줄 `true name {"name":"kim"}`은 `ownKeys` 트랩이 `Object.keys`와 `JSON.stringify`의 키 목록은 바꾸지만 `in`은 그대로라는 것입니다. 이 두 줄이 서로 반대로 갈리므로 한 트랩이 다른 연산에도 적용된다는 모델이 가려집니다. 셋째 줄 `abc abc true`는 숨긴 프로퍼티의 값을 읽을 수 있고 `Object.hasOwn`도 `true`라는 것입니다. 정리하면 `in`·`Object.keys`·`JSON.stringify`에서 안 보이고 값 읽기·`Object.hasOwn`은 그대로입니다. 프록시의 대상은 확장 가능하고 프로퍼티가 모두 설정 가능해 불변 조건에 걸리지 않습니다.
+
+### 예제 9
+
+첫 줄 `1`은 취소 전에는 대상으로 넘어간다는 것입니다. 둘째 줄 `true false object`는 취소한 뒤에도 프록시 값은 그대로라는 것입니다. 변수 `proxy`는 같은 프록시 객체이고 `null`이 아니며 `typeof`는 `'object'`입니다. 셋째·넷째 줄 `TypeError`는 읽기와 `in`이 취소한 프록시에서 던진다는 것이고, 취소해도 대상으로 넘기는 동작이 계속된다는 모델이 가려집니다. 마지막 줄 `undefined`는 이미 취소한 뒤 `revoke()`를 다시 불러도 예외 없이 `undefined`를 돌려준다는 것입니다.
+
+### 연산과 트랩 대응 표
+
+연산이 먼저 부르는 내부 메서드와 그 트랩입니다. `p`는 프록시입니다.
+
+<div
+  className="my-6 overflow-x-auto"
+  tabIndex={0}
+  role="region"
+  aria-label="연산과 트랩 대응 표(좁은 화면에서는 가로로 스크롤할 수 있습니다)"
+>
+  <table className="w-full border-collapse text-left [&_code]:whitespace-nowrap">
+    <thead>
+      <tr>
+        <th scope="col" className="border-border border px-3 py-2">
+          {'연산'}
+        </th>
+        <th scope="col" className="border-border border px-3 py-2">
+          {'먼저 부르는 내부 메서드'}
+        </th>
+        <th scope="col" className="border-border border px-3 py-2">
+          {'트랩'}
+        </th>
+        <th scope="col" className="border-border border px-3 py-2">
+          {'같은 내부 메서드를 부르는 Reflect 함수'}
+        </th>
+        <th scope="col" className="border-border border px-3 py-2">
+          {'기록된 트랩 전체'}
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'p.a'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'[[Get]]'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'get'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'Reflect.get'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">{'get'}</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'p.b = 2'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'[[Set]]'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'set'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'Reflect.set'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          {'set, getOwnPropertyDescriptor, defineProperty'}
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{"'a' in p"}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'[[HasProperty]]'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'has'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'Reflect.has'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">{'has'}</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'Object.keys(p)'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'[[OwnPropertyKeys]]'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'ownKeys'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'Reflect.ownKeys'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">{'ownKeys, getOwnPropertyDescriptor'}</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'Reflect.ownKeys(p)'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'[[OwnPropertyKeys]]'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'ownKeys'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'Reflect.ownKeys'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">{'ownKeys'}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+마지막 열은 모든 트랩을 `Reflect`로 넘기며 이름을 기록하는 프록시(대상 `{ a: 1 }`)로 실행한 결과입니다. `p.b = 2`가 `getOwnPropertyDescriptor`와 `defineProperty`도 부르는 것은, 대상의 `[[Set]]`이 receiver인 프록시의 `[[GetOwnProperty]]`와 `[[DefineOwnProperty]]`를 불러 프로퍼티를 만들기 때문입니다. `Object.keys(p)`는 키마다 `[[GetOwnProperty]]`를 불러 열거 가능한지 봅니다. 같은 방식으로 기록하면 `JSON.stringify(p)`는 `toJSON`을 읽는 `get`, `ownKeys`, `getOwnPropertyDescriptor`, 값을 읽는 `get` 순서로 트랩을 부릅니다(replacer가 없는 경우).
+
+### 실패 알림 비교 표
+
+`readonly`와 `frozen`은 예제 6의 객체입니다.
+
+<div
+  className="my-6 overflow-x-auto"
+  tabIndex={0}
+  role="region"
+  aria-label="실패 알림 비교 표(좁은 화면에서는 가로로 스크롤할 수 있습니다)"
+>
+  <table className="w-full border-collapse text-left [&_code]:whitespace-nowrap">
+    <thead>
+      <tr>
+        <th scope="col" className="border-border border px-3 py-2">
+          {'코드'}
+        </th>
+        <th scope="col" className="border-border border px-3 py-2">
+          {'실패 신호'}
+        </th>
+        <th scope="col" className="border-border border px-3 py-2">
+          {'결과'}
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          {'sloppy mode의 '}
+          <code>{'readonly.x = 1'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">{'[[Set]]이 false'}</td>
+        <td className="border-border border px-3 py-2">{'조용히 무시'}</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          {'strict mode의 '}
+          <code>{'readonly.x = 1'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">{'[[Set]]이 false'}</td>
+        <td className="border-border border px-3 py-2">{'TypeError'}</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{"Reflect.set(readonly, 'x', 1)"}</code>
+        </td>
+        <td className="border-border border px-3 py-2">{'[[Set]]이 false'}</td>
+        <td className="border-border border px-3 py-2">{'false 반환'}</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{"Object.defineProperty(frozen, 'x', { value: 1 })"}</code>
+        </td>
+        <td className="border-border border px-3 py-2">{'[[DefineOwnProperty]]가 false'}</td>
+        <td className="border-border border px-3 py-2">{'TypeError'}</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{"Reflect.defineProperty(frozen, 'x', { value: 1 })"}</code>
+        </td>
+        <td className="border-border border px-3 py-2">{'[[DefineOwnProperty]]가 false'}</td>
+        <td className="border-border border px-3 py-2">{'false 반환'}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+### 흔한 오해
+
+<Callout type="misconception" title="프록시는 대상을 복사한 객체다">
+
+프록시는 대상의 복사본이 아니라 대상을 `[[ProxyTarget]]`으로 가리키는 별개의 객체입니다. 빈 핸들러 프록시에 한 대입은 대상에 만들어지고(예제 1의 `target.b`), 프록시와 대상은 서로 같은 객체도 아닙니다(`proxy === target`은 `false`).
+
+</Callout>
+
+<Callout type="misconception" title="빈 핸들러 프록시는 대상과 똑같이 동작한다">
+
+연산은 대상으로 넘어가지만 메서드 호출의 `this`는 프록시입니다. 그래서 `Date`의 `getTime()`(예제 3)과 private 필드를 쓰는 메서드(예제 4)는 TypeError입니다. `Reflect.get`으로 넘기는 트랩이 있어도 호출의 `this`는 바뀌지 않습니다.
+
+</Callout>
+
+<Callout type="misconception" title="트랩에서 target[key]로 넘기면 Reflect.get과 같다">
+
+`target[key]`는 트랩이 받은 receiver를 쓰지 않고 getter의 `this`를 대상으로 합니다. `Reflect.get(target, key, receiver)`는 getter의 `this`를 receiver로 합니다. 프록시를 프로토타입으로 둔 객체의 getter를 읽으면 결과가 달라집니다(예제 5의 `a base`).
+
+</Callout>
+
+<Callout type="misconception" title="has 트랩으로 숨기면 그 프로퍼티는 보이지 않는다">
+
+`has` 트랩은 `[[HasProperty]]`를 부르는 연산(예제 8에서는 `in`)의 결과만 바꿉니다. `Object.keys`, 값 읽기, `Object.hasOwn`에는 영향이 없습니다(예제 8). `ownKeys` 트랩은 `in`이 아니라 `Object.keys`와 `JSON.stringify`의 키 목록을 바꾸고, 그것으로도 값 읽기와 `Object.hasOwn`은 바뀌지 않습니다.
+
+</Callout>

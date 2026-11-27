@@ -41,6 +41,7 @@ export const concept = {
     'primitive-methods',
     'property-order',
     'strict-mode',
+    'proxy-reflect',
   ],
   examples: [
     {
@@ -111,7 +112,7 @@ export const concept = {
     },
   ],
   simplifications: [
-    '[[Prototype]]·[[Get]]·[[Set]]은 명세의 내부 슬롯·내부 메서드 이름이며 코드에서 직접 접근할 수 없습니다. 이 페이지는 Object.getPrototypeOf로 읽습니다. 이 페이지의 설명은 명세의 일반 객체(ordinary object) 기준이며, Proxy처럼 이 동작을 바꿀 수 있는 특수 객체는 별도 개념입니다. 시뮬레이터의 카드와 화살표는 교육용 그림이며 엔진이 객체를 저장하는 방식이 아닙니다.',
+    '[[Prototype]]·[[Get]]·[[Set]]은 명세의 내부 슬롯·내부 메서드 이름이며 코드에서 직접 접근할 수 없습니다. 이 페이지는 Object.getPrototypeOf로 읽습니다. 이 페이지의 설명은 명세의 일반 객체(ordinary object) 기준이며, Proxy가 이 동작을 트랩으로 바꾸는 것은 Proxy와 Reflect 개념에서 다루고, 그 밖의 특수 객체는 별도 개념입니다. 시뮬레이터의 카드와 화살표는 교육용 그림이며 엔진이 객체를 저장하는 방식이 아닙니다.',
     '__proto__는 Object.prototype의 접근자 프로퍼티이며 명세에서 "Normative Optional, Legacy"로 분류됩니다. [[Prototype]] 슬롯 자체가 아니고, null 프로토타입 객체에는 없습니다. 객체 리터럴의 __proto__: 문법과 Object.setPrototypeOf는 다루지 않습니다.',
     '상속된 메서드를 호출할 때의 this는 this 개념에서 다룹니다. 예제는 this를 쓰지 않습니다. 상속된 getter·setter는 명세상 읽거나 대입한 객체(receiver)를 this로 호출되지만 예제는 바깥 변수만 씁니다.',
     'instanceof는 명세상 오른쪽 값의 Symbol.hasInstance 메서드를 먼저 확인하고, 일반 함수는 Function.prototype의 그 메서드가 이 페이지의 체인 비교(OrdinaryHasInstance)를 합니다. Symbol.hasInstance를 직접 정의한 경우와 bind로 만든 함수는 다루지 않습니다.',
