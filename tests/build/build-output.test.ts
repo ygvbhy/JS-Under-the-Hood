@@ -1679,6 +1679,38 @@ describe('프리렌더 (array-subclass)', () => {
   })
 })
 
+// error-objects: 결과 표·name 지정 방법 표·toString 규칙 표와 퀴즈가 프리렌더 HTML에 정적으로 있어야 한다.
+describe('프리렌더 (error-objects)', () => {
+  const html = read('concepts/error-objects/index.html')
+  const text = htmlToText(html)
+
+  it('결과 표와 name 지정 방법 표, toString 규칙 표 region이 HTML에 있다', () => {
+    for (const name of ['예제 결과 표', 'name 지정 방법 표', 'toString 규칙 표']) {
+      expect(html).toMatch(
+        new RegExp(
+          `role="region"[^>]*aria-label="${name}\\(좁은 화면에서는 가로로 스크롤할 수 있습니다\\)"`,
+        ),
+      )
+    }
+  })
+
+  it('퀴즈 정답이 <details>로 8개 이상 프리렌더되고 각 정답이 있다', () => {
+    expect(html.match(/<details/g)?.length).toBeGreaterThanOrEqual(8)
+    for (const answer of [
+      'Error ValidationError',
+      '{"name":"Assigned"} {}',
+      'bad {}',
+      'false "" / true',
+      'Error: m / null: m',
+      'true undefined / 3 true',
+      '1 / invalid age false / 1',
+      'true true Error: x / RangeError: r / TypeError',
+    ]) {
+      expect(text).toContain(answer)
+    }
+  })
+})
+
 // 추가 게시글(request-animation-frame): 시뮬레이터의 첫 단계와 퀴즈가 프리렌더 HTML에 정적으로 있어야 한다.
 describe('프리렌더 (request-animation-frame)', () => {
   const html = read('concepts/request-animation-frame/index.html')

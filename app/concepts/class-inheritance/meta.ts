@@ -39,6 +39,7 @@ export const concept = {
     'error-handling',
     'strict-mode',
     'array-subclass',
+    'error-objects',
   ],
   examples: [
     {
@@ -105,7 +106,7 @@ export const concept = {
   simplifications: [
     '시뮬레이터의 단계는 명세의 [[Construct]]와 SuperCall이 정한 순서를 묶어 그린 교육용 단위입니다. 엔진 내부 구현이 아닙니다.',
     '`extends null`은 클래스의 prototype 체인만 보이고, 그 클래스로 인스턴스를 만들 때의 동작(TypeError)은 다루지 않습니다.',
-    '`Array` 상속과 배열 메서드가 쓰는 `Symbol.species`는 내장 생성자 상속 개념에서 다루고, `Error` 같은 다른 내장 객체 상속, `Map`·`Promise` 같은 다른 생성자의 species, mixin, `Reflect.construct`는 다루지 않습니다.',
+    '`Array` 상속과 배열 메서드가 쓰는 `Symbol.species`는 내장 생성자 상속 개념에서, `Error` 상속은 에러 객체 개념에서 다루고, 그 밖의 내장 객체 상속, `Map`·`Promise` 같은 다른 생성자의 species, mixin, `Reflect.construct`는 다루지 않습니다.',
     '객체 리터럴 메서드의 `super`(`__proto__`와 함께 쓰는 경우), 부모 쪽에서 setter가 있는 접근자를 찾지 못할 때의 `super.x = 1` 같은 프로퍼티 대입, 화살표 함수 안의 `super`와 `this`, private 필드의 상속은 다루지 않습니다. 접근자 오버라이드와 부모의 setter를 부르는 `super.x = 1`은 클래스의 getter와 setter 개념에서 다룹니다.',
     '예제의 console은 ECMAScript 언어가 아니라 호스트가 제공하는 API입니다.',
     '이 페이지의 예제는 스크립트로 실행한 결과를 기준으로 합니다.',

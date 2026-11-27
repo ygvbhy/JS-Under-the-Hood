@@ -70,6 +70,7 @@ import {
   RELATIONAL_COMPARISON_PATH,
   SWITCH_LET_PATH,
   ARRAY_SUBCLASS_PATH,
+  ERROR_OBJECTS_PATH,
   UNCAUGHT_EXCEPTIONS_PATH,
   NUMBER_PITFALLS_VIEW_NAME,
   ITERABLE_FOR_OF_PATH,
@@ -1601,6 +1602,23 @@ test(`${ARRAY_SUBCLASS_PATH}: 가로 스크롤이 없다`, async ({ page }) => {
   expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
 })
 
+test(`${ERROR_OBJECTS_PATH}: 가로 스크롤이 없다`, async ({ page }) => {
+  await page.goto(ERROR_OBJECTS_PATH)
+  await waitForHydration(page)
+  for (const name of [
+    '예제 결과 표(좁은 화면에서는 가로로 스크롤할 수 있습니다)',
+    'name 지정 방법 표(좁은 화면에서는 가로로 스크롤할 수 있습니다)',
+    'toString 규칙 표(좁은 화면에서는 가로로 스크롤할 수 있습니다)',
+  ]) {
+    await expect(page.getByRole('region', { name })).toBeVisible()
+  }
+  const { scrollWidth, innerWidth } = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    innerWidth: window.innerWidth,
+  }))
+  expect(scrollWidth).toBeLessThanOrEqual(innerWidth)
+})
+
 test(`${GENERATOR_PATH}: 가로 스크롤이 없다`, async ({ page }) => {
   await page.goto(GENERATOR_PATH)
   await waitForHydration(page)
@@ -1898,7 +1916,7 @@ test('Promise 정적 메서드 개념 페이지: 두 시나리오를 끝까지 �
 test('홈 학습 순서 보기: 가로 스크롤이 없다', async ({ page }) => {
   await page.goto('/?view=order')
   await waitForHydration(page)
-  await expect(page.getByRole('article')).toHaveCount(82)
+  await expect(page.getByRole('article')).toHaveCount(83)
   const { scrollWidth, innerWidth } = await page.evaluate(() => ({
     scrollWidth: document.documentElement.scrollWidth,
     innerWidth: window.innerWidth,

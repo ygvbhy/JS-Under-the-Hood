@@ -41,6 +41,7 @@ export const concept = {
     'primitives-and-objects',
     'error-handling',
     'property-order',
+    'error-objects',
   ],
   examples: [
     {
@@ -119,7 +120,7 @@ export const concept = {
     'structuredClone은 ECMAScript가 아니라 HTML 표준이 정한 호스트 API입니다. 예제의 실행 결과는 Chromium에서 실행한 값이고, 다른 브라우저는 확인하지 않았습니다. Node에도 전역 structuredClone이 있지만 그 동작은 확인하지 않았고 이 페이지의 결과에 쓰지 않았습니다.',
     '직렬화 기록(Record)과 memory 맵은 표준이 알고리즘을 설명하려고 쓰는 모델이고 엔진의 내부 구현이 아닙니다. 본문의 "기록"과 "새 값을 만든다"는 이 모델의 말입니다.',
     'transfer 옵션과 transferable 객체, postMessage나 IndexedDB처럼 같은 알고리즘을 쓰는 다른 API, ArrayBuffer·typed array·SharedArrayBuffer는 다루지 않습니다.',
-    'Error의 stack은 표준이 구현 정의 문자열로 두고, 표준은 아직 명세되지 않은 부가 데이터를 사용자 에이전트가 붙이도록 합니다(should). Chromium은 cause를 남겼지만 다른 브라우저는 확인하지 않았고 예제에도 넣지 않았습니다. 예제 6은 name을 바꾸려고 TypeError 서브클래스를 쓰지만, 에러 클래스 작성법과 Error 생성자·cause·stack 자체는 이 사이트에서 다루지 않습니다.',
+    'Error의 stack은 표준이 구현 정의 문자열로 두고, 표준은 아직 명세되지 않은 부가 데이터를 사용자 에이전트가 붙이도록 합니다(should). Chromium은 cause를 남겼지만 다른 브라우저는 확인하지 않았고 예제에도 넣지 않았습니다. 예제 6은 name을 바꾸려고 TypeError 서브클래스를 쓰지만, 에러 클래스 작성법과 Error 생성자·cause는 에러 객체 개념에서 다루고, stack 자체는 이 사이트에서 다루지 않습니다.',
     '예제는 모두 같은 문서(같은 realm)에서 structuredClone을 부른 결과입니다. 결과 객체는 호출된 structuredClone 메서드가 속한 전역 객체(this)의 realm에서 만들어져 그 realm의 Object.prototype 등을 프로토타입으로 가지며, iframe 등 다른 realm은 다루지 않습니다.',
     'DOMException 자체(이름·코드·WebIDL 정의)는 다루지 않습니다. 예제는 e.name과 instanceof DOMException만 확인하고, DOMException의 프로토타입 체인은 확인하지 않았습니다.',
     '[Serializable] 플랫폼 객체(Blob, DOMException 등)의 복제, 래퍼 객체(Object(1)), %Object.prototype% 자체의 복제, 배열·Map의 서브클래스는 다루지 않습니다.',

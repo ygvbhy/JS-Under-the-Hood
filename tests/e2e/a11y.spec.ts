@@ -61,6 +61,7 @@ import {
   RELATIONAL_COMPARISON_PATH,
   SWITCH_LET_PATH,
   ARRAY_SUBCLASS_PATH,
+  ERROR_OBJECTS_PATH,
   UNCAUGHT_EXCEPTIONS_PATH,
   ARROW_FUNCTIONS_PATH,
   ARRAY_INDEX_LENGTH_PATH,
@@ -954,6 +955,13 @@ for (const colorScheme of ['light', 'dark'] as const) {
 
     test('개념 페이지: 내장 생성자 상속', async ({ page }) => {
       await page.goto(ARRAY_SUBCLASS_PATH)
+      await waitForHydration(page)
+      await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
+      await expectNoSeriousViolations(page)
+    })
+
+    test('개념 페이지: 에러 객체', async ({ page }) => {
+      await page.goto(ERROR_OBJECTS_PATH)
       await waitForHydration(page)
       await expect(page.getByRole('button', { name: '정답 확인' }).first()).toBeVisible()
       await expectNoSeriousViolations(page)

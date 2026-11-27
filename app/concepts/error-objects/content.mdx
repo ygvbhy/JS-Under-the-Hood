@@ -1,0 +1,499 @@
+`class ValidationError extends Error {}`로 만든 객체의 `name`은 왜 `ValidationError`가 아니라 `Error`일까요? 클래스를 선언했는데 이름은 어디서 오고, `JSON.stringify`로 직렬화하면 `message`는 왜 보이지 않을까요? 이 페이지는 `Error` 생성자가 인스턴스에 만드는 프로퍼티(`message`, `cause`)와 `Error.prototype`이 물려주는 프로퍼티(`name`, `message`의 초깃값, `toString`)가 각각 어디에 있는지를 기준으로 에러 객체의 동작을 설명합니다. `name`을 정하는 두 방법의 차이, `toString`이 빈 값을 처리하는 규칙, `message`를 생략하거나 문자열이 아닌 값을 줄 때와 `cause`가 생기는 조건, `new` 없이 부르는 경우를 Node에서 실행한 결과로 확인합니다. 예외를 던지고 잡는 방법은 [예외 처리](/concepts/error-handling)에서 다룹니다.
+
+## 동작 원리
+
+### 에러 객체는 어떻게 만들어지나
+
+파생 클래스의 생성자는 `super()`로 부모 생성자를 불러 객체를 얻습니다([클래스 상속과 super](/concepts/class-inheritance)). `Error` 생성자는 `new`를 적용한 생성자(NewTarget, `new ValidationError(…)`이면 `ValidationError`)의 `prototype`을 새 객체의 프로토타입으로 삼습니다. `super()`는 이 NewTarget을 그대로 넘깁니다. `newTarget.prototype`이 객체가 아닐 때에만 newTarget이 속한 realm의 `Error.prototype`(명세의 %Error.prototype%)이 대체값으로 쓰입니다(realm은 이 페이지에서 다루지 않습니다). 그래서 `new ValidationError('bad')`가 만드는 객체의 프로토타입은 `ValidationError.prototype`이고, 그 뒤에 `Error.prototype`이 이어집니다. `instanceof Error`가 true인 이유는 이 프로토타입 체인에 `Error.prototype`이 있어서입니다. `Error` 생성자가 객체에 붙이는 내부 슬롯 [[ErrorData]]는 이 페이지의 예제에서 관찰되지 않으므로 `instanceof` 결과의 원인으로 쓰지 않습니다.
+
+명세의 생성자 단계가 인스턴스에 만드는 자기 프로퍼티는 둘뿐입니다. `message` 인수가 `undefined`가 아니면 `ToString`으로 바꾼 문자열을 열거되지 않는 자기 데이터 프로퍼티 `message`로 만듭니다. 두 번째 인수 `options`가 객체이고 그 객체에 `cause` 프로퍼티가 있으면(상속한 것도 포함하며, 아래 cause 절에서 봅니다) 열거되지 않는 자기 데이터 프로퍼티 `cause`를 만듭니다. 명세의 NativeError(`TypeError`, `RangeError` 등 여섯 생성자)도 같은 단계를 거칩니다. 이 단계는 명세에서 읽어 일반화한 것이고, 이 페이지가 실제로 실행해 확인한 것은 `RangeError`를 `new` 없이 부르는 경우와 `TypeError`를 상속한 클래스의 인스턴스가 읽는 `name`뿐입니다.
+
+`stack`은 ECMAScript 표준이 아닙니다. 이 페이지의 예제를 실행한 Node(V8)는 인스턴스에 열거되지 않는 자기 프로퍼티 `stack`을 더하지만 명세가 정한 것이 아니어서 이 페이지는 값을 출력하지 않습니다.
+
+### name과 message의 초깃값은 Error.prototype에 있다
+
+명세는 `Error.prototype`의 초깃값을 이렇게 정합니다.
+
+> The initial value of Error.prototype.name is "Error".
+
+> The initial value of Error.prototype.message is the empty String.
+
+인스턴스에는 자기 `name`이 없으므로 `v.name`은 프로토타입 체인에서 처음 만나는 `name`을 읽습니다([프로토타입 체인](/concepts/prototype-chain)). `ValidationError`는 자기 `prototype`에 `name`을 두지 않았으니 `Error.prototype`의 `'Error'`를 만납니다(예제 1). 그런데 "`Error`를 상속하면 `name`은 늘 `Error`"는 아닙니다. NativeError의 `prototype`은 자기 `name`과 `message`(빈 문자열)를 갖습니다.
+
+> The initial value of the "name" property of the prototype for a given NativeError constructor is the String value consisting of the name of the constructor (the name used instead of NativeError).
+
+그래서 `class TypeCheckError extends TypeError {}`의 인스턴스는 체인에서 `TypeError.prototype`의 `name`을 먼저 만나 `'TypeError'`를 얻습니다(예제 1의 마지막 출력 줄). `v.constructor.name`은 생성자 함수 `ValidationError` 자신의 `name` 프로퍼티라 `'ValidationError'`이고, 에러 인스턴스가 읽는 `name`과는 별개입니다.
+
+### toString이 문자열을 만드는 규칙
+
+`Error.prototype.toString`은 `this`에서 `name`과 `message`를 읽어 문자열을 만듭니다. `name`이 `undefined`이면 `'Error'`를, 아니면 `ToString(name)`을 씁니다. `message`가 `undefined`이면 빈 문자열을, 아니면 `ToString(message)`를 씁니다. 그다음 `name`이 빈 문자열이면 `message`를, `message`가 빈 문자열이면 `name`을, 둘 다 아니면 `name + ': ' + message`를 돌려줍니다. 객체를 문자열로 바꿀 때 `toString`을 부르는 경로는 [객체를 원시 값으로](/concepts/to-primitive)에서 다룹니다. 이 규칙은 에러 인스턴스가 아닌 평범한 객체에도 적용되므로 `Error.prototype.toString.call({ ... })`로 규칙만 따로 확인할 수 있습니다([this 바인딩](/concepts/this-binding)의 `call`, 예제 5).
+
+### name을 정하는 두 방법
+
+하위 클래스 생성자에서 `this.name = 'Assigned'`를 대입하면 인스턴스에 `name`이 생깁니다. `Error.prototype.name`은 쓰기 가능한 상속 데이터 프로퍼티이므로 인스턴스에 대입하면 상속한 프로퍼티를 바꾸는 것이 아니라 인스턴스에 열거 가능한 자기 프로퍼티를 새로 만듭니다([대입은 자기 프로퍼티를 만든다: 섀도잉](/concepts/prototype-chain)). 이름을 클래스의 `prototype`에 대입하면 `ProtoError.prototype`에 열거 가능한 자기 프로퍼티가 생기고, 인스턴스는 그것을 상속해 읽습니다. 두 방법 모두 `toString`의 결과가 바뀝니다. 차이는 인스턴스의 자기 프로퍼티인가입니다. 이 차이가 `JSON.stringify`에서 갈립니다(예제 2). 실무에서는 보통 `name`을 클래스 이름과 같게 두지만, 예제 2는 `toString`이 클래스 이름이 아니라 읽은 `name`을 쓴다는 것을 보이려고 일부러 다르게 지었습니다.
+
+### Node에서 `JSON.stringify`가 `{}`인 이유
+
+`JSON.stringify`는 객체의 자기 열거 가능한 문자열 키만 직렬화하고, `toJSON`이 있으면 그것을 먼저 부릅니다([JSON](/concepts/json)). 명세의 `Error.prototype`에는 `toJSON`이 없습니다. 에러 인스턴스의 `message`와 `cause`는 열거되지 않는 자기 프로퍼티라 직렬화 대상이 아니고, Node가 더하는 `stack`도 열거되지 않습니다. 그래서 Node에서 `JSON.stringify(new Error('bad'))`는 `{}`입니다(예제 3). 이 `{}`는 Node에서 실행한 결과입니다. 명세의 Conformance 절은 구현이 명세에 없는 프로퍼티를 더하는 것을 허용합니다.
+
+> A conforming implementation of ECMAScript may provide additional types, values, objects, properties, and functions beyond those described in this specification.
+
+다른 엔진이 에러 인스턴스에 열거 가능한 자기 프로퍼티를 더하면 결과가 `{}`가 아닐 수 있으므로, 이 페이지는 다른 엔진의 결과를 단정하지 않습니다. 반대로 예제 2의 `p`가 `{}`인 이유는 `name`이 열거 불가라서가 아닙니다. `ProtoError.prototype`의 `name`은 열거 가능하지만 `p`의 자기 프로퍼티가 아니라서 `JSON.stringify`가 보지 않습니다.
+
+### message를 생략하거나 문자열이 아닌 값을 주면
+
+`message`가 `undefined`이면 자기 `message`를 만들지 않으므로 `new Error()`와 `new Error(undefined)`의 `message`는 상속한 빈 문자열입니다. 빈 문자열 `''`을 주면 `undefined`가 아니라서 빈 값을 가진 자기 프로퍼티가 생깁니다. 숫자 같은 다른 값은 `ToString`으로 문자열이 됩니다(예제 4).
+
+### cause가 생기는지는 HasProperty로 정해진다
+
+`cause`가 생기는 조건은 `options`가 객체이고 `HasProperty(options, 'cause')`가 true인 것입니다. 값이 `undefined`여도, 프로토타입에서 상속한 `cause`여도 true이고, 그때 `Get`으로 읽은 값이 자기 프로퍼티 `cause`가 됩니다(예제 6). 값을 찾는 과정은 명세의 InstallErrorCause에 있습니다. 하위 클래스에서 `Error` 생성자가 `cause`를 만들게 하려면 `options`가 `super`를 거쳐 `Error`에 닿아야 합니다. 생성자를 생략한 기본 생성자는 받은 인수를 그대로 `super`에 넘기므로 `cause`가 전달되지만([클래스 상속과 super](/concepts/class-inheritance)), 생성자를 직접 쓰면서 `super('...')`만 부르면 `options`가 `Error`에 닿지 않습니다(예제 7).
+
+### new 없이 부르면
+
+`Error`는 `new` 없이 불러도 같은 결과를 만듭니다.
+
+> Thus the function call Error(…) is equivalent to the object creation expression new Error(…) with the same arguments.
+
+`new` 없이 부르면 NewTarget이 undefined이므로 `Error` 생성자는 호출된 `Error` 자신을 newTarget으로 씁니다. 그래서 만들어진 객체의 프로토타입이 `Error.prototype`입니다. 클래스는 다릅니다. `class ValidationError extends Error {}`처럼 생성자를 생략한 클래스는 명세가 기본 생성자를 만들어 주는데, 이 기본 생성자는 NewTarget이 undefined이면 TypeError를 던집니다. 그래서 `ValidationError('x')`는 TypeError입니다(예제 8). 생성자를 직접 쓴 클래스도 `new` 없이 부르면 TypeError이고, TypeError를 던지는 곳이 기본 생성자의 단계가 아니라 클래스 생성자의 호출 단계라는 점만 다릅니다. 이 페이지는 그 경우를 예제로 실행해 보이지 않습니다.
+
+### 이 페이지가 다루지 않는 것
+
+`stack`의 내용, `Error.captureStackTrace`, `Error.isError`, `AggregateError` 생성자, `SuppressedError`, `DOMException`, `Object.prototype.toString`이 만드는 `[object Error]`, 다른 realm의 `instanceof`, 클래스 필드로 `name` 정하기, 옛 방식 `Error.call(this, message)` 상속은 다루지 않습니다.
+
+## 예제
+
+예제의 출력은 Node의 `vm` 모듈에서 스크립트로 실행한 결과입니다. 모든 예제는 파일 첫 줄에 `'use strict';`를 붙여도 출력이 같습니다. `console.log`는 값을 출력하는 호스트 API이며 ECMAScript 언어의 일부가 아닙니다.
+
+### 예제 1: 하위 클래스의 name
+
+```js file=./examples/subclass-name.js
+
+```
+
+<PredictQuiz
+  question="예제 1의 3번 줄(v.name과 v.constructor.name)은 무엇을 출력할까요?"
+  choices={[
+    'ValidationError ValidationError',
+    'Error ValidationError',
+    'undefined ValidationError',
+  ]}
+  answer={1}
+  explanation="인스턴스에는 자기 name이 없어서 프로토타입 체인에서 처음 만나는 name인 Error.prototype의 Error를 읽고, constructor.name은 클래스 이름이라 ValidationError입니다. name이 클래스 이름에서 정해진다고 보는 모델은 첫 번째 선택지, 인스턴스에 name이 생겨야 읽힌다고 보는 모델은 첫 값이 undefined인 세 번째 선택지가 됩니다."
+/>
+
+### 예제 2: name 지정 방법
+
+```js file=./examples/name-ways.js
+
+```
+
+<PredictQuiz
+  question="예제 2의 15번 줄(JSON.stringify(a)와 JSON.stringify(p))은 무엇을 출력할까요?"
+  choices={['{"name":"Assigned"} {}', '{} {}', '{"name":"Assigned"} {"name":"Proto"}']}
+  answer={0}
+  explanation="생성자에서 대입한 name은 a의 열거 가능한 자기 프로퍼티라 직렬화되고, prototype에 대입한 name은 열거 가능하지만 p의 자기 프로퍼티가 아니라 직렬화되지 않습니다. 대입한 name은 열거되지 않는다고 보는 모델은 두 번째 선택지, 열거 가능하면 상속한 것도 직렬화된다고 보는 모델은 세 번째 선택지가 됩니다."
+/>
+
+### 예제 3: JSON이 비는 이유
+
+```js file=./examples/json-empty.js
+
+```
+
+<PredictQuiz
+  question="예제 3의 2번 줄(e.message와 JSON.stringify(e))은 무엇을 출력할까요?"
+  choices={['bad {"message":"bad"}', 'bad "Error: bad"', 'bad {}']}
+  answer={2}
+  explanation="message는 열거되지 않는 자기 프로퍼티이고 Error.prototype에 toJSON이 없으므로 Node에서 결과는 빈 객체 직렬화입니다. message가 열거 가능하다고 보는 모델은 첫 번째 선택지, JSON.stringify가 toString 결과를 쓴다고 보는 모델은 두 번째 선택지가 됩니다."
+/>
+
+### 예제 4: message 규칙
+
+```js file=./examples/message-rules.js
+
+```
+
+<PredictQuiz
+  question="예제 4의 2번 줄과 4번 줄은 무엇을 출력할까요?"
+  choices={['true "" / true', 'false "" / false', 'false "" / true']}
+  answer={2}
+  explanation="message를 생략하면 자기 message가 없고 읽으면 상속한 빈 문자열이 나오며, 빈 문자열을 주면 undefined가 아니라서 자기 프로퍼티가 생깁니다. 기본값 빈 문자열이 자기 프로퍼티로 들어간다고 보는 모델은 첫 번째 선택지, 빈 문자열도 생략과 같다고 보는 모델은 두 번째 선택지가 됩니다."
+/>
+
+### 예제 5: toString 규칙
+
+```js file=./examples/to-string-rules.js
+
+```
+
+<PredictQuiz
+  question="예제 5의 3번 줄과 4번 줄은 무엇을 출력할까요?"
+  choices={['Error: m / null: m', 'undefined: m / null: m', 'm / m']}
+  answer={0}
+  explanation="name이 undefined일 때만 기본값 Error가 쓰이고 null은 ToString으로 문자열 null이 됩니다. undefined도 문자열로 바꾼다고 보는 모델은 두 번째 선택지, 값이 없거나 null인 name은 빈 값과 같다고 보는 모델은 세 번째 선택지가 됩니다."
+/>
+
+### 예제 6: cause 조건
+
+```js file=./examples/cause.js
+
+```
+
+<PredictQuiz
+  question="예제 6의 6번 줄과 8번 줄은 무엇을 출력할까요?"
+  choices={[
+    'false undefined / undefined false',
+    'true undefined / 3 true',
+    'false undefined / 3 true',
+    'true undefined / undefined false',
+  ]}
+  answer={1}
+  explanation="cause는 options에 cause가 있는지를 HasProperty로 확인하므로 값이 undefined여도 자기 cause가 생기고, 프로토타입에서 상속한 cause도 있는 것으로 칩니다. 값이 undefined이면 생략과 같고 상속한 것도 안 본다고 보는 모델은 첫 번째 선택지, 값이 undefined이면 생략과 같지만 상속은 본다고 보는 모델은 세 번째 선택지, 자기 프로퍼티만 본다고 보는 모델은 네 번째 선택지가 됩니다."
+/>
+
+### 예제 7: 하위 클래스와 cause
+
+```js file=./examples/subclass-cause.js
+
+```
+
+<PredictQuiz
+  question="예제 7의 2번 줄, 10번 줄, 17번 줄은 무엇을 출력할까요?"
+  choices={[
+    '1 / invalid age true / 1',
+    'undefined / invalid age false / 1',
+    '1 / invalid age false / 1',
+  ]}
+  answer={2}
+  explanation="기본 생성자는 받은 인수를 그대로 super에 넘기고, 직접 쓴 생성자가 options를 넘기지 않으면 cause가 생기지 않으며, options를 넘기면 다시 생깁니다. 직접 쓴 생성자도 cause를 자동으로 전달한다고 보는 모델은 첫 번째 선택지, 기본 생성자가 options를 넘기지 않는다고 보는 모델은 첫 값이 undefined인 두 번째 선택지가 됩니다."
+/>
+
+### 예제 8: new 없이 부르기
+
+```js file=./examples/call-without-new.js
+
+```
+
+<PredictQuiz
+  question="예제 8의 전체 출력은 무엇일까요?"
+  choices={['true true Error: x / RangeError: r', 'true true Error: x / RangeError: r / TypeError']}
+  answer={1}
+  explanation="Error는 new 없이 불러도 객체를 만들지만, class로 선언한 ValidationError를 new 없이 부르면 TypeError가 던져져 catch 블록이 실행되어 마지막 줄이 출력됩니다. 클래스도 Error처럼 new 없이 객체를 만든다고 보는 모델은 catch가 실행되지 않아 마지막 줄이 없는 첫 번째 선택지가 됩니다."
+/>
+
+## 결과와 이유
+
+이 절에서 "첫 줄", "둘째 줄"처럼 쓴 것은 출력의 줄이고, 퀴즈의 "N번 줄"은 코드의 줄 번호입니다.
+
+### 결과 표
+
+예제마다 출력 줄을 `/`로 이은 결과입니다. 칸은 모두 예제를 실제로 실행한 결과와 같습니다.
+
+<div
+  className="my-6 overflow-x-auto"
+  tabIndex={0}
+  role="region"
+  aria-label="예제 결과 표(좁은 화면에서는 가로로 스크롤할 수 있습니다)"
+>
+  <table className="w-full border-collapse text-left">
+    <thead>
+      <tr>
+        <th scope="col" className="border-border border px-3 py-2">
+          {'예제'}
+        </th>
+        <th scope="col" className="border-border border px-3 py-2">
+          {'결과'}
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td className="border-border border px-3 py-2">{'예제 1: 하위 클래스의 name'}</td>
+        <td className="border-border border px-3 py-2">
+          {'Error ValidationError / Error: bad {} / true true / false false / true / TypeError'}
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">{'예제 2: name 지정 방법'}</td>
+        <td className="border-border border px-3 py-2">
+          {'Assigned: a Proto: p / true false / true / {"name":"Assigned"} {}'}
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">{'예제 3: JSON이 비는 이유'}</td>
+        <td className="border-border border px-3 py-2">
+          {'bad {} / bad false / 0 / {"name":"Error","message":"bad"}'}
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">{'예제 4: message 규칙'}</td>
+        <td className="border-border border px-3 py-2">
+          {'false "" / false / true / string 42 / null'}
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">{'예제 5: toString 규칙'}</td>
+        <td className="border-border border px-3 py-2">
+          {'Custom: m / Error: m / null: m / m / N / Error / Error'}
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">{'예제 6: cause 조건'}</td>
+        <td className="border-border border px-3 py-2">
+          {'1 {} / false / false / true undefined / 3 true'}
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">{'예제 7: 하위 클래스와 cause'}</td>
+        <td className="border-border border px-3 py-2">{'1 / invalid age false / 1'}</td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">{'예제 8: new 없이 부르기'}</td>
+        <td className="border-border border px-3 py-2">
+          {'true true Error: x / RangeError: r / TypeError'}
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+### 예제 1
+
+첫 줄 `Error ValidationError`는 `name`과 `constructor.name`이 다르다는 것을 보입니다. `name`이 클래스 이름에서 정해진다는 모델을 가려냅니다. 셋째 줄 `true true`는 인스턴스가 `ValidationError`와 `Error` 양쪽의 `instanceof`를 통과한다는 것이고, 원인은 프로토타입 체인입니다. 넷째 줄 `false false`는 인스턴스에도 `ValidationError.prototype`에도 자기 `name`이 없다는 것이고, 다섯째 줄 `true`는 `Error.prototype`에는 있다는 것입니다. 그래서 `v.name`은 체인에서 `Error.prototype`까지 올라가 읽은 값입니다. 둘째 줄 `Error: bad {}`는 `toString` 결과(`name: message`)와 Node의 `JSON.stringify` 결과입니다. 마지막 줄 `TypeError`는 `TypeError`를 상속한 클래스의 인스턴스가 읽는 `name`이 `Error`가 아니라는 것을 보입니다. 규칙은 "`Error`를 상속하면 `Error`"가 아니라 "체인에서 처음 만나는 `name`"입니다.
+
+### 예제 2
+
+첫 줄은 `toString`이 클래스 이름(`AssignedError`, `ProtoError`)이 아니라 읽은 `name`(`Assigned`, `Proto`)을 쓴다는 것을 보입니다. 둘째 줄 `true false`는 생성자 대입은 인스턴스의 자기 프로퍼티를 만들고 `prototype` 대입은 만들지 않는다는 것이고, 셋째 줄 `true`는 `ProtoError.prototype`에 둔 `name`이 열거 가능하다는 것입니다. 그래서 마지막 줄에서 `p`가 `{}`인 원인은 열거 불가가 아니라 `p`의 자기 프로퍼티가 아니라는 것입니다. 두 값이 모두 `{}`라고 보는 모델과, 열거 가능한 상속 프로퍼티도 직렬화된다고 보는 모델이 모두 이 줄에서 가려집니다.
+
+### 예제 3
+
+`bad {}`는 `message`를 읽을 수 있는데도 Node의 `JSON.stringify` 결과가 `{}`라는 것입니다. 둘째 줄 `bad false`는 `message`가 자기 프로퍼티이지만 열거되지 않는다는 것이고, 셋째 줄 `0`은 열거 가능한 자기 키가 하나도 없다는 것입니다. 이 결과가 `toString`의 문자열이 아니라 빈 객체이므로 `JSON.stringify`가 `toString`을 쓴다는 모델도 가려집니다. 마지막 줄처럼 필요한 프로퍼티를 직접 골라 객체로 만들면 직렬화할 수 있습니다.
+
+### 예제 4
+
+첫 줄 `false ""`는 `new Error()`에 자기 `message`가 없는데도 읽으면 빈 문자열이라는 것입니다. 기본값 빈 문자열을 자기 프로퍼티로 넣는 모델은 이 줄의 `false`에서 가려집니다. `''`도 생략과 같다고 보는 모델은 셋째 줄 `true`에서 가려집니다. 둘째 줄 `false`는 `undefined`를 명시해도 생략과 같다는 것입니다. 넷째 줄은 숫자 42가 문자열 `'42'`가 된다는 것을 `typeof`로 보입니다. 다섯째 줄의 `null`은 출력만으로는 문자열 `'null'`인지 `null` 값인지 구별되지 않습니다. `message`를 `ToString`으로 바꾼다는 명세와 넷째 줄을 함께 보면 문자열입니다.
+
+### 예제 5
+
+일곱 줄이 `toString`의 규칙을 하나씩 보입니다. 둘째 줄은 `name`이 `undefined`일 때 `'Error'`가 쓰이는 것, 셋째 줄 `null: m`은 `null`이 기본값 대상이 아니라 문자열 `'null'`이 된다는 것, 넷째 줄은 `name`이 빈 문자열이면 `message`만, 다섯째 줄은 `message`가 빈 문자열이면 `name`만 나온다는 것입니다. 여섯째 줄은 둘 다 없는 객체도 `Error`가 된다는 것이고, 일곱째 줄은 `new Error()` 인스턴스도 같은 결과임을 보입니다. 아래 규칙 표에 정리합니다.
+
+### 예제 6
+
+첫 줄 `1 {}`는 `cause`를 읽을 수 있는데 Node의 `JSON.stringify` 결과는 `{}`라는 것입니다. 둘째 줄 `false`는 `options`를 주지 않으면 `cause`가 없다는 것이고, 셋째 줄 `false`는 `options`가 빈 객체여도 없다는 것입니다. 넷째 줄 `true undefined`는 값이 `undefined`여도 `HasProperty`가 true라 자기 `cause`가 생긴다는 것입니다. 다섯째 줄 `3 true`는 `options` 자신이 아니라 프로토타입에 있는 `cause`도 조건을 만족하고, 그 값이 에러의 자기 프로퍼티가 된다는 것입니다. 값이 `undefined`이면 생략과 같다는 모델과 자기 프로퍼티만 본다는 모델이 이 줄들에서 가려집니다.
+
+### 예제 7
+
+첫 줄 `1`은 생성자를 생략한 하위 클래스가 받은 `options`를 `super`에 넘겨 `cause`가 생긴다는 것입니다. 둘째 줄 `invalid age false`는 직접 쓴 생성자가 `options`를 받지 않고 `super('invalid ' + field)`만 부르면 `cause`가 없다는 것입니다. 셋째 줄 `1`은 `options`를 `super`에 넘기면 다시 생긴다는 것입니다. `cause`가 자동으로 전달된다는 모델과 기본 생성자도 `options`를 넘기지 않는다는 모델이 각각 둘째 줄과 첫 줄에서 가려집니다.
+
+### 예제 8
+
+첫 줄 `true true Error: x`는 `new` 없이 부른 `Error('x')`가 `instanceof Error`를 통과하고 프로토타입이 `Error.prototype`이며 `toString` 결과가 `Error: x`라는 것입니다. 둘째 줄은 `RangeError`도 `new` 없이 부를 수 있다는 것입니다. 마지막 줄 `TypeError`는 `class`로 선언한 `ValidationError`를 `new` 없이 부르면 오류가 던져져 `catch`가 실행된다는 것입니다. 클래스도 `Error`처럼 `new` 없이 객체를 만든다면 `catch`가 실행되지 않아 마지막 줄이 없을 것입니다.
+
+### name 지정 방법 표
+
+`a`와 `p`는 예제 2의 인스턴스입니다.
+
+<div
+  className="my-6 overflow-x-auto"
+  tabIndex={0}
+  role="region"
+  aria-label="name 지정 방법 표(좁은 화면에서는 가로로 스크롤할 수 있습니다)"
+>
+  <table className="w-full border-collapse text-left [&_code]:whitespace-nowrap">
+    <thead>
+      <tr>
+        <th scope="col" className="border-border border px-3 py-2">
+          {'방법'}
+        </th>
+        <th scope="col" className="border-border border px-3 py-2">
+          {'name이 있는 곳'}
+        </th>
+        <th scope="col" className="border-border border px-3 py-2">
+          {'인스턴스의 자기 프로퍼티인가'}
+        </th>
+        <th scope="col" className="border-border border px-3 py-2">
+          {'String 결과'}
+        </th>
+        <th scope="col" className="border-border border px-3 py-2">
+          {'JSON 결과'}
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td className="border-border border px-3 py-2">{'아무것도 안 함(예제 1)'}</td>
+        <td className="border-border border px-3 py-2">
+          <code>{'Error.prototype'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">{'아니요'}</td>
+        <td className="border-border border px-3 py-2">
+          <code>{'Error: bad'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'{}'}</code>
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">{'생성자에서 대입(예제 2의 a)'}</td>
+        <td className="border-border border px-3 py-2">{'인스턴스'}</td>
+        <td className="border-border border px-3 py-2">{'예(열거 가능)'}</td>
+        <td className="border-border border px-3 py-2">
+          <code>{'Assigned: a'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'{"name":"Assigned"}'}</code>
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">{'prototype에 대입(예제 2의 p)'}</td>
+        <td className="border-border border px-3 py-2">
+          <code>{'ProtoError.prototype'}</code>
+          {'(열거 가능)'}
+        </td>
+        <td className="border-border border px-3 py-2">{'아니요'}</td>
+        <td className="border-border border px-3 py-2">
+          <code>{'Proto: p'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'{}'}</code>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+JSON 결과 칸의 `{}`는 Node에서 실행한 결과입니다.
+
+### toString 규칙 표
+
+예제 5의 일곱 줄을 규칙별로 정리했습니다. 인스턴스는 `new Error()`이고, 나머지는 `Error.prototype.toString.call(객체)`입니다.
+
+<div
+  className="my-6 overflow-x-auto"
+  tabIndex={0}
+  role="region"
+  aria-label="toString 규칙 표(좁은 화면에서는 가로로 스크롤할 수 있습니다)"
+>
+  <table className="w-full border-collapse text-left [&_code]:whitespace-nowrap">
+    <thead>
+      <tr>
+        <th scope="col" className="border-border border px-3 py-2">
+          {'name 값'}
+        </th>
+        <th scope="col" className="border-border border px-3 py-2">
+          {'message 값'}
+        </th>
+        <th scope="col" className="border-border border px-3 py-2">
+          {'적용 규칙'}
+        </th>
+        <th scope="col" className="border-border border px-3 py-2">
+          {'결과'}
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{"'Custom'"}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{"'m'"}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          {'둘 다 비어 있지 않으면 name, 콜론, 공백, message를 이음'}
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'Custom: m'}</code>
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">{'없음(undefined)'}</td>
+        <td className="border-border border px-3 py-2">
+          <code>{"'m'"}</code>
+        </td>
+        <td className="border-border border px-3 py-2">{'name이 undefined이면 Error를 씀'}</td>
+        <td className="border-border border px-3 py-2">
+          <code>{'Error: m'}</code>
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{'null'}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{"'m'"}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          {'undefined가 아니므로 ToString한 문자열 null을 씀'}
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'null: m'}</code>
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{"''"}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{"'m'"}</code>
+        </td>
+        <td className="border-border border px-3 py-2">{'name이 빈 문자열이면 message만'}</td>
+        <td className="border-border border px-3 py-2">
+          <code>{'m'}</code>
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">
+          <code>{"'N'"}</code>
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{"''"}</code>
+        </td>
+        <td className="border-border border px-3 py-2">{'message가 빈 문자열이면 name만'}</td>
+        <td className="border-border border px-3 py-2">
+          <code>{'N'}</code>
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">{'없음(undefined)'}</td>
+        <td className="border-border border px-3 py-2">{'없음(undefined)'}</td>
+        <td className="border-border border px-3 py-2">
+          {'name은 Error, message는 빈 문자열이라 name만'}
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'Error'}</code>
+        </td>
+      </tr>
+      <tr>
+        <td className="border-border border px-3 py-2">{'상속한 초깃값(Error)'}</td>
+        <td className="border-border border px-3 py-2">{'상속한 초깃값(빈 문자열)'}</td>
+        <td className="border-border border px-3 py-2">
+          {'new Error()의 인스턴스에 같은 규칙을 적용'}
+        </td>
+        <td className="border-border border px-3 py-2">
+          <code>{'Error'}</code>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+### 흔한 오해
+
+<Callout type="misconception" title="extends Error 하면 name이 클래스 이름이 된다">
+
+`name`은 클래스 이름에서 정해지지 않고 프로토타입 체인에서 처음 만나는 `name`입니다. `class ValidationError extends Error {}`의 인스턴스는 `Error.prototype`의 `'Error'`를 읽고, `class TypeCheckError extends TypeError {}`의 인스턴스는 `TypeError.prototype`의 `'TypeError'`를 읽습니다(예제 1). 클래스 이름과 같게 하려면 예를 들어 생성자에서 대입하거나 `prototype`에 둘 수 있습니다(예제 2).
+
+</Callout>
+
+<Callout type="misconception" title="JSON.stringify(err)로 에러 내용을 보낼 수 있다">
+
+Node에서 `JSON.stringify(new Error('bad'))`는 `{}`입니다. `message`와 `cause`는 열거되지 않는 자기 프로퍼티이고, Node에서 `new Error('bad')`로 만든 인스턴스에는 열거 가능한 자기 프로퍼티가 없기 때문입니다(예제 3, 예제 6의 출력 첫 줄). 다른 엔진은 결과가 다를 수 있으므로 필요한 프로퍼티를 직접 골라 객체로 만들어 직렬화하는 편이 안전합니다(예제 3의 출력 마지막 줄).
+
+</Callout>
+
+<Callout type="misconception" title="cause: undefined는 cause를 안 준 것과 같다">
+
+자기 `cause`가 생기는지는 값이 아니라 `options`에 `cause` 프로퍼티가 있는지(`HasProperty`)로 정해집니다. `{ cause: undefined }`는 값이 `undefined`인 자기 `cause`를 만들고, 옵션을 주지 않은 에러에는 `cause`가 없습니다(예제 6의 출력 둘째·넷째 줄).
+
+</Callout>

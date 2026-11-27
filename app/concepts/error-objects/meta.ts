@@ -1,0 +1,156 @@
+import type { ConceptMeta } from '~/lib/concepts'
+
+const SPEC = 'https://tc39.es/ecma262/#'
+const MDN = 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/'
+
+export const concept = {
+  slug: 'error-objects',
+  title: '에러 객체: class ValidationError extends Error의 인스턴스는 name이 왜 Error일까',
+  summary:
+    'Error를 상속한 클래스의 인스턴스가 읽는 name이 Error인 이유를 프로퍼티가 있는 곳으로 설명하고, toString·JSON.stringify 결과, message·cause가 생기는 조건, new 없이 부르는 경우를 실행으로 확인합니다.',
+  category: 'objects',
+  order: 471,
+  tags: [
+    'Error',
+    'name',
+    'message',
+    'cause',
+    'toString',
+    'extends',
+    '사용자 정의 에러',
+    '커스텀 에러',
+    'ValidationError',
+    'JSON.stringify',
+    'InstallErrorCause',
+    'Error.prototype',
+    'TypeError',
+    'RangeError',
+    'NativeError',
+    '섀도잉',
+    'instanceof',
+  ],
+  goals: [
+    'Error를 상속한 클래스의 인스턴스에서 name이 프로토타입 체인에서 처음 만나는 name이라는 것과, extends Error는 Error지만 extends TypeError는 TypeError라는 것을 설명할 수 있다.',
+    '명세의 Error 생성자 단계가 만드는 자기 프로퍼티는 message와 cause뿐이고 둘 다 열거되지 않으며, 생성자에서 this.name을 대입하면 열거 가능한 자기 프로퍼티가 생기지만 prototype에 대입한 name은 인스턴스의 자기 프로퍼티가 아니라는 것을 구분할 수 있다.',
+    'Error.prototype.toString이 name과 message의 빈 값을 처리하는 규칙으로 문자열을 예측할 수 있다.',
+    'message를 생략하거나 문자열이 아닌 값을 주었을 때의 결과와, 어떤 options에서 자기 cause가 생기는지를 예측할 수 있다.',
+    '하위 클래스 생성자가 options를 super에 넘기지 않으면 Error 생성자가 cause를 만들지 않고, 생성자를 생략한 클래스는 new 없이 부르면 기본 생성자가 TypeError를 던지는 반면 Error는 new 없이도 같은 결과를 만든다는 것을 설명할 수 있다.',
+  ],
+  prerequisites: [
+    { label: '프로토타입 체인', slug: 'prototype-chain' },
+    { label: '프로퍼티 어트리뷰트', slug: 'property-attributes' },
+    { label: '클래스 상속과 super', slug: 'class-inheritance' },
+    { label: 'JSON', slug: 'json' },
+    { label: '예외 처리', slug: 'error-handling' },
+  ],
+  related: [
+    'prototype-chain',
+    'property-attributes',
+    'class-basics',
+    'class-inheritance',
+    'this-binding',
+    'function-name',
+    'array-subclass',
+    'to-primitive',
+    'json',
+    'structured-clone',
+    'promise-static-methods',
+    'error-handling',
+  ],
+  examples: [
+    {
+      id: 'subclass-name',
+      file: 'subclass-name.js',
+      runtime: 'ecmascript',
+      expectedOutput: [
+        'Error ValidationError',
+        'Error: bad {}',
+        'true true',
+        'false false',
+        'true',
+        'TypeError',
+      ],
+    },
+    {
+      id: 'name-ways',
+      file: 'name-ways.js',
+      runtime: 'ecmascript',
+      expectedOutput: ['Assigned: a Proto: p', 'true false', 'true', '{"name":"Assigned"} {}'],
+    },
+    {
+      id: 'json-empty',
+      file: 'json-empty.js',
+      runtime: 'ecmascript',
+      expectedOutput: ['bad {}', 'bad false', '0', '{"name":"Error","message":"bad"}'],
+    },
+    {
+      id: 'message-rules',
+      file: 'message-rules.js',
+      runtime: 'ecmascript',
+      expectedOutput: ['false ""', 'false', 'true', 'string 42', 'null'],
+    },
+    {
+      id: 'to-string-rules',
+      file: 'to-string-rules.js',
+      runtime: 'ecmascript',
+      expectedOutput: ['Custom: m', 'Error: m', 'null: m', 'm', 'N', 'Error', 'Error'],
+    },
+    {
+      id: 'cause',
+      file: 'cause.js',
+      runtime: 'ecmascript',
+      expectedOutput: ['1 {}', 'false', 'false', 'true undefined', '3 true'],
+    },
+    {
+      id: 'subclass-cause',
+      file: 'subclass-cause.js',
+      runtime: 'ecmascript',
+      expectedOutput: ['1', 'invalid age false', '1'],
+    },
+    {
+      id: 'call-without-new',
+      file: 'call-without-new.js',
+      runtime: 'ecmascript',
+      expectedOutput: ['true true Error: x', 'RangeError: r', 'TypeError'],
+    },
+  ],
+  simplifications: [
+    "예제는 Node vm에서 strict mode가 아닌 스크립트로 실행했고 console은 ECMAScript가 아니라 호스트가 제공하는 API입니다. 모든 예제는 파일 첫 줄에 'use strict';를 붙여도 출력이 같습니다. 실행 환경은 Node vm 하나이며 Chromium 등 다른 엔진에서는 확인하지 않았습니다.",
+    'stack 프로퍼티는 ECMAScript 표준이 아니라서 값을 출력하지 않고 설명하지도 않습니다. 예제를 실행한 Node(V8)는 에러 인스턴스에 열거되지 않는 자기 프로퍼티 stack을 더하는데, 이는 명세가 정하지 않은 구현의 추가 프로퍼티이고 그 형태(데이터 프로퍼티인지 접근자인지)는 Node 버전에 따라 다를 수 있습니다. Conformance 절이 구현이 명세에 없는 프로퍼티를 더하는 것을 허용하므로, 다른 엔진은 인스턴스에 열거 가능한 자기 프로퍼티를 더할 수 있고 그러면 JSON.stringify 결과가 달라집니다.',
+    'JSON.stringify(에러)의 결과 {}는 Node에서 실행한 결과입니다. 명세의 Error 생성자가 만드는 자기 프로퍼티는 열거되지 않는 message와 cause뿐이고 Error.prototype에는 toJSON이 없지만, 위의 이유로 다른 엔진의 결과는 단정하지 않습니다.',
+    'message·cause를 만드는 단계는 명세에서 NativeError 6개도 Error와 같습니다. 이 페이지는 그 근거로 일반화해 쓰며, 실제로 실행해 보인 NativeError는 RangeError를 new 없이 부르는 경우(예제 8)와 TypeError를 상속한 클래스의 인스턴스가 읽는 name(예제 1)뿐입니다.',
+    'Error.captureStackTrace, Error.isError, AggregateError 생성자와 errors 프로퍼티, SuppressedError, DOMException, Object.prototype.toString이 만드는 [object Error] 문자열, 다른 realm의 Error와 instanceof는 다루지 않습니다. [[ErrorData]] 내부 슬롯은 이 페이지의 예제에서 관찰되지 않으므로 instanceof 결과의 원인으로 쓰지 않습니다.',
+    '생성자를 직접 쓴 클래스를 new 없이 부르는 경우는 본문에서 명세의 단계만 밝히고(기본 생성자가 아니라 클래스 생성자의 호출 단계에서 TypeError가 납니다) 예제로 실행해 보이지 않습니다. 클래스 필드로 name을 정하는 방법, 옛 방식의 Error.call(this, message) 상속, message에 Symbol을 넘겼을 때의 TypeError, Error.prototype.toString을 객체가 아닌 this로 부를 때의 TypeError는 다루지 않습니다.',
+    '명세 링크는 현재 초안(tc39.es/ecma262)을 가리킵니다. 본문의 영어 인용은 초안과 ES2026판에서 문장이 같은 것만 쓰고, 알고리즘 단계는 판마다 변수 이름이 달라 인용하지 않고 풀어 썼습니다.',
+  ],
+  references: [
+    {
+      label: 'ECMAScript 명세 — Error ( message [ , options ] )',
+      url: `${SPEC}sec-error-message`,
+    },
+    {
+      label: 'ECMAScript 명세 — InstallErrorCause',
+      url: `${SPEC}sec-installerrorcause`,
+    },
+    {
+      label: 'ECMAScript 명세 — Properties of the Error Prototype Object',
+      url: `${SPEC}sec-properties-of-the-error-prototype-object`,
+    },
+    {
+      label: 'ECMAScript 명세 — Error.prototype.toString',
+      url: `${SPEC}sec-error.prototype.tostring`,
+    },
+    {
+      label: 'ECMAScript 명세 — NativeError Constructors',
+      url: `${SPEC}sec-nativeerror-constructors`,
+    },
+    {
+      label: 'ECMAScript 명세 — OrdinaryCreateFromConstructor',
+      url: `${SPEC}sec-ordinarycreatefromconstructor`,
+    },
+    { label: 'MDN — Error', url: `${MDN}Global_Objects/Error` },
+    { label: 'MDN — Error: cause', url: `${MDN}Global_Objects/Error/cause` },
+    { label: 'MDN — Error.prototype.toString()', url: `${MDN}Global_Objects/Error/toString` },
+  ],
+  reviewedAt: '2026-11-27',
+} satisfies ConceptMeta

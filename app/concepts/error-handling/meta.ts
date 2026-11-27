@@ -44,6 +44,7 @@ export const concept = {
     'async-await',
     'event-loop',
     'uncaught-exceptions',
+    'error-objects',
   ],
   examples: [
     {
@@ -135,7 +136,7 @@ export const concept = {
     '시뮬레이터는 catch 블록이 없는 try...finally만 단계별로 보입니다. catch를 거치는 경우(catch의 완료가 try 문의 결과 후보가 되는 단계)는 본문과 예제로 설명하며 시뮬레이터에는 없습니다.',
     '시뮬레이터의 실행 컨텍스트 스택은 사용자 함수와 전역 코드만 그립니다. 내장 함수(console.log 등)의 프레임은 그리지 않습니다.',
     '전역 error·unhandledrejection 예제는 리스너에서 항상 preventDefault()를 부릅니다. 이 페이지의 실행 환경은 보고된 에러를 실패로 처리하기 때문입니다. 따라서 취소하지 않으면 사용자 에이전트가 콘솔에 보고할 수 있다는 부분은 HTML 표준의 서술로만 설명하며, 예제로 실행해 보이지 않습니다.',
-    'Error의 cause, AggregateError, stack(ECMAScript 표준이 아닌 비표준 속성), 사용자 정의 에러 클래스는 다루지 않습니다.',
+    'Error의 cause와 사용자 정의 에러 클래스는 에러 객체 개념에서 다룹니다. AggregateError와 stack(ECMAScript 표준이 아닌 비표준 속성)은 다루지 않습니다.',
     'instanceof는 같은 realm의 내장 에러와 기본 동작(프로토타입 체인 확인)만 다룹니다. 다른 realm에서 만든 에러나 Symbol.hasInstance를 정의한 경우는 결과가 다를 수 있습니다.',
     'catch 매개변수의 구조 분해가 던지는 경우(catch 블록이 평가되지 않음)는 다루지 않습니다.',
     '스크립트 최상위에서 잡히지 않은 예외와 onerror 핸들러 속성은 잡히지 않은 예외 개념에서 다룹니다. 다른 출처 스크립트의 Script error., 워커의 에러, Node.js의 process 이벤트, 최상위 await는 다루지 않습니다.',

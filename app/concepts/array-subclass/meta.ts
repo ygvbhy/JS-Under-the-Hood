@@ -52,6 +52,7 @@ export const concept = {
     'class-basics',
     'new-operator',
     'array-method-pitfalls',
+    'error-objects',
   ],
   examples: [
     {
@@ -98,7 +99,7 @@ export const concept = {
     'ArraySpeciesCreate의 다른 realm 단계, species 생성자가 배열이 아닌 것을 돌려주는 경우, 배열 메서드를 배열이 아닌 값에 빌려 쓰는 경우(IsArray가 false이면 늘 Array)는 다루지 않습니다.',
     'ES2023의 toSorted·toReversed·toSpliced·with는 species를 쓰지 않고 늘 Array를 만들며 다루지 않습니다.',
     'MDN은 Symbol.species가 임의 코드 실행과 보안 취약점의 여지를 만들고 최적화를 어렵게 해 엔진 구현자들이 제거를 검토하고 있다며 되도록 의존하지 말라고 경고합니다. 이 페이지는 동작 원리를 보이려고 재정의를 씁니다.',
-    'Error·Map·Set·Promise·RegExp 같은 다른 내장 생성자의 상속, Map·Set·Promise·RegExp 같은 다른 생성자의 species, Reflect.construct는 다루지 않습니다.',
+    'Error 상속은 에러 객체 개념에서 다루고, Map·Set·Promise·RegExp 같은 다른 내장 생성자의 상속과 species, Reflect.construct는 다루지 않습니다.',
   ],
   references: [
     {
